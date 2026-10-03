@@ -211,7 +211,7 @@ function parseEvent(league, e) {
   const comp = e.competitions[0];
   const side = (ha) => {
     const c = comp.competitors.find((t) => t.homeAway === ha);
-    return { id: c.team.id, abbr: c.team.abbreviation, name: c.team.shortDisplayName, logo: c.team.logo,
+    return { id: c.team.id, abbr: c.team.abbreviation, logo: c.team.logo,
              // Everything a search can match: "ND", "Notre Dame", "Notre Dame Fighting Irish".
              searchText: " " + [c.team.abbreviation, c.team.shortDisplayName, c.team.displayName, c.team.location]
                .filter(Boolean).join(" ").toLowerCase(),
@@ -225,25 +225,25 @@ function parseEvent(league, e) {
   const possession = s.possession ??
     (s.downDistanceText && !/timeout|end period|end of/i.test(lp?.type?.text || "") ? lp?.end?.team?.id : undefined);
   return {
-    key: `${league}:${e.id}`, league, date: new Date(e.date),
+    key: `${league}:${e.id}`, date: new Date(e.date),
     state: e.status.type.state, detail: e.status.type.shortDetail,
     clock: e.status.displayClock, period: e.status.period,
     home: side("home"), away: side("away"),
     // ESPN's yardLine is yards from the home team's goal line.
-    yardLine: s.yardLine, down: s.down, distance: s.distance, possession,
+    yardLine: s.yardLine, distance: s.distance, possession,
     ddText: s.downDistanceText, redZone: s.isRedZone,
-    homeTO: s.homeTimeouts, awayTO: s.awayTimeouts, lastPlay: s.lastPlay?.text,
+    homeTO: s.homeTimeouts, awayTO: s.awayTimeouts, lastPlay: lp?.text,
   };
 }
 
 function demoGame() {
   const team = (id, abbr, color, score) =>
-    ({ id, abbr, name: abbr, color, score, searchText: " " + abbr.toLowerCase(), logo: `https://a.espncdn.com/i/teamlogos/nfl/500/${abbr.toLowerCase()}.png` });
+    ({ id, abbr, color, score, searchText: " " + abbr.toLowerCase(), logo: `https://a.espncdn.com/i/teamlogos/nfl/500/${abbr.toLowerCase()}.png` });
   return {
-    key: "nfl:demo", league: "nfl", date: new Date(), state: "in", detail: "Demo",
+    key: "nfl:demo", date: new Date(), state: "in", detail: "Demo",
     clock: "2:47", period: 4,
     away: team("12", "KC", "#e31837", "17"), home: team("2", "BUF", "#00338d", "20"),
-    yardLine: 12, down: 3, distance: 6, possession: "12", ddText: "3rd & 6 at BUF 12", redZone: true,
+    yardLine: 12, distance: 6, possession: "12", ddText: "3rd & 6 at BUF 12", redZone: true,
     awayTO: 2, homeTO: 1, lastPlay: "Demo game: P.Mahomes pass short right to T.Kelce for 9 yards",
   };
 }
