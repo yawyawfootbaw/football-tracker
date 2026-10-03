@@ -20,7 +20,7 @@
   #contact { padding: 3px 10px; color: var(--muted); background: var(--bg); border-top-left-radius: 6px; user-select: all; }
   #settings { padding: 0 7px; background: var(--bg); border: 1px solid var(--border); border-bottom: 0; border-radius: 6px 6px 0 0; color: var(--muted); font: inherit; font-size: 12px; cursor: pointer; }
   #settings:hover, #settings[aria-expanded="true"] { color: var(--text); }
-  #settings-menu { position: absolute; bottom: calc(100% + 4px); left: 0; min-width: 120px; padding: 4px; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 6px 20px rgba(0, 0, 0, .4); }
+  #settings-menu { transform-origin: bottom left; position: absolute; bottom: calc(100% + 4px); left: 0; min-width: 120px; padding: 4px; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 6px 20px rgba(0, 0, 0, .4); }
   #settings-menu button { display: block; width: 100%; padding: 6px 10px; background: none; border: 0; border-radius: 5px; color: var(--text); font: inherit; font-size: 13px; text-align: left; cursor: pointer; }
   #settings-menu button:hover { background: var(--border); }
   #settings-menu .check { display: inline-block; width: 16px; color: var(--accent); visibility: hidden; }
@@ -359,13 +359,26 @@ document.getElementById("search").addEventListener("input", renderList);
 if (DEMO) document.querySelector("#coach figcaption").hidden = true;
 const settingsBtn = document.getElementById("settings");
 const settingsMenu = document.getElementById("settings-menu");
+let settingsOpen = false;
 function setSettingsMenu(open) {
-  settingsMenu.hidden = !open;
+  if (open === settingsOpen) return;
+  settingsOpen = open;
   settingsBtn.setAttribute("aria-expanded", open);
+  settingsMenu.getAnimations().forEach((a) => a.cancel());
+  // Pop up out of the gear (bottom-left corner) and drop back into it.
+  const tucked = { opacity: 0, transform: "translateY(6px) scale(.9)" };
+  const shown = { opacity: 1, transform: "none" };
+  if (open) {
+    settingsMenu.hidden = false;
+    settingsMenu.animate([tucked, shown], { duration: 160, easing: "cubic-bezier(.2, .9, .3, 1.2)" });
+  } else {
+    settingsMenu.animate([shown, tucked], { duration: 120, easing: "ease-in" })
+      .onfinish = () => { settingsMenu.hidden = true; };
+  }
 }
 settingsBtn.addEventListener("click", (e) => {
   e.stopPropagation();
-  setSettingsMenu(settingsMenu.hidden);
+  setSettingsMenu(!settingsOpen);
 });
 // Cignetti grows out of a point (the "google me" button) and shrinks back into one (that button or the gear).
 const coach = document.getElementById("coach");
