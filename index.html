@@ -23,8 +23,17 @@
   .tabs button { flex: 1; padding: 10px; background: none; border: 0; color: var(--muted); font: inherit; cursor: pointer; border-bottom: 2px solid transparent; }
   .tabs button.on { color: var(--text); border-bottom-color: var(--accent); }
   .group-label { padding: 10px 12px 4px; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
-  label.game { display: flex; align-items: center; gap: 10px; padding: 6px 12px; cursor: pointer; }
+  label.game { position: relative; display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 8px 12px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
   label.game:hover { background: var(--panel); }
+  label.game:has(input:checked) { background: rgba(76, 141, 255, .12); }
+  /* The checkbox stays for keyboards and screen readers; the round + / ✓ button is what you see. */
+  label.game input { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
+  .pick { flex: none; display: grid; place-items: center; width: 28px; height: 28px; border: 2px solid var(--muted); border-radius: 50%; color: var(--muted); font-size: 16px; font-weight: 700; line-height: 1; transition: background .15s, border-color .15s; }
+  .pick::before { content: "+"; }
+  label.game input:checked ~ .pick { background: var(--accent); border-color: var(--accent); color: #fff; }
+  label.game input:checked ~ .pick::before { content: "✓"; font-size: 14px; }
+  label.game input:focus-visible ~ .pick { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .drawer-foot { display: none; }
   label.game .info { flex: 1; min-width: 0; }
   label.game .teams { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   label.game .status { color: var(--muted); font-size: 12px; }
@@ -78,6 +87,8 @@
     aside.collapsed #picker-backdrop { opacity: 0; pointer-events: none; }
     body:has(aside:not(.collapsed)) { overflow: hidden; }
     aside.preload #picker-body, aside.preload #picker-backdrop { transition: none; }
+    .drawer-foot { display: block; position: sticky; bottom: 0; padding: 12px 16px; background: var(--bg); border-top: 1px solid var(--border); }
+    #picker-done { width: 100%; padding: 12px; border: 0; border-radius: 8px; background: var(--accent); color: #fff; font: inherit; font-weight: 600; cursor: pointer; }
     #board { grid-template-columns: minmax(0, 1fr); padding: 12px 16px; }
   }
   /* Reduce Motion: fade the drawer in place instead of sliding it. */
@@ -107,6 +118,7 @@
       <input id="search" type="search" placeholder="Search teams" autocomplete="off">
     </div>
     <div id="list"><div class="spinner" role="status" aria-label="Loading games"></div></div>
+    <div class="drawer-foot"><button id="picker-done">Done</button></div>
     </div>
   </aside>
   <section id="board"><div class="spinner" role="status" aria-label="Loading games"></div></section>
@@ -212,7 +224,7 @@ function renderList() {
     const score = g.state === "pre" ? "" : ` ${g.away.score}–${g.home.score}`;
     html += `<label class="game"><input type="checkbox" data-key="${g.key}" ${selected.has(g.key) ? "checked" : ""}>
       <span class="info"><div class="teams">${teamLabel(g.away)} @ ${teamLabel(g.home)}${score}</div>
-      <div class="status">${status}</div></span></label>`;
+      <div class="status">${status}</div></span><span class="pick" aria-hidden="true"></span></label>`;
   }
   document.getElementById("list").innerHTML = html || `<div class="empty">${query ? "No matching games." : "No games this week."}</div>`;
 }
@@ -323,6 +335,7 @@ function setPicker(open) {
 }
 document.getElementById("picker-toggle").addEventListener("click", () => setPicker(!pickerOpen));
 document.getElementById("picker-close").addEventListener("click", () => setPicker(false));
+document.getElementById("picker-done").addEventListener("click", () => setPicker(false));
 document.getElementById("picker-backdrop").addEventListener("click", () => setPicker(false));
 document.addEventListener("keydown", (e) => { if (e.key === "Escape" && pickerOpen) setPicker(false); });
 renderPicker();
