@@ -366,7 +366,8 @@ document.addEventListener("visibilitychange", () => {
 
 document.getElementById("search").addEventListener("input", renderList);
 
-// Settings gear: one option, which toggles the Cignetti corner photo.
+// Settings gear: one option, which toggles the Cignetti corner photo. ?demo hides its caption for clean screenshots.
+if (DEMO) document.querySelector("#coach figcaption").hidden = true;
 const settingsBtn = document.getElementById("settings");
 const settingsMenu = document.getElementById("settings-menu");
 function setSettingsMenu(open) {
