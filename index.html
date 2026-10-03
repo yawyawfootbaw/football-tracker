@@ -61,7 +61,6 @@
   .team .to { color: var(--muted); font-size: 11px; font-weight: 400; letter-spacing: 1px; }
   .clock { text-align: center; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
   .dd { text-align: center; font-size: 18px; font-weight: 700; margin: 8px 0 6px; min-height: 25px; }
-  .dd.red { color: var(--red); }
   svg.field { width: 100%; display: block; border-radius: 4px; }
   .card-foot { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
   .last { flex: 1; min-width: 0; color: var(--muted); font-size: 12px; min-height: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -266,7 +265,7 @@ function card(g) {
   return `<div class="card ${inRedZone ? "redzone" : ""} ${glowing ? "glow" : ""}"
     ${glowing ? `style="animation-delay: -${glowAge}ms"` : ""}>
     <div class="score">${team(g.away, "away", g.awayTO)}<div class="clock">${clock}</div>${team(g.home, "home", g.homeTO)}</div>
-    <div class="dd ${g.redZone ? "red" : ""}">${live ? (g.ddText || "&nbsp;") : "&nbsp;"}</div>
+    <div class="dd">${live ? (g.ddText || "&nbsp;") : "&nbsp;"}</div>
     ${field(g)}
     <div class="card-foot">
       <div class="last">${live && g.lastPlay ? g.lastPlay : ""}</div>
