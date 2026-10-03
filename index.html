@@ -178,21 +178,34 @@ const GLOW_MS = 2400;             // matches the redzone-glow animation length
 const redZoneShown = new Set();   // game keys currently drawn in the red zone
 const glowStart = new Map();      // game key -> when its one-time glow began
 
+let lastUpdated = null;  // when data last arrived successfully; a failed poll leaves it alone so the age keeps climbing
+
 async function poll() {
   await Promise.all(Object.entries(LEAGUES).map(async ([league, url]) => {
     try {
       const data = await (await fetch(url)).json();
       games[league] = data.events.map((e) => parseEvent(league, e));
       if (DEMO && league === "nfl") games.nfl.unshift(demoGame());
+      lastUpdated = Date.now();
     } catch (err) {
       console.error(league, err);
     }
   }));
-  document.getElementById("updated").textContent = "Updated " + new Date().toLocaleTimeString();
+  renderUpdated();
   // First load (or nothing yet) renders right away; after that the list waits out LIST_REFRESH_MS.
   if (Date.now() - lastListRender >= LIST_REFRESH_MS) renderList();
   renderBoard();
 }
+
+function renderUpdated() {
+  if (lastUpdated === null) return;
+  const secs = Math.floor((Date.now() - lastUpdated) / 1000);
+  const mins = Math.floor(secs / 60);
+  document.getElementById("updated").textContent = mins
+    ? `Updated ${mins} minute${mins === 1 ? "" : "s"} ago`
+    : `Updated ${secs} second${secs === 1 ? "" : "s"} ago`;
+}
+setInterval(renderUpdated, 1000);
 
 function parseEvent(league, e) {
   const comp = e.competitions[0];
