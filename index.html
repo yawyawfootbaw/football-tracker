@@ -14,7 +14,7 @@
   header { display: flex; align-items: center; gap: 16px; padding: 12px 16px; border-bottom: 1px solid var(--border); }
   header h1 { font-size: 16px; margin: 0; }
   #updated { color: var(--muted); font-size: 12px; margin-left: auto; }
-  main { display: grid; grid-template-columns: 300px 1fr; height: calc(100vh - 49px); }
+  main { display: grid; grid-template-columns: 300px minmax(0, 1fr); height: calc(100vh - 49px); }
   aside { border-right: 1px solid var(--border); overflow-y: auto; }
   .list-head { position: sticky; top: 0; background: var(--bg); border-bottom: 1px solid var(--border); z-index: 1; }
   .tabs { display: flex; border-bottom: 1px solid var(--border); }
@@ -32,7 +32,7 @@
   .empty { color: var(--muted); padding: 24px; }
   .spinner { width: 32px; height: 32px; margin: 48px auto; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; grid-column: 1 / -1; }
   @keyframes spin { to { transform: rotate(360deg); } }
-  .card { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 12px; }
+  .card { min-width: 0; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 12px; }
   .card.redzone { border-color: var(--red); }
   .card.glow { animation: redzone-glow 2.4s ease-in-out; }
   @keyframes redzone-glow {
@@ -42,7 +42,7 @@
     .card.glow { animation: none; }
   }
   .score { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; }
-  .team { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+  .team { min-width: 0; display: flex; align-items: center; gap: 8px; font-weight: 600; }
   .team.home { justify-content: flex-end; }
   .team img { width: 24px; height: 24px; }
   .team .pts { font-size: 22px; font-variant-numeric: tabular-nums; }
@@ -55,7 +55,7 @@
   .last { color: var(--muted); font-size: 12px; margin-top: 6px; min-height: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   #picker-toggle { display: none; }
   @media (max-width: 700px) {
-    main { grid-template-columns: 1fr; height: auto; }
+    main { grid-template-columns: minmax(0, 1fr); height: auto; }
     aside { max-height: 60vh; border-right: 0; border-bottom: 1px solid var(--border); }
     aside.collapsed { overflow: visible; }
     aside.collapsed .list-head, aside.collapsed #list { display: none; }
@@ -64,7 +64,7 @@
     #picker-toggle .chev { margin-left: auto; transition: transform .15s; }
     aside.collapsed #picker-toggle .chev { transform: rotate(-90deg); }
     aside:not(.collapsed) .list-head { top: 45px; }
-    #board { grid-template-columns: 1fr; padding: 12px 16px; }
+    #board { grid-template-columns: minmax(0, 1fr); padding: 12px 16px; }
   }
 </style>
 </head>
@@ -87,15 +87,19 @@
   </aside>
   <section id="board"><div class="spinner" role="status" aria-label="Loading games"></div></section>
 </main>
-<!-- Hit counter: each page load adds one. See the count in DevTools → Network → filter "hits.sh" → Preview. -->
-<img hidden alt="" src="https://hits.sh/yawyawfootbaw.github.io/football-tracker.svg">
 <script>
 const LEAGUES = {
   nfl: "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard",
   cfb: "https://site.api.espn.com/apis/site/v2/sports/football/college-football/scoreboard?groups=80&limit=300",
 };
 const POLL_MS = 10000;
-const DEMO = new URLSearchParams(location.search).has("demo");  // open with ?demo to add a fake red-zone game
+const DEMO = new URLSearchParams(location.search).has("demo");  // ?demo adds a fake red-zone game and skips the hit counter
+
+// Hit counter: each page load adds one. See the count in DevTools → Network → filter "hits.sh" → Preview.
+if (!DEMO) {
+  const counter = new Image();
+  counter.src = "https://hits.sh/yawyawfootbaw.github.io/football-tracker.svg";
+}
 
 const store = {
   get(key, fallback) { try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; } },
