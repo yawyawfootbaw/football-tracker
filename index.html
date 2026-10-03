@@ -31,10 +31,13 @@
   label.game:has(input:checked) { background: rgba(76, 141, 255, .12); }
   /* The checkbox stays for keyboards and screen readers; the round + / ✓ button is what you see. */
   label.game input { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
-  .pick { flex: none; display: grid; place-items: center; width: 28px; height: 28px; border: 2px solid var(--muted); border-radius: 50%; color: var(--muted); font-size: 16px; font-weight: 700; line-height: 1; transition: background .15s, border-color .15s; }
-  .pick::before { content: "+"; }
+  .pick { flex: none; display: grid; place-items: center; width: 28px; height: 28px; border: 2px solid var(--muted); border-radius: 50%; color: var(--muted); transition: background .15s, border-color .15s; }
+  /* Drawn with CSS rather than "+" / "✓" characters, which fonts don't center vertically. */
+  .pick::before { content: ""; width: 12px; height: 12px;
+    background: linear-gradient(currentColor, currentColor) center / 100% 2px no-repeat,
+                linear-gradient(currentColor, currentColor) center / 2px 100% no-repeat; }
   label.game input:checked ~ .pick { background: var(--accent); border-color: var(--accent); color: #fff; }
-  label.game input:checked ~ .pick::before { content: "✓"; font-size: 14px; }
+  label.game input:checked ~ .pick::before { width: 6px; height: 11px; background: none; border: solid currentColor; border-width: 0 2px 2px 0; transform: translateY(-1px) rotate(45deg); }
   label.game input:focus-visible ~ .pick { outline: 2px solid var(--accent); outline-offset: 2px; }
   .drawer-foot { display: none; }
   label.game .info { flex: 1; min-width: 0; }
