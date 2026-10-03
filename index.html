@@ -54,11 +54,11 @@
   svg.field { width: 100%; display: block; border-radius: 4px; }
   .card-foot { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
   .last { flex: 1; min-width: 0; color: var(--muted); font-size: 12px; min-height: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .remove { flex: none; width: 24px; height: 24px; border: 0; border-radius: 6px; background: none; color: var(--muted); font-size: 14px; line-height: 1; cursor: pointer; }
-  .remove:hover, .remove:focus-visible { background: var(--border); color: var(--text); }
+  .remove { flex: none; width: 24px; height: 24px; border: 0; border-radius: 6px; background: #9aa0a6; color: #000; font-size: 14px; line-height: 1; cursor: pointer; }
+  .remove:hover, .remove:focus-visible { background: #c4c8cc; }
   /* With a mouse, float the ✕ in the top-right corner and show it on hover. Touch screens keep it in the footer. */
   @media (hover: hover) {
-    .remove { position: absolute; top: 6px; right: 6px; background: var(--panel); border: 1px solid var(--border); opacity: 0; transition: opacity .15s; }
+    .remove { position: absolute; top: 6px; right: 6px; opacity: 0; transition: opacity .15s; }
     .card:hover .remove, .remove:focus-visible { opacity: 1; }
   }
   #picker-toggle, .drawer-head, #picker-backdrop { display: none; }
