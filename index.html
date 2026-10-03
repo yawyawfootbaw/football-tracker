@@ -53,10 +53,18 @@
   .dd.red { color: var(--red); }
   svg.field { width: 100%; display: block; border-radius: 4px; }
   .last { color: var(--muted); font-size: 12px; margin-top: 6px; min-height: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #picker-toggle { display: none; }
   @media (max-width: 700px) {
     main { grid-template-columns: 1fr; height: auto; }
-    aside { max-height: 40vh; border-right: 0; border-bottom: 1px solid var(--border); }
-    #board { grid-template-columns: 1fr; }
+    aside { max-height: 60vh; border-right: 0; border-bottom: 1px solid var(--border); }
+    aside.collapsed { overflow: visible; }
+    aside.collapsed .list-head, aside.collapsed #list { display: none; }
+    #picker-toggle { display: flex; align-items: center; gap: 8px; width: 100%; padding: 12px 16px; background: var(--panel); border: 0; color: var(--text); font: inherit; font-weight: 600; cursor: pointer; position: sticky; top: 0; z-index: 2; }
+    #picker-toggle .count { color: var(--muted); font-weight: 400; }
+    #picker-toggle .chev { margin-left: auto; transition: transform .15s; }
+    aside.collapsed #picker-toggle .chev { transform: rotate(-90deg); }
+    aside:not(.collapsed) .list-head { top: 45px; }
+    #board { grid-template-columns: 1fr; padding: 12px 16px; }
   }
 </style>
 </head>
@@ -67,6 +75,7 @@
 </header>
 <main>
   <aside>
+    <button id="picker-toggle" aria-controls="list"><span>Games</span><span class="count" id="picker-count"></span><span class="chev">▾</span></button>
     <div class="list-head">
       <div class="tabs">
         <button data-league="cfb">College</button>
@@ -184,6 +193,7 @@ function renderBoard() {
   const all = [...games.cfb, ...games.nfl];
   const picked = all.filter((g) => selected.has(g.key) || g.key === "nfl:demo")
     .sort((a, b) => (a.state === "in" ? 0 : 1) - (b.state === "in" ? 0 : 1) || a.date - b.date);
+  document.getElementById("picker-count").textContent = picked.length ? `${picked.length} selected` : "";
   document.getElementById("board").innerHTML = picked.length
     ? picked.map(card).join("")
     : `<div class="empty">Pick games from the list.</div>`;
@@ -264,6 +274,19 @@ document.addEventListener("visibilitychange", () => {
 });
 
 document.getElementById("search").addEventListener("input", renderList);
+
+// Mobile only: the game picker collapses above the board. Start open if nothing is picked yet.
+let pickerOpen = store.get("pickerOpen", selected.size === 0);
+function renderPicker() {
+  document.querySelector("aside").classList.toggle("collapsed", !pickerOpen);
+  document.getElementById("picker-toggle").setAttribute("aria-expanded", pickerOpen);
+}
+document.getElementById("picker-toggle").addEventListener("click", () => {
+  pickerOpen = !pickerOpen;
+  store.set("pickerOpen", pickerOpen);
+  renderPicker();
+});
+renderPicker();
 
 document.querySelector(".tabs").addEventListener("click", (e) => {
   const league = e.target.dataset?.league;
