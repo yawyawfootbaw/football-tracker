@@ -35,7 +35,12 @@
   #search:focus { outline: none; border-color: var(--accent); }
   .tabs button { flex: 1; padding: 10px; background: none; border: 0; color: var(--muted); font: inherit; cursor: pointer; border-bottom: 2px solid transparent; }
   .tabs button.on { color: var(--text); border-bottom-color: var(--accent); }
-  .group-label { padding: 10px 12px 4px; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+  /* Section headers: a solid bar with a count, so they read as titles rather than rows. */
+  .group-label { display: flex; align-items: center; gap: 8px; padding: 7px 12px; background: var(--panel); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+    font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--text); }
+  .group-label .n { margin-left: auto; padding: 1px 7px; border-radius: 10px; background: var(--border); color: var(--muted); font-weight: 600; letter-spacing: 0; }
+  .group-label.selected { color: var(--accent); }
+  .group-label.live::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--red); }
   label.game { position: relative; display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 8px 12px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
   label.game:hover { background: var(--panel); }
   label.game:has(input:checked) { background: rgba(76, 141, 255, .12); }
@@ -241,10 +246,13 @@ function renderList() {
     .sort((a, b) => order[a.state] - order[b.state] || a.date - b.date);
   // Selected games go first under their own heading, keeping the same order as the full list.
   const ordered = [...list.filter((g) => selected.has(g.key)), ...list.filter((g) => !selected.has(g.key))];
+  const groupOf = (g) => (selected.has(g.key) ? "Selected" : groups[g.state]);
+  const counts = {};
+  for (const g of ordered) counts[groupOf(g)] = (counts[groupOf(g)] || 0) + 1;
   let html = "", lastGroup;
   for (const g of ordered) {
-    const group = selected.has(g.key) ? "Selected" : groups[g.state];
-    if (group !== lastGroup) html += `<div class="group-label">${group}</div>`;
+    const group = groupOf(g);
+    if (group !== lastGroup) html += `<div class="group-label ${group.toLowerCase()}">${group}<span class="n">${counts[group]}</span></div>`;
     lastGroup = group;
     const status = g.state === "pre" ? fmtKickoff(g.date) : g.detail;
     const score = g.state === "pre" ? "" : ` ${g.away.score}–${g.home.score}`;
