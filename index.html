@@ -16,7 +16,10 @@
   #updated { color: var(--muted); font-size: 12px; margin-left: auto; }
   main { display: grid; grid-template-columns: 300px 1fr; height: calc(100vh - 49px); }
   aside { border-right: 1px solid var(--border); overflow-y: auto; }
-  .tabs { display: flex; position: sticky; top: 0; background: var(--bg); border-bottom: 1px solid var(--border); }
+  .list-head { position: sticky; top: 0; background: var(--bg); border-bottom: 1px solid var(--border); z-index: 1; }
+  .tabs { display: flex; border-bottom: 1px solid var(--border); }
+  #search { display: block; width: calc(100% - 24px); margin: 8px 12px; padding: 6px 10px; background: var(--panel); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font: inherit; }
+  #search:focus { outline: none; border-color: var(--accent); }
   .tabs button { flex: 1; padding: 10px; background: none; border: 0; color: var(--muted); font: inherit; cursor: pointer; border-bottom: 2px solid transparent; }
   .tabs button.on { color: var(--text); border-bottom-color: var(--accent); }
   .group-label { padding: 10px 12px 4px; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
@@ -64,9 +67,12 @@
 </header>
 <main>
   <aside>
-    <div class="tabs">
-      <button data-league="cfb">College</button>
-      <button data-league="nfl">NFL</button>
+    <div class="list-head">
+      <div class="tabs">
+        <button data-league="cfb">College</button>
+        <button data-league="nfl">NFL</button>
+      </div>
+      <input id="search" type="search" placeholder="Search teams (ND, Notre Dame…)" autocomplete="off">
     </div>
     <div id="list"><div class="spinner" role="status" aria-label="Loading games"></div></div>
   </aside>
@@ -112,6 +118,9 @@ function parseEvent(league, e) {
   const side = (ha) => {
     const c = comp.competitors.find((t) => t.homeAway === ha);
     return { id: c.team.id, abbr: c.team.abbreviation, name: c.team.shortDisplayName, logo: c.team.logo,
+             // Everything a search can match: "ND", "Notre Dame", "Notre Dame Fighting Irish".
+             searchText: " " + [c.team.abbreviation, c.team.shortDisplayName, c.team.displayName, c.team.location]
+               .filter(Boolean).join(" ").toLowerCase(),
              color: "#" + (c.team.color || "555"), score: c.score, rank: c.curatedRank?.current };
   };
   const s = comp.situation || {};
@@ -129,7 +138,7 @@ function parseEvent(league, e) {
 
 function demoGame() {
   const team = (id, abbr, color, score) =>
-    ({ id, abbr, name: abbr, color, score, logo: `https://a.espncdn.com/i/teamlogos/nfl/500/${abbr.toLowerCase()}.png` });
+    ({ id, abbr, name: abbr, color, score, searchText: " " + abbr.toLowerCase(), logo: `https://a.espncdn.com/i/teamlogos/nfl/500/${abbr.toLowerCase()}.png` });
   return {
     key: "nfl:demo", league: "nfl", date: new Date(), state: "in", detail: "Demo",
     clock: "2:47", period: 4,
@@ -147,7 +156,11 @@ function renderList() {
   document.querySelectorAll(".tabs button").forEach((b) => b.classList.toggle("on", b.dataset.league === tab));
   const order = { in: 0, pre: 1, post: 2 };
   const groups = { in: "Live", pre: "Upcoming", post: "Final" };
-  const list = [...games[tab]].sort((a, b) => order[a.state] - order[b.state] || a.date - b.date);
+  const query = document.getElementById("search").value.trim().toLowerCase();
+  const list = games[tab]
+    // Match from the start of a word, so "nd" finds ND and NDSU but not Maryland.
+    .filter((g) => !query || g.away.searchText.includes(" " + query) || g.home.searchText.includes(" " + query))
+    .sort((a, b) => order[a.state] - order[b.state] || a.date - b.date);
   let html = "", lastState;
   for (const g of list) {
     if (g.state !== lastState) html += `<div class="group-label">${groups[g.state]}</div>`;
@@ -158,7 +171,7 @@ function renderList() {
       <span class="info"><div class="teams">${teamLabel(g.away)} @ ${teamLabel(g.home)}${score}</div>
       <div class="status">${status}</div></span></label>`;
   }
-  document.getElementById("list").innerHTML = html || `<div class="empty">No games this week.</div>`;
+  document.getElementById("list").innerHTML = html || `<div class="empty">${query ? "No matching games." : "No games this week."}</div>`;
 }
 
 function fmtKickoff(d) {
@@ -247,6 +260,8 @@ document.addEventListener("visibilitychange", () => {
   for (const key of redZoneShown) glowStart.set(key, Date.now());
   renderBoard();
 });
+
+document.getElementById("search").addEventListener("input", renderList);
 
 document.querySelector(".tabs").addEventListener("click", (e) => {
   const league = e.target.dataset?.league;
