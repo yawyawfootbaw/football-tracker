@@ -266,7 +266,9 @@ function card(g) {
         <div><span class="abbr">${teamLabel(t)}</span> <span class="poss ${live && g.possession === t.id ? "" : "hide"}">●</span></div>
         <div class="to ${showTO ? "" : "hide"}">${showTO ? "▮".repeat(timeouts) + "▯".repeat(Math.max(0, 3 - timeouts)) : "▮▮▮"}</div>
       </div>`;
-    const logo = `<img src="${t.logo}" alt="">`;
+    // ESPN's dark-background variant lives at the same path under 500-dark; fall back to the regular logo if it's missing.
+    const darkLogo = t.logo?.replace("/500/", "/500-dark/");
+    const logo = `<img src="${darkLogo}" alt="" onerror="this.onerror=null; this.src='${t.logo}'">`;
     // Mirrored: logo on the outside edge, points next to the clock.
     return `<div class="team ${side}">${side === "away" ? logo + name + pts : pts + name + logo}</div>`;
   };
