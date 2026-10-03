@@ -52,7 +52,10 @@
   .dd { text-align: center; font-size: 18px; font-weight: 700; margin: 8px 0 6px; min-height: 25px; }
   .dd.red { color: var(--red); }
   svg.field { width: 100%; display: block; border-radius: 4px; }
-  .last { color: var(--muted); font-size: 12px; margin-top: 6px; min-height: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .card-foot { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+  .last { flex: 1; min-width: 0; color: var(--muted); font-size: 12px; min-height: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .remove { flex: none; width: 24px; height: 24px; border: 0; border-radius: 6px; background: none; color: var(--muted); font-size: 14px; line-height: 1; cursor: pointer; }
+  .remove:hover, .remove:focus-visible { background: var(--border); color: var(--text); }
   #picker-toggle, .drawer-head, #picker-backdrop { display: none; }
   @media (max-width: 700px) {
     main { grid-template-columns: minmax(0, 1fr); height: auto; }
@@ -241,7 +244,10 @@ function card(g) {
     <div class="score">${team(g.away, "away", g.awayTO)}<div class="clock">${clock}</div>${team(g.home, "home", g.homeTO)}</div>
     <div class="dd ${g.redZone ? "red" : ""}">${live ? (g.ddText || "&nbsp;") : "&nbsp;"}</div>
     ${field(g)}
-    <div class="last">${live && g.lastPlay ? g.lastPlay : ""}</div>
+    <div class="card-foot">
+      <div class="last">${live && g.lastPlay ? g.lastPlay : ""}</div>
+      ${g.key === "nfl:demo" ? "" : `<button class="remove" data-remove="${g.key}" aria-label="Remove game" title="Remove game">✕</button>`}
+    </div>
   </div>`;
 }
 
@@ -326,6 +332,15 @@ document.getElementById("list").addEventListener("change", (e) => {
   const key = e.target.dataset.key;
   e.target.checked ? selected.add(key) : selected.delete(key);
   store.set("selected", [...selected]);
+  renderBoard();
+});
+
+document.getElementById("board").addEventListener("click", (e) => {
+  const key = e.target.closest("[data-remove]")?.dataset.remove;
+  if (!key) return;
+  selected.delete(key);
+  store.set("selected", [...selected]);
+  renderList();  // uncheck it in the picker
   renderBoard();
 });
 
