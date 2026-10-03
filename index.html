@@ -6,7 +6,7 @@
 <title>Game Tracker</title>
 <style>
   :root {
-    --bg: #0f1115; --panel: #181b22; --border: #2a2f3a; --text: #e8eaed; --muted: #8b93a1;
+    --bg: #0f1115; --panel: #181b22; --card: #20242d; --border: #2a2f3a; --text: #e8eaed; --muted: #8b93a1;
     --accent: #4c8dff; --grass: #2e6b34; --grass-alt: #2a6230; --los: #4c8dff; --ltg: #f5d000; --red: #ff5a5a;
     color-scheme: dark;  /* dark native scrollbars and form controls */
   }
@@ -44,7 +44,7 @@
   .empty { color: var(--muted); padding: 24px; }
   .spinner { width: 32px; height: 32px; margin: 48px auto; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; grid-column: 1 / -1; }
   @keyframes spin { to { transform: rotate(360deg); } }
-  .card { position: relative; min-width: 0; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 12px; }
+  .card { position: relative; min-width: 0; background: var(--card); border: 1px solid #323846; border-radius: 10px; padding: 12px; }
   .card.redzone { border-color: var(--red); }
   .card.glow { animation: redzone-glow 2.4s ease-in-out; }
   @keyframes redzone-glow {
