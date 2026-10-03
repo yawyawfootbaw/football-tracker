@@ -133,6 +133,7 @@ const store = {
 let tab = store.get("tab", "cfb");
 let selected = new Set(store.get("selected", []));  // "league:eventId"
 const games = { nfl: [], cfb: [] };
+let demoRemoved = false;          // the demo card isn't in `selected`; removing it lasts until reload
 const GLOW_MS = 2400;             // matches the redzone-glow animation length
 const redZoneShown = new Set();   // game keys currently drawn in the red zone
 const glowStart = new Map();      // game key -> when its one-time glow began
@@ -219,7 +220,7 @@ function fmtKickoff(d) {
 
 function renderBoard() {
   const all = [...games.cfb, ...games.nfl];
-  const picked = all.filter((g) => selected.has(g.key) || g.key === "nfl:demo")
+  const picked = all.filter((g) => selected.has(g.key) || (g.key === "nfl:demo" && !demoRemoved))
     .sort((a, b) => (a.state === "in" ? 0 : 1) - (b.state === "in" ? 0 : 1) || a.date - b.date);
   document.getElementById("picker-count").textContent = picked.length ? `${picked.length} selected` : "";
   document.getElementById("board").innerHTML = picked.length
@@ -251,7 +252,7 @@ function card(g) {
     ${field(g)}
     <div class="card-foot">
       <div class="last">${live && g.lastPlay ? g.lastPlay : ""}</div>
-      ${g.key === "nfl:demo" ? "" : `<button class="remove" data-remove="${g.key}" aria-label="Remove game" title="Remove game">✕</button>`}
+      <button class="remove" data-remove="${g.key}" aria-label="Remove game" title="Remove game">✕</button>
     </div>
   </div>`;
 }
@@ -343,6 +344,7 @@ document.getElementById("list").addEventListener("change", (e) => {
 document.getElementById("board").addEventListener("click", (e) => {
   const key = e.target.closest("[data-remove]")?.dataset.remove;
   if (!key) return;
+  if (key === "nfl:demo") demoRemoved = true;
   selected.delete(key);
   store.set("selected", [...selected]);
   renderList();  // uncheck it in the picker
