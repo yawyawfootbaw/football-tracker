@@ -23,6 +23,8 @@
   #settings-menu { position: absolute; bottom: calc(100% + 4px); left: 0; min-width: 120px; padding: 4px; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 6px 20px rgba(0, 0, 0, .4); }
   #settings-menu button { display: block; width: 100%; padding: 6px 10px; background: none; border: 0; border-radius: 5px; color: var(--text); font: inherit; font-size: 13px; text-align: left; cursor: pointer; }
   #settings-menu button:hover { background: var(--border); }
+  #settings-menu .check { display: inline-block; width: 16px; color: var(--accent); visibility: hidden; }
+  #settings-menu [aria-pressed="true"] .check { visibility: visible; }
   #coach { position: fixed; right: 12px; bottom: 30px; z-index: 5; width: 150px; margin: 0; }
   #coach img { display: block; width: 100%; height: auto; filter: drop-shadow(0 6px 14px rgba(0, 0, 0, .6)); }
   #coach figcaption { padding-top: 2px; font-size: 12px; font-weight: 700; text-align: center; text-shadow: 0 1px 3px #000; }
@@ -151,7 +153,7 @@
   <img src="cignetti.png" alt="Indiana head coach Curt Cignetti">
 </figure>
 <div id="corner">
-  <div id="settings-menu" hidden><button id="google-me">google me</button></div>
+  <div id="settings-menu" hidden><button id="google-me" aria-pressed="false"><span class="check">✓</span>google me</button></div>
   <button id="settings" aria-label="Settings" aria-expanded="false" aria-controls="settings-menu">⚙&#xFE0E;</button>
   <footer id="contact">contact: sean@homeworkdots.com</footer>
 </div>
@@ -374,9 +376,10 @@ settingsBtn.addEventListener("click", (e) => {
   e.stopPropagation();
   setSettingsMenu(settingsMenu.hidden);
 });
-document.getElementById("google-me").addEventListener("click", () => {
+document.getElementById("google-me").addEventListener("click", (e) => {
   const coach = document.getElementById("coach");
   coach.hidden = !coach.hidden;
+  e.currentTarget.setAttribute("aria-pressed", !coach.hidden);
   setSettingsMenu(false);
 });
 document.addEventListener("click", (e) => { if (!settingsMenu.contains(e.target)) setSettingsMenu(false); });
