@@ -103,6 +103,7 @@ const alertPrefs = store.get("alerts", { score: false, redzone: false, turnover:
 const GLOW_MS = 2400;             // matches the redzone-glow animation length
 const redZoneShown = new Set();   // game keys currently drawn in the red zone
 const glowStart = new Map();      // game key -> when its one-time glow began
+const lastScoreAlert = new Map(); // game key -> when its last score notification fired
 const prevState = new Map();     // game key -> last seen game, for spotting changes between polls
 const redZoneAlerted = new Map(); // game key -> team id already alerted for this red-zone trip
 
@@ -278,8 +279,10 @@ function checkAlerts() {
     for (const side of ["away", "home"]) {
       const gained = g[side].score - prev[side].score;
       if (gained > 0 && alertPrefs.score) {
-        // Shared tag per game, so a TD followed by the extra point updates one notification instead of two.
-        notify(`${g[side].abbr} scores (+${gained})`, `${matchup}\n${g.lastPlay || ""}`, `${g.key}:score`);
+        // A TD followed by the extra point within a minute or so updates one notification quietly instead of alerting twice.
+        const quiet = Date.now() - (lastScoreAlert.get(g.key) ?? 0) < 90000;
+        lastScoreAlert.set(g.key, Date.now());
+        notify(`${g[side].abbr} scores (+${gained})`, `${matchup}\n${g.lastPlay || ""}`, `${g.key}:score`, quiet);
       }
     }
 
@@ -302,10 +305,12 @@ function checkAlerts() {
   }
 }
 
-function notify(title, body, tag) {
-  if (!("Notification" in window) || Notification.permission !== "granted") return;
-  const n = new Notification(title, { body, tag, icon: "https://a.espncdn.com/redesign/assets/img/icons/ESPN-icon-football-college.png" });
+function notify(title, body, tag, quiet = false) {
+  if (!("Notification" in window) || Notification.permission !== "granted") return false;
+  // renotify makes Chrome alert again even when replacing an earlier notification with the same tag.
+  const n = new Notification(title, { body, tag, renotify: !quiet });
   n.onclick = () => { window.focus(); n.close(); };
+  return true;
 }
 
 function renderAlertControls() {
@@ -330,7 +335,10 @@ document.getElementById("alerts").addEventListener("change", async (e) => {
 document.getElementById("test-alert").addEventListener("click", async () => {
   if ("Notification" in window && Notification.permission === "default") await Notification.requestPermission();
   renderAlertControls();
-  notify("KC in the red zone", "KC 17–20 BUF\n1st & 10 at BUF 18", "test");
+  if (notify("KC in the red zone", "KC 17–20 BUF\n1st & 10 at BUF 18", "test")) {
+    document.getElementById("alert-note").textContent =
+      "Sent. Nothing showed up? Check macOS System Settings → Notifications → Google Chrome, and Focus mode.";
+  }
 });
 
 renderAlertControls();
