@@ -377,6 +377,7 @@ function coachOffset(point) {
   return `translate(${dx}px, ${dy}px) scale(.08)`;
 }
 function showCoach(from) {
+  coach.getAnimations().forEach((a) => a.cancel());  // a cancelled hide never fires onfinish
   coach.hidden = false;
   googleMe.setAttribute("aria-pressed", true);
   coach.animate([
@@ -386,6 +387,7 @@ function showCoach(from) {
   ], { duration: 550, easing: "cubic-bezier(.2, .9, .3, 1.15)" });
 }
 function hideCoach(into) {
+  coach.getAnimations().forEach((a) => a.cancel());  // a cancelled hide never fires onfinish
   googleMe.setAttribute("aria-pressed", false);
   coach.animate([
     { transform: "none", opacity: 1 },
