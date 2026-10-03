@@ -33,6 +33,11 @@
   .tabs { display: flex; border-bottom: 1px solid var(--border); }
   #search { display: block; width: calc(100% - 24px); margin: 8px 12px; padding: 6px 10px; background: var(--panel); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font: inherit; }
   #search:focus { outline: none; border-color: var(--accent); }
+  .filters { display: flex; gap: 8px; padding: 0 12px 8px; }
+  .filters[hidden] { display: none; }
+  #conf { flex: 1; min-width: 0; padding: 5px 8px; background: var(--panel); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font: inherit; font-size: 13px; }
+  #top25 { flex: none; padding: 5px 10px; background: var(--panel); border: 1px solid var(--border); border-radius: 6px; color: var(--muted); font: inherit; font-size: 13px; cursor: pointer; }
+  #top25[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
   .tabs button { flex: 1; padding: 10px; background: none; border: 0; color: var(--muted); font: inherit; cursor: pointer; border-bottom: 2px solid transparent; }
   .tabs button.on { color: var(--text); border-bottom-color: var(--accent); }
   /* Section headers: a solid bar with a count, so they read as titles rather than rows. */
@@ -135,6 +140,10 @@
         <button data-league="nfl">NFL</button>
       </div>
       <input id="search" type="search" placeholder="Search teams" autocomplete="off">
+      <div class="filters" id="filters">
+        <select id="conf" aria-label="Conference"><option value="">All conferences</option></select>
+        <button id="top25" aria-pressed="false">Top 25</button>
+      </div>
     </div>
     <div id="list"><div class="spinner" role="status" aria-label="Loading games"></div></div>
     <div class="drawer-foot"><button id="picker-done">Done</button></div>
@@ -171,6 +180,7 @@ const store = {
 };
 
 let tab = store.get("tab", "cfb");
+const filters = store.get("filters", { conf: "", top25: false });  // College tab only
 let selected = new Set(store.get("selected", []));  // "league:eventId"
 const games = { nfl: [], cfb: [] };
 let demoRemoved = false;          // the demo card isn't in `selected`; removing it lasts until reload
@@ -178,7 +188,7 @@ const GLOW_MS = 2400;             // matches the redzone-glow animation length
 const redZoneShown = new Set();   // game keys currently drawn in the red zone
 const glowStart = new Map();      // game key -> when its one-time glow began
 
-let lastUpdated = null;  // when data last arrived successfully; a failed poll leaves it alone so the age keeps climbing
+let lastUpdated = null;  // when data last arrived successfully; a failed poll leaves the old time showing
 
 async function poll() {
   await Promise.all(Object.entries(LEAGUES).map(async ([league, url]) => {
@@ -199,19 +209,21 @@ async function poll() {
 
 function renderUpdated() {
   if (lastUpdated === null) return;
-  const secs = Math.floor((Date.now() - lastUpdated) / 1000);
-  const mins = Math.floor(secs / 60);
-  document.getElementById("updated").textContent = mins
-    ? `games updated ${mins} minute${mins === 1 ? "" : "s"} ago`
-    : `games updated ${secs} second${secs === 1 ? "" : "s"} ago`;
+  // No locale or timeZone passed, so the browser formats it in the viewer's own time zone.
+  document.getElementById("updated").textContent =
+    "Games updated at " + new Date(lastUpdated).toLocaleTimeString([], { hour: "numeric", minute: "2-digit", second: "2-digit" });
 }
-setInterval(renderUpdated, 1000);
+
+// Conference names arrive only on conference games, so learn them as games come in.
+// Independents (Notre Dame etc.) never play a "conference game", so seed that one.
+const confNames = { 18: "Independent" };
 
 function parseEvent(league, e) {
   const comp = e.competitions[0];
+  if (comp.groups?.isConference) confNames[comp.groups.id] = comp.groups.shortName;
   const side = (ha) => {
     const c = comp.competitors.find((t) => t.homeAway === ha);
-    return { id: c.team.id, abbr: c.team.abbreviation, logo: c.team.logo,
+    return { id: c.team.id, abbr: c.team.abbreviation, logo: c.team.logo, conf: c.team.conferenceId,
              // Everything a search can match: "ND", "Notre Dame", "Notre Dame Fighting Irish".
              searchText: " " + [c.team.abbreviation, c.team.shortDisplayName, c.team.displayName, c.team.location]
                .filter(Boolean).join(" ").toLowerCase(),
@@ -259,9 +271,14 @@ function renderList() {
   const order = { in: 0, pre: 1, post: 2 };
   const groups = { in: "Live", pre: "Upcoming", post: "Final" };
   const query = document.getElementById("search").value.trim().toLowerCase();
+  const college = tab === "cfb";
+  renderFilters(college);
+  const ranked = (t) => t.rank && t.rank <= 25;
   const list = games[tab]
     // Match from the start of a word, so "nd" finds ND and NDSU but not Maryland.
     .filter((g) => !query || g.away.searchText.includes(" " + query) || g.home.searchText.includes(" " + query))
+    .filter((g) => !college || !filters.conf || g.away.conf === filters.conf || g.home.conf === filters.conf)
+    .filter((g) => !college || !filters.top25 || ranked(g.away) || ranked(g.home))
     .sort((a, b) => order[a.state] - order[b.state] || a.date - b.date);
   // Selected games go first under their own heading, keeping the same order as the full list.
   const ordered = [...list.filter((g) => selected.has(g.key)), ...list.filter((g) => !selected.has(g.key))];
@@ -279,7 +296,26 @@ function renderList() {
       <span class="info"><div class="teams">${teamLabel(g.away)} @ ${teamLabel(g.home)}${score}</div>
       <div class="status">${status}</div></span><span class="pick" aria-hidden="true"></span></label>`;
   }
-  document.getElementById("list").innerHTML = html || `<div class="empty">${query ? "No matching games." : "No games this week."}</div>`;
+  const filtered = query || (college && (filters.conf || filters.top25));
+  document.getElementById("list").innerHTML = html || `<div class="empty">${filtered ? "No matching games." : "No games this week."}</div>`;
+}
+
+function renderFilters(show) {
+  document.getElementById("filters").hidden = !show;
+  if (!show) return;
+  // Offer every named conference with a team playing this week.
+  const ids = new Set(games.cfb.flatMap((g) => [g.away.conf, g.home.conf]).filter((id) => confNames[id]));
+  if (filters.conf) ids.add(filters.conf);  // keep a saved choice listed even before its name is learned
+  const options = [...ids].sort((a, b) => (confNames[a] || "").localeCompare(confNames[b] || ""))
+    .map((id) => `<option value="${id}">${confNames[id] || "Conference " + id}</option>`).join("");
+  const select = document.getElementById("conf");
+  // Only rebuild when the set changes, so a refresh doesn't close the dropdown while it's open.
+  if (select.dataset.options !== options) {
+    select.innerHTML = `<option value="">All conferences</option>` + options;
+    select.dataset.options = options;
+  }
+  select.value = filters.conf;
+  document.getElementById("top25").setAttribute("aria-pressed", filters.top25);
 }
 
 function fmtKickoff(d) {
@@ -382,6 +418,16 @@ document.addEventListener("visibilitychange", () => {
 });
 
 document.getElementById("search").addEventListener("input", renderList);
+document.getElementById("conf").addEventListener("change", (e) => {
+  filters.conf = e.target.value;
+  store.set("filters", filters);
+  renderList();
+});
+document.getElementById("top25").addEventListener("click", () => {
+  filters.top25 = !filters.top25;
+  store.set("filters", filters);
+  renderList();
+});
 
 // Settings gear: one option, which toggles the Cignetti corner photo.
 const settingsBtn = document.getElementById("settings");
