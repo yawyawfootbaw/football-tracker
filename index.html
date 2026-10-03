@@ -32,7 +32,7 @@
   .empty { color: var(--muted); padding: 24px; }
   .spinner { width: 32px; height: 32px; margin: 48px auto; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; grid-column: 1 / -1; }
   @keyframes spin { to { transform: rotate(360deg); } }
-  .card { min-width: 0; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 12px; }
+  .card { position: relative; min-width: 0; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 12px; }
   .card.redzone { border-color: var(--red); }
   .card.glow { animation: redzone-glow 2.4s ease-in-out; }
   @keyframes redzone-glow {
@@ -56,6 +56,11 @@
   .last { flex: 1; min-width: 0; color: var(--muted); font-size: 12px; min-height: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .remove { flex: none; width: 24px; height: 24px; border: 0; border-radius: 6px; background: none; color: var(--muted); font-size: 14px; line-height: 1; cursor: pointer; }
   .remove:hover, .remove:focus-visible { background: var(--border); color: var(--text); }
+  /* With a mouse, float the ✕ in the top-right corner and show it on hover. Touch screens keep it in the footer. */
+  @media (hover: hover) {
+    .remove { position: absolute; top: 6px; right: 6px; background: var(--panel); border: 1px solid var(--border); opacity: 0; transition: opacity .15s; }
+    .card:hover .remove, .remove:focus-visible { opacity: 1; }
+  }
   #picker-toggle, .drawer-head, #picker-backdrop { display: none; }
   @media (max-width: 700px) {
     main { grid-template-columns: minmax(0, 1fr); height: auto; }
