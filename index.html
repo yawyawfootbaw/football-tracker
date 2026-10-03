@@ -201,10 +201,13 @@ function renderList() {
     // Match from the start of a word, so "nd" finds ND and NDSU but not Maryland.
     .filter((g) => !query || g.away.searchText.includes(" " + query) || g.home.searchText.includes(" " + query))
     .sort((a, b) => order[a.state] - order[b.state] || a.date - b.date);
-  let html = "", lastState;
-  for (const g of list) {
-    if (g.state !== lastState) html += `<div class="group-label">${groups[g.state]}</div>`;
-    lastState = g.state;
+  // Selected games go first under their own heading, keeping the same order as the full list.
+  const ordered = [...list.filter((g) => selected.has(g.key)), ...list.filter((g) => !selected.has(g.key))];
+  let html = "", lastGroup;
+  for (const g of ordered) {
+    const group = selected.has(g.key) ? "Selected" : groups[g.state];
+    if (group !== lastGroup) html += `<div class="group-label">${group}</div>`;
+    lastGroup = group;
     const status = g.state === "pre" ? fmtKickoff(g.date) : g.detail;
     const score = g.state === "pre" ? "" : ` ${g.away.score}–${g.home.score}`;
     html += `<label class="game"><input type="checkbox" data-key="${g.key}" ${selected.has(g.key) ? "checked" : ""}>
@@ -338,6 +341,7 @@ document.getElementById("list").addEventListener("change", (e) => {
   const key = e.target.dataset.key;
   e.target.checked ? selected.add(key) : selected.delete(key);
   store.set("selected", [...selected]);
+  renderList();  // move it into or out of the Selected group
   renderBoard();
 });
 
