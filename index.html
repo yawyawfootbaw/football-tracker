@@ -66,9 +66,6 @@
   @keyframes redzone-glow {
     50% { box-shadow: 0 0 20px 5px rgba(255, 90, 90, .8); }
   }
-  @media (prefers-reduced-motion: reduce) {
-    .card.glow { animation: none; }
-  }
   /* Every slot in a card is always rendered at a fixed size (hidden when empty) so cards side by side line up. */
   .score { display: grid; grid-template-columns: minmax(0, 1fr) 76px minmax(0, 1fr); align-items: center; gap: 8px; }
   .team { min-width: 0; display: flex; align-items: center; gap: 8px; font-weight: 600; }
@@ -116,12 +113,6 @@
     .drawer-foot { display: block; position: sticky; bottom: 0; padding: 12px 16px; background: var(--bg); border-top: 1px solid var(--border); }
     #picker-done { width: 100%; padding: 12px; border: 0; border-radius: 8px; background: var(--accent); color: #fff; font: inherit; font-weight: 600; cursor: pointer; }
     #board { grid-template-columns: minmax(0, 1fr); padding: 12px 16px 32px; }
-  }
-  /* Reduce Motion: fade the drawer in place instead of sliding it. */
-  @media (max-width: 700px) and (prefers-reduced-motion: reduce) {
-    #picker-body { transition: opacity .2s ease, visibility 0s; }
-    aside.collapsed #picker-body { transform: none; opacity: 0; transition: opacity .2s ease, visibility 0s .2s; }
-    aside.preload #picker-body { transition: none; }
   }
 </style>
 </head>
@@ -382,7 +373,7 @@ document.getElementById("google-me").addEventListener("click", (e) => {
   coach.hidden = !coach.hidden;
   e.currentTarget.setAttribute("aria-pressed", !coach.hidden);
   setSettingsMenu(false);
-  if (coach.hidden || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  if (coach.hidden) return;
   // Grow out of the "google me" button into his resting spot, with a little overshoot.
   const to = coach.getBoundingClientRect();
   const dx = from.left + from.width / 2 - (to.left + to.width / 2);
@@ -438,7 +429,6 @@ function renderListAnimated(movedKey) {
     .map((el) => [el.querySelector("input").dataset.key, el]));
   const before = new Map([...rowsByKey()].map(([key, el]) => [key, el.getBoundingClientRect().top]));
   renderList();
-  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
   for (const [key, el] of rowsByKey()) {
     const dy = before.has(key) ? before.get(key) - el.getBoundingClientRect().top : 0;
     if (!dy) continue;
