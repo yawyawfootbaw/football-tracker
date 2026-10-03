@@ -204,14 +204,20 @@ function parseEvent(league, e) {
                .filter(Boolean).join(" ").toLowerCase(),
              color: "#" + (c.team.color || "555"), score: c.score, rank: c.curatedRank?.current };
   };
-  const s = comp.situation || {};
+  // At halftime ESPN keeps the last down and distance around; nobody has the ball, so drop the situation.
+  const s = e.status.type.name === "STATUS_HALFTIME" ? {} : comp.situation || {};
+  // ESPN often omits `possession` after kickoffs, scores and timeouts. When a down is in progress, the last
+  // play's ending team is who has the ball, except for timeouts and period ends, where it's whoever called it.
+  const lp = s.lastPlay;
+  const possession = s.possession ??
+    (s.downDistanceText && !/timeout|end period|end of/i.test(lp?.type?.text || "") ? lp?.end?.team?.id : undefined);
   return {
     key: `${league}:${e.id}`, league, date: new Date(e.date),
     state: e.status.type.state, detail: e.status.type.shortDetail,
     clock: e.status.displayClock, period: e.status.period,
     home: side("home"), away: side("away"),
     // ESPN's yardLine is yards from the home team's goal line.
-    yardLine: s.yardLine, down: s.down, distance: s.distance, possession: s.possession,
+    yardLine: s.yardLine, down: s.down, distance: s.distance, possession,
     ddText: s.downDistanceText, redZone: s.isRedZone,
     homeTO: s.homeTimeouts, awayTO: s.awayTimeouts, lastPlay: s.lastPlay?.text,
   };
