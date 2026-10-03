@@ -15,7 +15,7 @@
   body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
   header { display: flex; align-items: center; gap: 16px; padding: 12px 16px; border-bottom: 1px solid var(--border); }
   header h1 { font-size: 16px; margin: 0; }
-  /* Decorative "refreshing" spinner: spins for 2s every 10s just to signal the data is live. */
+  /* Decorative "refreshing" spinner: spins for 2s every 4–10s just to signal the data is live. */
   #updated { margin-left: auto; width: 16px; height: 16px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; visibility: hidden; }
   #updated.on { visibility: visible; animation: spin .8s linear infinite; }
   #corner { position: fixed; right: 0; bottom: 0; z-index: 5; display: flex; align-items: stretch; gap: 4px; font-size: 11px; }
@@ -200,9 +200,9 @@ function flashSpinner() {
   const el = document.getElementById("updated");
   el.classList.add("on");
   setTimeout(() => el.classList.remove("on"), 2000);
+  setTimeout(flashSpinner, 4000 + Math.random() * 6000);  // next spin starts 4–10s after this one
 }
 flashSpinner();
-setInterval(flashSpinner, 10000);
 
 function parseEvent(league, e) {
   const comp = e.competitions[0];
