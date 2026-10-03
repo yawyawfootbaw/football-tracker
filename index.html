@@ -369,9 +369,32 @@ document.getElementById("list").addEventListener("change", (e) => {
   const key = e.target.dataset.key;
   e.target.checked ? selected.add(key) : selected.delete(key);
   store.set("selected", [...selected]);
-  renderList();  // move it into or out of the Selected group
+  renderListAnimated(key);  // slide it into or out of the Selected group
   renderBoard();
 });
+
+// FLIP animation: note where each row was, re-render, then slide every row from its old spot to its new one.
+function renderListAnimated(movedKey) {
+  const rowsByKey = () => new Map([...document.querySelectorAll("#list label.game")]
+    .map((el) => [el.querySelector("input").dataset.key, el]));
+  const before = new Map([...rowsByKey()].map(([key, el]) => [key, el.getBoundingClientRect().top]));
+  renderList();
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  for (const [key, el] of rowsByKey()) {
+    const dy = before.has(key) ? before.get(key) - el.getBoundingClientRect().top : 0;
+    if (!dy) continue;
+    el.style.transform = `translateY(${dy}px)`;
+    if (key === movedKey) {  // the moved row passes over the others, so give it a solid background
+      el.style.zIndex = 1;
+      el.style.background = "var(--panel)";
+    }
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      el.style.transition = "transform .35s ease";
+      el.style.transform = "";
+      el.addEventListener("transitionend", () => { el.style.transition = el.style.zIndex = el.style.background = ""; }, { once: true });
+    }));
+  }
+}
 
 document.getElementById("board").addEventListener("click", (e) => {
   const key = e.target.closest("[data-remove]")?.dataset.remove;
