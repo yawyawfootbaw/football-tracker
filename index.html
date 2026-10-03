@@ -72,8 +72,10 @@
     aside.preload #picker-body, aside.preload #picker-backdrop { transition: none; }
     #board { grid-template-columns: minmax(0, 1fr); padding: 12px 16px; }
   }
-  @media (prefers-reduced-motion: reduce) {
-    #picker-body, aside.collapsed #picker-body, #picker-backdrop { transition: none; }
+  /* Reduce Motion: fade the drawer in place instead of sliding it. */
+  @media (max-width: 700px) and (prefers-reduced-motion: reduce) {
+    #picker-body { transition: opacity .2s ease, visibility 0s; }
+    aside.collapsed #picker-body { transform: none; opacity: 0; transition: opacity .2s ease, visibility 0s .2s; }
   }
 </style>
 </head>
