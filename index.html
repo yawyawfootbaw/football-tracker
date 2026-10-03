@@ -23,9 +23,9 @@
   #settings-menu { position: absolute; bottom: calc(100% + 4px); left: 0; min-width: 120px; padding: 4px; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 6px 20px rgba(0, 0, 0, .4); }
   #settings-menu button { display: block; width: 100%; padding: 6px 10px; background: none; border: 0; border-radius: 5px; color: var(--text); font: inherit; font-size: 13px; text-align: left; cursor: pointer; }
   #settings-menu button:hover { background: var(--border); }
-  #coach { position: fixed; right: 12px; bottom: 32px; z-index: 5; width: 160px; margin: 0; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; box-shadow: 0 8px 24px rgba(0, 0, 0, .5); }
-  #coach img { display: block; width: 100%; height: auto; }
-  #coach figcaption { padding: 6px 8px; font-size: 12px; font-weight: 700; text-align: center; }
+  #coach { position: fixed; right: 12px; bottom: 30px; z-index: 5; width: 150px; margin: 0; }
+  #coach img { display: block; width: 100%; height: auto; filter: drop-shadow(0 6px 14px rgba(0, 0, 0, .6)); }
+  #coach figcaption { padding-top: 2px; font-size: 12px; font-weight: 700; text-align: center; text-shadow: 0 1px 3px #000; }
   #coach small { display: block; font-size: 9px; font-weight: 400; color: var(--muted); }
   #coach a { color: inherit; }
   main { display: grid; grid-template-columns: 300px minmax(0, 1fr); height: calc(100vh - 49px); }
@@ -148,9 +148,9 @@
   <section id="board"><div class="spinner" role="status" aria-label="Loading games"></div></section>
 </main>
 <figure id="coach" hidden>
-  <img src="cignetti.jpg" alt="Indiana head coach Curt Cignetti" width="160" height="160">
+  <img src="cignetti.png" alt="Indiana head coach Curt Cignetti">
   <figcaption>I win. Google me.
-    <small>Photo: <a href="https://commons.wikimedia.org/wiki/File:2026-0730_Big_Ten_MD_Curt_Cignetti.jpeg" target="_blank" rel="noopener">Bobak Ha'Eri</a>,
+    <small>Photo: <a href="https://commons.wikimedia.org/wiki/File:2025-0722_-_Curt_Cignetti.jpg" target="_blank" rel="noopener">Bobak Ha'Eri</a>,
       <a href="https://creativecommons.org/licenses/by/3.0/" target="_blank" rel="noopener">CC BY 3.0</a></small>
   </figcaption>
 </figure>
