@@ -378,9 +378,20 @@ settingsBtn.addEventListener("click", (e) => {
 });
 document.getElementById("google-me").addEventListener("click", (e) => {
   const coach = document.getElementById("coach");
+  const from = e.currentTarget.getBoundingClientRect();  // measure before the menu closes
   coach.hidden = !coach.hidden;
   e.currentTarget.setAttribute("aria-pressed", !coach.hidden);
   setSettingsMenu(false);
+  if (coach.hidden || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  // Grow out of the "google me" button into his resting spot, with a little overshoot.
+  const to = coach.getBoundingClientRect();
+  const dx = from.left + from.width / 2 - (to.left + to.width / 2);
+  const dy = from.top + from.height / 2 - (to.top + to.height / 2);
+  coach.animate([
+    { transform: `translate(${dx}px, ${dy}px) scale(.08)`, opacity: 0 },
+    { opacity: 1, offset: .3 },
+    { transform: "none", opacity: 1 },
+  ], { duration: 550, easing: "cubic-bezier(.2, .9, .3, 1.15)" });
 });
 document.addEventListener("click", (e) => { if (!settingsMenu.contains(e.target)) setSettingsMenu(false); });
 document.addEventListener("keydown", (e) => { if (e.key === "Escape") setSettingsMenu(false); });
