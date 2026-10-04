@@ -94,6 +94,20 @@ test.describe("loading and layout", () => {
     await expect(page.locator("#updated")).toHaveText(/^Games updated at \d{1,2}:\d{2}:\d{2}/);
   });
 
+  test("has a favicon and link-preview tags whose images exist", async ({ page, request }) => {
+    await open(page);
+    const attr = (sel, a) => page.locator(sel).getAttribute(a);
+    expect(await attr('meta[property="og:title"]', "content")).toBe("Game Tracker");
+    expect(await attr('meta[property="og:description"]', "content")).toBeTruthy();
+    expect(await attr('meta[name="twitter:card"]', "content")).toBe("summary_large_image");
+    const live = "https://yawyawfootbaw.github.io/football-tracker/";
+    const og = await attr('meta[property="og:image"]', "content");
+    expect(og.startsWith(live)).toBe(true);  // previews need absolute URLs
+    for (const path of [og.slice(live.length), await attr('link[rel="icon"]', "href"), await attr('link[rel="apple-touch-icon"]', "href")]) {
+      expect((await request.get("/" + path)).status(), path).toBe(200);
+    }
+  });
+
   test("dark color scheme, so native scrollbars and controls are dark", async ({ page }) => {
     await open(page);
     expect(await page.evaluate(() => getComputedStyle(document.documentElement).colorScheme)).toBe("dark");

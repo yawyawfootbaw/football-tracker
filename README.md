@@ -41,7 +41,9 @@ js/
   drawer.js           phone-only picker drawer
   settings.js         settings gear and "google me"
   counter.js          hidden visit counter
-images/               coach photos for "google me"
+images/               coach photos for "google me", favicon, link-preview image
+scripts/
+  share-images.js     regenerates the link-preview image and touch icon
 tests/
   app.spec.js         end-to-end tests, grouped by feature
   fixtures.js         fake ESPN data: one game per situation the app handles
@@ -77,3 +79,8 @@ don't import each other: `main.js` passes each one the callbacks it needs.
 - `images/pelini.png`: cutout from a photo by [Supplesipple](https://commons.wikimedia.org/wiki/File:Bo_Pelini.jpg), CC BY-SA 4.0. The cutout is shared under the same license.
 
 Team logos are loaded from ESPN and belong to their teams and leagues.
+
+## Link previews
+
+`index.html` has Open Graph tags so shared links show a title, description and `images/og.png`. If the layout
+changes, regenerate that image (and the touch icon) with `npm start` and then `node scripts/share-images.js`.
