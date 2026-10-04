@@ -65,10 +65,3 @@ don't import each other: `main.js` passes each one the callbacks it needs.
   last play when it can, and clears the stale situation ESPN leaves behind at halftime.
 - **Tests never call ESPN.** The API hasn't responded to headless Chrome in testing, and live data isn't
   repeatable anyway, so every test stubs the API, logos and counter with `tests/fixtures.js`.
-
-## Photo credits
-
-- `images/cignetti.png`: cutout from a photo by [Bobak Ha'Eri](https://commons.wikimedia.org/wiki/File:2025-0722_-_Curt_Cignetti.jpg), CC BY 3.0.
-- `images/pelini.png`: cutout from a photo by [Supplesipple](https://commons.wikimedia.org/wiki/File:Bo_Pelini.jpg), CC BY-SA 4.0. The cutout is shared under the same license.
-
-Team logos are loaded from ESPN and belong to their teams and leagues.
