@@ -71,6 +71,7 @@ don't import each other: `main.js` passes each one the callbacks it needs.
 - `?demo` on the URL adds two fake games (a red-zone NFL game and a dark-logo college game), skips the visit
   counter, and makes "google me" always show Bo Pelini.
 - The settings gear's one option, "google me", shows Curt Cignetti, or Bo Pelini one time in ten.
+  **Bo Pelini is a secret. Don't tell anyone.** 🤫
 - Visit count: https://hits.sh/yawyawfootbaw.github.io/football-tracker/ (opening the `.svg` itself adds a hit).
 
 ## Photo credits
