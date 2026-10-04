@@ -404,6 +404,34 @@ test.describe("settings gear and google me", () => {
   });
 });
 
+test.describe("google me: Cignetti or, rarely, Pelini", () => {
+  const showCoach = async (page) => {
+    await page.locator("#settings").click();
+    await page.locator("#google-me").click();
+    await expect(page.locator("#coach")).toBeVisible();
+    return page.locator("#coach img").getAttribute("src");
+  };
+  const stubRandom = (page, value) => page.addInitScript((v) => { Math.random = () => v; }, value);
+
+  test("usually Cignetti", async ({ page }) => {
+    await stubRandom(page, 0.5);
+    await open(page);
+    expect(await showCoach(page)).toBe("cignetti.png");
+  });
+
+  test("one time in a hundred, Pelini", async ({ page }) => {
+    await stubRandom(page, 0.005);
+    await open(page);
+    expect(await showCoach(page)).toBe("pelini.png");
+  });
+
+  test("always Pelini with ?demo", async ({ page }) => {
+    await stubRandom(page, 0.5);
+    await open(page, { query: "?demo" });
+    expect(await showCoach(page)).toBe("pelini.png");
+  });
+});
+
 test.describe("animations ignore the OS reduced-motion setting", () => {
   test.use({ reducedMotion: "reduce" });
 

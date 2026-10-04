@@ -571,8 +571,16 @@ function coachOffset(point) {
   const dy = point.top + point.height / 2 - (to.top + to.height / 2);
   return `translate(${dx}px, ${dy}px) scale(.08)`;
 }
+// One time in a hundred (and always with ?demo) it's Bo Pelini instead.
+function pickCoach() {
+  const pelini = DEMO || Math.random() < 0.01;
+  const img = coach.querySelector("img");
+  img.src = pelini ? "pelini.png" : "cignetti.png";
+  img.alt = pelini ? "Former Nebraska head coach Bo Pelini" : "Indiana head coach Curt Cignetti";
+}
 function showCoach(from) {
   coach.getAnimations().forEach((a) => a.cancel());  // a cancelled hide never fires onfinish
+  pickCoach();
   coach.hidden = false;
   googleMe.setAttribute("aria-pressed", true);
   coach.animate([
