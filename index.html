@@ -645,7 +645,8 @@ document.getElementById("list").addEventListener("click", (e) => {
 document.getElementById("list").addEventListener("click", (e) => {
   const row = e.target.closest("label.game");
   const input = row?.querySelector("input");
-  if (!input?.checked || e.target.closest(".pick")) return;
+  // A label click also fires a second click on its checkbox, already toggled; that one must pass through untouched.
+  if (e.target === input || !input?.checked || e.target.closest(".pick")) return;
   e.preventDefault();  // stop the label from toggling the checkbox
   highlightCard(input.dataset.key);
 });
