@@ -73,5 +73,4 @@ label.game input:focus-visible ~ .pick { outline: 2px solid var(--accent); outli
 .bug-team .poss { color: var(--ltg); font-size: 9px; }
 .bug-team .pts { margin-left: auto; font-variant-numeric: tabular-nums; }
 .bug-team.lost { color: var(--muted); font-weight: 400; }
-.bug-status .lg { display: block; margin-top: 1px; font-size: 9px; font-weight: 600; letter-spacing: .06em; color: var(--muted); }
 .bug-status { flex: none; width: 54px; padding-left: 8px; border-left: 1px solid var(--border); color: var(--muted); font-size: 11px; line-height: 15px; text-align: center; font-variant-numeric: tabular-nums; white-space: nowrap; }

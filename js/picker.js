@@ -25,7 +25,7 @@ export function renderList() {
   const college = tab === "cfb";
   renderFilters(college);
   const ranked = (t) => t.rank && t.rank <= 25;
-  const list = (tab === "all" ? [...games.cfb, ...games.nfl] : games[tab])
+  const list = games[tab]
     // Match from the start of a word, so "nd" finds ND and NDSU but not Maryland.
     .filter((g) => !query || g.away.searchText.includes(" " + query) || g.home.searchText.includes(" " + query))
     .filter((g) => !college || !filters.conf || g.away.conf === filters.conf || g.home.conf === filters.conf)
@@ -61,10 +61,9 @@ function row(g) {
       ${logoImg(t)}${rankBadge(t)}<span class="abbr">${t.abbr}</span>
       ${live && g.possession === t.id ? `<span class="poss">●</span>` : ""}
       <span class="pts">${g.state === "pre" ? "" : t.score}</span></span>`;
-  const league = state.tab === "all" ? `<span class="lg">${g.key.startsWith("nfl:") ? "NFL" : "CFB"}</span>` : "";
   return `<label class="game ${live ? "live" : ""}"><input type="checkbox" data-key="${g.key}" ${state.selected.has(g.key) ? "checked" : ""}>
     <span class="bug">${line(g.away, g.home)}${line(g.home, g.away)}</span>
-    <span class="bug-status">${statusLines(g)}${league}</span><span class="pick" aria-hidden="true"></span></label>`;
+    <span class="bug-status">${statusLines(g)}</span><span class="pick" aria-hidden="true"></span></label>`;
 }
 
 function renderFilters(show) {
