@@ -33,7 +33,6 @@ js/
   store.js            localStorage wrapper that never throws
   state.js            state shared by picker and board (games, picks, tab, filters, …)
   espn.js             fetches ESPN's scoreboard and normalizes each game
-  demo.js             fake games shown with ?demo
   picker.js           the game list: rendering, search, filters, sections, selection
   board.js            the cards: rendering, red-zone glow, highlight, last-play popover
   field.js            the SVG field on each card

@@ -3,7 +3,6 @@
 import { DEMO, MOBILE_QUERY, POLL_MS } from "./config.js";
 import { state } from "./state.js";
 import { fetchGames } from "./espn.js";
-import { demoGames } from "./demo.js";
 import { renderList, listIsStale, initPicker } from "./picker.js";
 import { renderBoard, highlightCard, initBoard } from "./board.js";
 import { setPicker, initDrawer } from "./drawer.js";
@@ -16,7 +15,6 @@ async function poll() {
   await Promise.all(Object.keys(state.games).map(async (league) => {
     try {
       state.games[league] = await fetchGames(league);
-      if (DEMO) state.games[league].unshift(...demoGames().filter((g) => g.key.startsWith(league + ":")));
       lastUpdated = Date.now();
     } catch (err) {
       console.error(league, err);

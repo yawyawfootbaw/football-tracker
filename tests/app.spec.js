@@ -459,14 +459,10 @@ test.describe("board view switch", () => {
 });
 
 test.describe("demo mode and counter", () => {
-  test("?demo adds both demo games, skips the hit counter, and demo cards can be removed", async ({ page }) => {
+  test("?demo skips the hit counter and adds no fake games", async ({ page }) => {
     const state = await open(page, { query: "?demo" });
-    await expect(card(page, "nfl:demo")).toHaveClass(/redzone/);
-    await expect(card(page, "cfb:demo-logos")).toContainText("MSST");
-    await expect(row(page, "cfb:demo-logos")).toBeAttached();
-    await card(page, "cfb:demo-logos").hover();
-    await card(page, "cfb:demo-logos").locator(".remove").click();
-    await expect(card(page, "cfb:demo-logos")).toHaveCount(0);
+    await expect(page.locator("#list label.game")).toHaveCount(8);  // just the fixtures
+    await page.waitForTimeout(500);
     expect(state.hits).toBe(0);
   });
 

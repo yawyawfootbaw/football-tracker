@@ -16,7 +16,7 @@ let openPlay = null;             // game key whose full last-play text is showin
 
 export function renderBoard() {
   const picked = allGames()
-    .filter((g) => state.selected.has(g.key) || (g.key.includes(":demo") && !state.demoRemoved.has(g.key)))
+    .filter((g) => state.selected.has(g.key))
     .sort((a, b) => (a.state === "in" ? 0 : 1) - (b.state === "in" ? 0 : 1) || a.date - b.date);
   $("picker-count").textContent = picked.length ? `${picked.length} selected` : "";
   if (!picked.length) {
@@ -112,7 +112,6 @@ export function initBoard({ onSelectionChanged }) {
     }
     const key = e.target.closest("[data-remove]")?.dataset.remove;
     if (!key) return;
-    if (key.includes(":demo")) state.demoRemoved.add(key);
     state.selected.delete(key);
     saveSelected();
     onSelectionChanged();

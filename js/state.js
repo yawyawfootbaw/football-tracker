@@ -11,7 +11,6 @@ export const state = {
   filters: store.get("filters", { conf: "", top25: false }),  // College tab only
   collapsedGroups: new Set(store.get("collapsedGroups", [])), // picker sections the viewer has minimized
   boardView: store.get("boardView", "all"),                // board switch: all, cfb or nfl
-  demoRemoved: new Set(),                                  // demo cards aren't in `selected`; removing one lasts until reload
 };
 
 // A ?league= link overrides the saved picker tab and board view, and becomes the new saved choice.
