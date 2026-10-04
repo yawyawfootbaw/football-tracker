@@ -103,6 +103,7 @@
   .team .name { min-width: 0; white-space: nowrap; overflow: hidden; }
   .team.home .name { text-align: right; }
   .team .abbr { overflow: hidden; text-overflow: ellipsis; }
+  .team .rank { margin-right: 3px; color: var(--muted); font-size: 11px; font-weight: 600; }
   .team .pts { flex: none; min-width: 2ch; font-size: 22px; line-height: 28px; font-variant-numeric: tabular-nums; }
   .team.away .pts { margin-left: auto; text-align: right; }
   .team.home .pts { margin-right: auto; text-align: left; }
@@ -142,6 +143,11 @@
     .drawer-foot { display: block; position: sticky; bottom: 0; padding: 12px 16px; background: var(--bg); border-top: 1px solid var(--border); }
     #picker-done { width: 100%; padding: 12px; border: 0; border-radius: 8px; background: var(--accent); color: #fff; font: inherit; font-weight: 600; cursor: pointer; }
     #board { grid-template-columns: minmax(0, 1fr); padding: 12px 16px 32px; }
+    /* Narrow screens: tighter scoreboard row so team names fit beside logo, score and clock. */
+    .score { grid-template-columns: minmax(0, 1fr) 58px minmax(0, 1fr); gap: 6px; }
+    .team { gap: 6px; }
+    .team img { width: 20px; height: 20px; }
+    .team .pts { font-size: 20px; }
   }
 </style>
 </head>
@@ -383,7 +389,7 @@ function card(g) {
     const pts = `<span class="pts">${g.state === "pre" ? "" : t.score}</span>`;
     const showTO = live && timeouts != null;
     const name = `<div class="name">
-        <div><span class="abbr">${teamLabel(t)}</span> <span class="poss ${live && g.possession === t.id ? "" : "hide"}">●</span></div>
+        <div>${t.rank && t.rank <= 25 ? `<span class="rank">${t.rank}</span>` : ""}<span class="abbr">${t.abbr}</span> <span class="poss ${live && g.possession === t.id ? "" : "hide"}">●</span></div>
         <div class="to ${showTO ? "" : "hide"}">${showTO ? "▮".repeat(timeouts) + "▯".repeat(Math.max(0, 3 - timeouts)) : "▮▮▮"}</div>
       </div>`;
     // ESPN's dark-background variant lives at the same path under 500-dark; fall back to the regular logo if it's missing.
