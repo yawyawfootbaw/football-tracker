@@ -57,7 +57,7 @@
   .tabs button { flex: 1; padding: 10px; background: none; border: 0; color: var(--muted); font: inherit; cursor: pointer; border-bottom: 2px solid transparent; }
   .tabs button.on { color: var(--text); border-bottom-color: var(--accent); }
   /* Section headers: a solid bar with a count, so they read as titles rather than rows. */
-  .group-label { display: flex; align-items: center; gap: 8px; width: 100%; padding: 7px 12px; background: var(--panel); border: 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+  .group-label { display: flex; align-items: center; gap: 8px; width: 100%; padding: 7px 12px; background: #2d3442; border: 0; border-top: 1px solid #3b4352; border-bottom: 1px solid #3b4352;
     font-family: inherit; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--text); text-align: left; cursor: pointer; }
   .group-label .chev { width: 10px; height: 6px; transition: transform .2s; }
   .group-label[aria-expanded="false"] .chev { transform: rotate(-90deg); }
@@ -65,7 +65,7 @@
   .group-body { display: grid; grid-template-rows: 1fr; transition: grid-template-rows .22s ease; }
   .group-body.collapsed { grid-template-rows: 0fr; }
   .group-clip { overflow: hidden; min-height: 0; }
-  .group-label .n { margin-left: auto; margin-right: 2px; padding: 1px 7px; border-radius: 10px; background: var(--border); color: var(--muted); font-weight: 600; letter-spacing: 0; }
+  .group-label .n { margin-left: auto; margin-right: 2px; padding: 1px 7px; border-radius: 10px; background: #1c2029; color: var(--muted); font-weight: 600; letter-spacing: 0; }
   .group-label.selected { color: var(--accent); }
   .group-label.live::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--red); }
   label.game { position: relative; display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 8px 12px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
@@ -127,6 +127,12 @@
   svg.field { width: 100%; display: block; border-radius: 4px; }
   .card-foot { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
   .last { flex: 1; min-width: 0; color: var(--muted); font-size: 12px; height: 17px; line-height: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .last[data-play] { cursor: pointer; }
+  .last[data-play]:hover { color: var(--text); }
+  /* Full last-play text floats over the bottom of the card, so opening it never shifts the layout. */
+  .last-full { position: absolute; left: 8px; right: 8px; bottom: 8px; z-index: 2; padding: 8px 10px; background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, .5); color: var(--text); font-size: 12px; line-height: 1.45; cursor: pointer; animation: last-in .15s ease-out; }
+  @keyframes last-in { from { opacity: 0; transform: translateY(4px); } }
   .remove { flex: none; width: 24px; height: 24px; border: 0; border-radius: 6px; background: #9aa0a6; color: #000; font-size: 14px; line-height: 1; cursor: pointer; }
   .remove:hover, .remove:focus-visible { background: #c4c8cc; }
   /* With a mouse, float the ✕ in the top-right corner and show it on hover. Touch screens keep it in the footer. */
@@ -236,6 +242,7 @@ const demoRemoved = new Set();    // demo cards aren't in `selected`; removing o
 const GLOW_MS = 2400;             // matches the redzone-glow animation length
 const redZoneShown = new Set();   // game keys currently drawn in the red zone
 const glowStart = new Map();      // game key -> when its one-time glow began
+let openPlay = null;              // game key whose full last-play text is showing; survives board refreshes
 
 let lastUpdated = null;  // when data last arrived successfully; a failed poll leaves the old time showing
 
@@ -425,9 +432,12 @@ function card(g) {
     <div class="dd">${live ? (g.ddText || "&nbsp;") : "&nbsp;"}</div>
     ${field(g)}
     <div class="card-foot">
-      <div class="last">${live && g.lastPlay ? g.lastPlay : "&nbsp;"}</div>
+      ${live && g.lastPlay
+        ? `<div class="last" data-play="${g.key}" title="${escapeAttr(g.lastPlay)}">${g.lastPlay}</div>`
+        : `<div class="last">&nbsp;</div>`}
       <button class="remove" data-remove="${g.key}" aria-label="Remove game" title="Remove game">✕</button>
     </div>
+    ${live && g.lastPlay && openPlay === g.key ? `<div class="last-full" data-play="${g.key}">${g.lastPlay}</div>` : ""}
   </div>`;
 }
 
@@ -441,6 +451,10 @@ function statusLines(g) {
   if (g.state === "in") return g.detail === "Halftime" ? "Half<br>&nbsp;" : `${g.clock}<br>${periodName(g)}`;
   if (g.state === "pre") return `${g.date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}<br>${g.date.toLocaleDateString([], { weekday: "short" })}`;
   return `${g.detail}<br>&nbsp;`;
+}
+
+function escapeAttr(text) {
+  return text.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
 }
 
 function periodName(g) {
@@ -643,6 +657,16 @@ function renderListAnimated(movedKey) {
     }));
   }
 }
+
+// Clicking the truncated last play opens the full text over the card; clicking it (or anywhere else) closes it.
+document.addEventListener("click", (e) => {
+  const play = e.target.closest("[data-play]")?.dataset.play ?? null;
+  const next = play && play !== openPlay ? play : null;
+  if (next === openPlay) return;
+  openPlay = next;
+  renderBoard();
+});
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && openPlay) { openPlay = null; renderBoard(); } });
 
 document.getElementById("board").addEventListener("click", (e) => {
   const key = e.target.closest("[data-remove]")?.dataset.remove;
