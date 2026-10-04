@@ -27,12 +27,13 @@ function renderPanel() {
   $("panel-toggle").title = label;
 }
 
-export function initDrawer() {
+/** @param {{ animateLayout: (change: () => void) => void }} hooks  animates the board while the panel opens or closes */
+export function initDrawer({ animateLayout }) {
   panelCollapsed = store.get("panelCollapsed", false);
   $("panel-toggle").addEventListener("click", () => {
     panelCollapsed = !panelCollapsed;
     store.set("panelCollapsed", panelCollapsed);
-    renderPanel();
+    animateLayout(renderPanel);
   });
   renderPanel();
 

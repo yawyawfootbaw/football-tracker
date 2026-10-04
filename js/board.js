@@ -68,6 +68,27 @@ function team(g, t, side, timeouts) {
   return `<div class="team ${side}">${side === "away" ? logo + name + pts : pts + name + logo}</div>`;
 }
 
+/**
+ * Run a change that resizes the board (like hiding the game list) and animate every card from its old
+ * position and size to its new one, instead of letting cards jump between grid columns.
+ */
+export function animateBoardLayout(change) {
+  const cards = [...document.querySelectorAll("#board .card")];
+  const before = new Map(cards.map((c) => [c, c.getBoundingClientRect()]));
+  // Apply the new layout immediately (skipping the grid's own transition) so the cards' final spots can be measured.
+  const main = document.querySelector("main");
+  main.style.transition = "none";
+  change();
+  for (const c of cards) {
+    const a = before.get(c), b = c.getBoundingClientRect();
+    if (!b.width || (a.left === b.left && a.top === b.top && a.width === b.width && a.height === b.height)) continue;
+    const from = `translate(${a.left - b.left}px, ${a.top - b.top}px) scale(${a.width / b.width}, ${a.height / b.height})`;
+    c.animate([{ transformOrigin: "top left", transform: from }, { transformOrigin: "top left", transform: "none" }],
+      { duration: 250, easing: "ease" });  // same timing as the panel slide (css/base.css)
+  }
+  requestAnimationFrame(() => { main.style.transition = ""; });
+}
+
 /** Scroll to a game's card and flash it. */
 export function highlightCard(key) {
   flash = { key, at: Date.now() };

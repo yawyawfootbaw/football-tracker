@@ -4,7 +4,7 @@ import { DEMO, MOBILE_QUERY, POLL_MS } from "./config.js";
 import { state } from "./state.js";
 import { fetchGames } from "./espn.js";
 import { renderList, listIsStale, initPicker } from "./picker.js";
-import { renderBoard, highlightCard, initBoard } from "./board.js";
+import { renderBoard, highlightCard, initBoard, animateBoardLayout } from "./board.js";
 import { setPicker, initDrawer } from "./drawer.js";
 import { initSettings } from "./settings.js";
 import { countVisit } from "./counter.js";
@@ -45,7 +45,7 @@ initPicker({
 initBoard({
   onSelectionChanged: () => { renderList(); renderBoard(); },  // a card's ✕ unpicks, so uncheck its row too
 });
-initDrawer();
+initDrawer({ animateLayout: animateBoardLayout });
 initSettings();
 
 poll();

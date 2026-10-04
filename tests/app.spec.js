@@ -642,6 +642,19 @@ test.describe("desktop game list panel", () => {
     await expect.poll(boardX).toBeGreaterThan(290);
   });
 
+  test("cards animate to their new sizes and positions when the list hides or shows", async ({ page }) => {
+    await open(page, { storage: { selected: ["cfb:1", "cfb:2", "cfb:7"] } });
+    const third = card(page, "cfb:7");
+    const before = await third.boundingBox();
+    await page.locator("#panel-toggle").click();
+    const moving = await page.locator(".card").evaluateAll((cards) =>
+      cards.filter((c) => c.getAnimations().some((a) => a.effect.getKeyframes().some((k) => k.transform?.includes("translate")))).length);
+    expect(moving).toBe(3);
+    await page.waitForTimeout(400);
+    const after = await third.boundingBox();
+    expect(after.y).toBeLessThan(before.y);  // third card moved up into the first row
+  });
+
   test("the slide uses the same timing as the phone drawer", async ({ page }) => {
     await open(page);
     const desktop = await style(page.locator("aside"), "transition");
