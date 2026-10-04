@@ -50,5 +50,13 @@ initDrawer({ animateLayout: animateBoardLayout });
 initSettings();
 initTheme({ onChange: () => { renderList(); renderBoard(); } });  // logos differ per theme
 
-poll();
-setInterval(poll, POLL_MS);
+// Poll now and every POLL_MS after. Background tabs get their timers slowed down by the browser, so coming
+// back to the tab fetches right away and restarts the timer from there.
+let pollTimer;
+function pollNow() {
+  poll();
+  clearInterval(pollTimer);
+  pollTimer = setInterval(poll, POLL_MS);
+}
+pollNow();
+document.addEventListener("visibilitychange", () => { if (!document.hidden) pollNow(); });

@@ -9,8 +9,9 @@ const CORS = { "access-control-allow-origin": "*" };
  * Returns a mutable state object: change state.cfb / state.nfl to alter what the next poll sees.
  */
 async function open(page, opts = {}) {
-  const state = { cfb: opts.cfb ?? cfbGames(), nfl: opts.nfl ?? nflGames(), hits: 0, gate: opts.gate };
+  const state = { cfb: opts.cfb ?? cfbGames(), nfl: opts.nfl ?? nflGames(), hits: 0, espnRequests: 0, gate: opts.gate };
   await page.route("https://site.api.espn.com/**", async (route) => {
+    state.espnRequests++;
     if (state.gate) await state.gate;
     const games = route.request().url().includes("college-football") ? state.cfb : state.nfl;
     await route.fulfill({ json: scoreboard(games), headers: CORS });
@@ -236,6 +237,20 @@ test.describe("game picker", () => {
     await expect(live.locator("+ .group-body")).toHaveClass(/collapsed/);
     await page.reload();
     await expect(page.locator('#list .group-label[data-group="Live"]')).toHaveAttribute("aria-expanded", "false");
+  });
+
+  test("returning to the tab fetches right away and restarts the 10-second timer", async ({ page }) => {
+    await page.clock.install({ time: new Date("2026-10-03T20:00:00Z") });
+    const state = await open(page);
+    await expect.poll(() => state.espnRequests).toBe(2);  // NFL + college on load
+    await page.clock.runFor(8_000);
+    expect(state.espnRequests).toBe(2);
+    await page.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
+    await expect.poll(() => state.espnRequests).toBe(4);  // immediately, not at the 10s mark
+    await page.clock.runFor(8_000);
+    expect(state.espnRequests).toBe(4);  // timer restarted, so nothing at the old 10s mark
+    await page.clock.runFor(2_000);
+    await expect.poll(() => state.espnRequests).toBe(6);
   });
 
   test("the list refreshes every 30 seconds while cards refresh every 10", async ({ page }) => {
