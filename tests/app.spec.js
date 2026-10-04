@@ -677,6 +677,39 @@ test.describe("light and dark themes", () => {
   });
 });
 
+test.describe("?loud", () => {
+  // Replace the Web Audio context with a fake that counts oscillators started.
+  const fakeAudio = (page) => page.addInitScript(() => {
+    window.started = 0;
+    window.contexts = 0;
+    const param = () => ({ setValueAtTime() {}, linearRampToValueAtTime() {}, exponentialRampToValueAtTime() {} });
+    window.AudioContext = class {
+      constructor() { window.contexts++; this.state = "suspended"; this.currentTime = 0; this.destination = {}; }
+      resume() { this.state = "running"; return Promise.resolve(); }
+      createGain() { return { gain: param(), connect() {} }; }
+      createOscillator() { return { frequency: param(), connect() {}, start() { window.started++; }, stop() {} }; }
+    };
+  });
+
+  test("plays noises at random 1–30 second intervals, once the page has been clicked", async ({ page }) => {
+    await fakeAudio(page);
+    await page.clock.install({ time: new Date("2026-10-03T20:00:00Z") });
+    await open(page, { query: "?loud" });
+    await page.clock.runFor(31_000);
+    expect(await page.evaluate(() => window.started)).toBe(0);  // browsers block audio before any interaction
+    await page.locator("header h1").click();
+    await page.clock.runFor(31_000);
+    expect(await page.evaluate(() => window.started)).toBeGreaterThan(0);
+  });
+
+  test("without ?loud, no audio is set up", async ({ page }) => {
+    await fakeAudio(page);
+    await open(page);
+    await page.locator("header h1").click();
+    expect(await page.evaluate(() => window.contexts)).toBe(0);
+  });
+});
+
 test.describe("animations ignore the OS reduced-motion setting", () => {
   test.use({ reducedMotion: "reduce" });
 
