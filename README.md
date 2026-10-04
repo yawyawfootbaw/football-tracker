@@ -41,7 +41,7 @@ js/
   settings.js         settings gear and "google me"
   theme.js            light/dark theme and its header switch
   counter.js          hidden visit counter
-  loud.js             ?loud prank mode: random loud noises
+  loud.js             ?loud prank mode: nonstop random loud noises
 images/               coach photos for "google me", favicon, link-preview image
 scripts/
   share-images.js     regenerates the link-preview image and touch icon

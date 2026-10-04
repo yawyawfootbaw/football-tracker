@@ -691,15 +691,16 @@ test.describe("?loud", () => {
     };
   });
 
-  test("plays noises at random 1–30 second intervals, once the page has been clicked", async ({ page }) => {
+  test("plays noises back to back, nonstop, once the page has been clicked", async ({ page }) => {
     await fakeAudio(page);
     await page.clock.install({ time: new Date("2026-10-03T20:00:00Z") });
     await open(page, { query: "?loud" });
-    await page.clock.runFor(31_000);
+    await page.clock.runFor(10_000);
     expect(await page.evaluate(() => window.started)).toBe(0);  // browsers block audio before any interaction
     await page.locator("header h1").click();
-    await page.clock.runFor(31_000);
-    expect(await page.evaluate(() => window.started)).toBeGreaterThan(0);
+    await page.clock.runFor(10_000);
+    // Each noise lasts at most 1.5s, so 10 seconds holds at least 6 back to back.
+    expect(await page.evaluate(() => window.started)).toBeGreaterThanOrEqual(6);
   });
 
   test("without ?loud, no audio is set up", async ({ page }) => {

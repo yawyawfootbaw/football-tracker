@@ -1,4 +1,4 @@
-// ?loud: every 1–30 seconds, play a randomly generated loud noise (a prank mode).
+// ?loud: nonstop randomly generated loud noises, one right after another (a prank mode).
 // Browsers won't play audio until the visitor interacts with the page, so the noises start after the first
 // click, tap or key press.
 
@@ -7,6 +7,7 @@ const random = (min, max) => min + Math.random() * (max - min);
 
 let audio;
 
+/** Plays one random noise and returns its length in seconds. */
 function playNoise() {
   const now = audio.currentTime;
   const duration = random(0.3, 1.5);
@@ -28,18 +29,18 @@ function playNoise() {
     osc.start(now);
     osc.stop(now + duration);
   }
+  return duration;
 }
 
-function scheduleNext() {
-  setTimeout(() => {
-    if (audio.state === "running") playNoise();
-    scheduleNext();
-  }, random(1000, 30000));
+// Start the next noise as soon as the current one ends. Until the page is clicked, check back every quarter second.
+function playForever() {
+  const seconds = audio.state === "running" ? playNoise() : 0.25;
+  setTimeout(playForever, seconds * 1000);
 }
 
 export function startLoudMode() {
   audio = new AudioContext();
   const unlock = () => audio.resume();
   for (const type of ["pointerdown", "keydown"]) document.addEventListener(type, unlock, { once: true });
-  scheduleNext();
+  playForever();
 }
