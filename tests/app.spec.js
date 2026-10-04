@@ -168,7 +168,7 @@ test.describe("game picker", () => {
     const pick = await row(page, "cfb:5").locator(".pick").boundingBox();
     const status = await row(page, "cfb:5").locator(".bug-status").boundingBox();
     expect(r.x + r.width - (pick.x + pick.width)).toBeCloseTo(12, 0);  // row padding
-    expect(pick.x - (status.x + status.width)).toBeGreaterThanOrEqual(16);
+    expect(pick.x - (status.x + status.width)).toBeGreaterThanOrEqual(22);
   });
 
   test("the Live section stands out: tinted header, pulsing dot, red edge on live rows", async ({ page }) => {
@@ -191,6 +191,7 @@ test.describe("game picker", () => {
     await expect(final.locator(".bug-team").nth(1)).toHaveClass(/lost/);
     await expect(final.locator(".bug-status")).toContainText("Final");
     await expect(row(page, "cfb:1").locator(".rank").first()).toHaveText("5");
+    await expect(row(page, "cfb:1").locator(".rec")).toHaveText(["5-0", "3-2"]);  // team records
   });
 
   test("clicking a row adds the game; Selected section lists picks in the original list order", async ({ page }) => {
@@ -261,6 +262,27 @@ test.describe("search and filters", () => {
     await expect(row(page, "cfb:6")).toHaveCount(0);
   });
 
+  test("search covers both leagues: no tab highlighted, league tags on rows, no College filters", async ({ page }) => {
+    await open(page);  // College tab
+    await page.fill("#search", "dallas");
+    await expect(page.locator("#list label.game")).toHaveCount(1);
+    await expect(row(page, "nfl:102").locator(".lg")).toHaveText("NFL");
+    await expect(page.locator(".tabs button.on")).toHaveCount(0);
+    await expect(page.locator("#filter-toggle")).toBeHidden();
+    await page.fill("#search", "");
+    await expect(page.locator('.tabs button[data-league="cfb"]')).toHaveClass(/on/);
+    await expect(row(page, "cfb:1").locator(".lg")).toHaveCount(0);
+  });
+
+  test("clicking a tab during a search clears it and shows that league", async ({ page }) => {
+    await open(page);
+    await page.fill("#search", "notre dame");
+    await page.locator('.tabs button[data-league="nfl"]').click();
+    await expect(page.locator("#search")).toHaveValue("");
+    await expect(page.locator('.tabs button[data-league="nfl"]')).toHaveClass(/on/);
+    await expect(page.locator("#list label.game")).toHaveCount(2);
+  });
+
   test("search matches full school names and mascots, and says when nothing matches", async ({ page }) => {
     await open(page);
     await page.fill("#search", "notre dame");
@@ -271,17 +293,54 @@ test.describe("search and filters", () => {
     await expect(page.locator("#list .empty")).toHaveText("No matching games.");
   });
 
-  test("filter controls hide behind the funnel and only exist on the College tab", async ({ page }) => {
+  test("filter controls hide behind the funnel on both tabs; Top 25 is college-only", async ({ page }) => {
     await open(page);
     const panel = page.locator("#filters");
     await expect(panel).not.toHaveClass(/open/);
     await page.locator("#filter-toggle").click();
     await expect(panel).toHaveClass(/open/);
     await expect(page.locator("#conf")).toBeVisible();
+    await expect(page.locator("#top25")).toBeVisible();
+    await page.locator('.tabs button[data-league="nfl"]').click();
+    await expect(page.locator("#conf")).toBeVisible();
+    await expect(page.locator("#top25")).toBeHidden();
     await page.locator("#filter-toggle").click();
     await expect(panel).not.toHaveClass(/open/);
+  });
+
+  test("NFL filter offers AFC, NFC and their divisions, and filters by either", async ({ page }) => {
+    await open(page, { storage: { tab: "nfl" } });
+    await page.locator("#filter-toggle").click();
+    const options = await page.locator("#conf option").allTextContents();
+    expect(options).toEqual(["All conferences",
+      "All AFC", "AFC East", "AFC North", "AFC South", "AFC West",
+      "All NFC", "NFC East", "NFC North", "NFC South", "NFC West"]);
+    await page.selectOption("#conf", "NFC");
+    await expect(page.locator("#list label.game")).toHaveCount(1);
+    await expect(row(page, "nfl:102")).toBeAttached();  // DAL @ PHI
+    await page.selectOption("#conf", "AFC East");
+    await expect(page.locator("#list label.game")).toHaveCount(1);
+    await expect(row(page, "nfl:101")).toBeAttached();  // NE @ NYJ
+    await page.selectOption("#conf", "AFC North");
+    await expect(page.locator("#list .empty")).toHaveText("No matching games.");
+  });
+
+  test("each league remembers its own filter", async ({ page }) => {
+    await open(page);
+    await page.locator("#filter-toggle").click();
+    await page.selectOption("#conf", { label: "SEC" });
     await page.locator('.tabs button[data-league="nfl"]').click();
-    await expect(page.locator("#filter-toggle")).toBeHidden();
+    await expect(page.locator("#conf")).toHaveValue("");
+    await page.selectOption("#conf", "AFC");
+    await page.reload();
+    await expect(page.locator("#conf")).toHaveValue("AFC");
+    await page.locator('.tabs button[data-league="cfb"]').click();
+    await expect(page.locator("#conf")).toHaveValue("8");  // SEC
+  });
+
+  test("a college filter saved before NFL filters existed still applies", async ({ page }) => {
+    await open(page, { storage: { filters: { conf: "", top25: true } } });
+    await expect(page.locator("#list label.game")).toHaveCount(5);
   });
 
   test("conference filter lists named conferences, filters games, and clears with one click", async ({ page }) => {
