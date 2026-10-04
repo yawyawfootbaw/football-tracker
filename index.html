@@ -103,6 +103,7 @@
   .bug-team .poss { color: var(--ltg); font-size: 9px; }
   .bug-team .pts { margin-left: auto; font-variant-numeric: tabular-nums; }
   .bug-team.lost { color: var(--muted); font-weight: 400; }
+  .bug-status .lg { display: block; margin-top: 1px; font-size: 9px; font-weight: 600; letter-spacing: .06em; color: var(--muted); }
   .bug-status { flex: none; width: 54px; padding-left: 8px; border-left: 1px solid var(--border); color: var(--muted); font-size: 11px; line-height: 15px; text-align: center; font-variant-numeric: tabular-nums; white-space: nowrap; }
   #board { overflow-y: auto; padding: 16px 16px 32px; display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 16px; align-content: start; }
   .empty { color: var(--muted); padding: 24px; grid-column: 1 / -1; }
@@ -205,6 +206,7 @@
     <div class="list-head">
       <div class="drawer-head">Games<button id="picker-close" aria-label="Close">✕</button></div>
       <div class="tabs">
+        <button data-league="all">All</button>
         <button data-league="cfb">College</button>
         <button data-league="nfl">NFL</button>
       </div>
@@ -256,7 +258,7 @@ const store = {
   set(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch {} },
 };
 
-let tab = store.get("tab", "cfb");
+let tab = store.get("tab", "all");  // picker tab: all, cfb or nfl
 const filters = store.get("filters", { conf: "", top25: false });  // College tab only
 const collapsedGroups = new Set(store.get("collapsedGroups", []));  // picker sections the viewer has minimized
 let selected = new Set(store.get("selected", []));  // "league:eventId"
@@ -362,7 +364,7 @@ function renderList() {
   const college = tab === "cfb";
   renderFilters(college);
   const ranked = (t) => t.rank && t.rank <= 25;
-  const list = games[tab]
+  const list = (tab === "all" ? [...games.cfb, ...games.nfl] : games[tab])
     // Match from the start of a word, so "nd" finds ND and NDSU but not Maryland.
     .filter((g) => !query || g.away.searchText.includes(" " + query) || g.home.searchText.includes(" " + query))
     .filter((g) => !college || !filters.conf || g.away.conf === filters.conf || g.home.conf === filters.conf)
@@ -391,7 +393,7 @@ function renderList() {
         <span class="pts">${g.state === "pre" ? "" : t.score}</span></span>`;
     html += `<label class="game ${live ? "live" : ""}"><input type="checkbox" data-key="${g.key}" ${selected.has(g.key) ? "checked" : ""}>
       <span class="bug">${line(g.away, g.home)}${line(g.home, g.away)}</span>
-      <span class="bug-status">${statusLines(g)}</span><span class="pick" aria-hidden="true"></span></label>`;
+      <span class="bug-status">${statusLines(g)}${tab === "all" ? `<span class="lg">${g.key.startsWith("nfl:") ? "NFL" : "CFB"}</span>` : ""}</span><span class="pick" aria-hidden="true"></span></label>`;
   }
   if (lastGroup) html += `</div></div>`;
   const filtered = query || (college && (filters.conf || filters.top25));

@@ -55,10 +55,21 @@ test.describe("loading and layout", () => {
     await expect(page.locator(".spinner")).toHaveCount(0);
   });
 
-  test("College tab comes first and is the default", async ({ page }) => {
+  test("picker tabs are All, College, NFL, with All the default", async ({ page }) => {
     await open(page);
-    await expect(page.locator(".tabs button")).toHaveText(["College", "NFL"]);
-    await expect(page.locator('.tabs button[data-league="cfb"]')).toHaveClass(/on/);
+    await expect(page.locator(".tabs button")).toHaveText(["All", "College", "NFL"]);
+    await expect(page.locator('.tabs button[data-league="all"]')).toHaveClass(/on/);
+  });
+
+  test("All tab lists both leagues and labels each row's league", async ({ page }) => {
+    await open(page);
+    await expect(row(page, "cfb:1")).toBeAttached();
+    await expect(row(page, "nfl:101")).toBeAttached();
+    await expect(row(page, "nfl:101").locator(".lg")).toHaveText("NFL");
+    await expect(row(page, "cfb:1").locator(".lg")).toHaveText("CFB");
+    await page.locator('.tabs button[data-league="cfb"]').click();
+    await expect(row(page, "nfl:101")).toHaveCount(0);
+    await expect(row(page, "cfb:1").locator(".lg")).toHaveCount(0);
   });
 
   test("remembers the chosen tab across reloads", async ({ page }) => {
@@ -92,7 +103,7 @@ test.describe("loading and layout", () => {
 test.describe("game picker", () => {
   test("groups games into Live, Upcoming and Final with counts", async ({ page }) => {
     await open(page);
-    await expect(page.locator("#list .group-label")).toHaveText([/Live\s*4/, /Upcoming\s*2/, /Final\s*2/]);
+    await expect(page.locator("#list .group-label")).toHaveText([/Live\s*5/, /Upcoming\s*3/, /Final\s*2/]);  // All tab: both leagues
   });
 
   test("section headers look different from rows, and rows alternate shades", async ({ page }) => {
@@ -207,6 +218,8 @@ test.describe("search and filters", () => {
 
   test("filter controls hide behind the funnel and only exist on the College tab", async ({ page }) => {
     await open(page);
+    await expect(page.locator("#filter-toggle")).toBeHidden();  // not on All
+    await page.locator('.tabs button[data-league="cfb"]').click();
     const panel = page.locator("#filters");
     await expect(panel).not.toHaveClass(/open/);
     await page.locator("#filter-toggle").click();
@@ -220,6 +233,7 @@ test.describe("search and filters", () => {
 
   test("conference filter lists named conferences, filters games, and clears with one click", async ({ page }) => {
     await open(page);
+    await page.locator('.tabs button[data-league="cfb"]').click();
     await page.locator("#filter-toggle").click();
     const options = await page.locator("#conf option").allTextContents();
     expect(options).toEqual(["All conferences", "Big 12", "Big Ten", "Independent", "SEC"]);
@@ -233,12 +247,14 @@ test.describe("search and filters", () => {
 
   test("dropdown arrow sits well inside the right edge", async ({ page }) => {
     await open(page);
+    await page.locator('.tabs button[data-league="cfb"]').click();
     await page.locator("#filter-toggle").click();
     expect(await style(page.locator("#conf"), "backgroundPosition")).toContain("12px");
   });
 
   test("Top 25 shows only games with a ranked team and is remembered", async ({ page }) => {
     await open(page);
+    await page.locator('.tabs button[data-league="cfb"]').click();
     await page.locator("#filter-toggle").click();
     await page.locator("#top25").click();
     await expect(page.locator("#list label.game")).toHaveCount(5);
