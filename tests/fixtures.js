@@ -82,7 +82,6 @@ function cfbGames() {
     game({ id: 4, away: T.BYU, home: T.TCU, awayOpts: { score: "14", rank: 10 }, homeOpts: { score: "10" }, state: "in", detail: "Halftime",
       statusName: "STATUS_HALFTIME", clock: "0:00", period: 2,
       situation: { possession: "252", yardLine: 76, downDistanceText: "2nd & 10 at BYU 24", isRedZone: false } }),
-    // Upcoming.
     game({ id: 5, away: T.VAN, home: T.UGA, homeOpts: { rank: 2 }, state: "pre", detail: "Sat 7:30 PM", date: "2026-10-03T23:30Z" }),
     // Upcoming, and the search trap: "nd" must not match Maryland.
     game({ id: 6, away: T.MD, home: T.PUR, state: "pre", detail: "Sat 8:00 PM", date: "2026-10-04T00:00Z" }),

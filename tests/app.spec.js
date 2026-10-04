@@ -312,7 +312,7 @@ test.describe("game cards", () => {
     await expect(c).toHaveClass(/glow/);
     await expect(card(page, "cfb:8")).not.toHaveClass(/redzone/);
     await page.waitForTimeout(2500);
-    await page.locator('.board-bar button[data-view="all"]').click();  // any re-render
+    await page.locator('.board-bar button[data-view="all"]').click();  // re-render the board
     await expect(c).not.toHaveClass(/glow/);
     await page.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
     await expect(c).toHaveClass(/glow/);
@@ -320,7 +320,7 @@ test.describe("game cards", () => {
 
   test("possession falls back to the last play after a kickoff, but not after a timeout", async ({ page }) => {
     await open(page, { storage: { selected: ["cfb:2", "cfb:3"] } });
-    await expect(card(page, "cfb:2").locator(".team.away .poss")).not.toHaveClass(/hide/);  // CAL
+    await expect(card(page, "cfb:2").locator(".team.away .poss")).not.toHaveClass(/hide/);
     await expect(card(page, "cfb:3").locator(".poss:not(.hide)")).toHaveCount(0);
   });
 
@@ -369,7 +369,7 @@ test.describe("game cards", () => {
     await expect(card(page, "cfb:1").locator(".card-foot .net")).toHaveText("FOX");
     await expect(card(page, "cfb:7").locator(".card-foot .net")).toHaveText("CBS / Paramount+");
     await expect(card(page, "cfb:5").locator(".net")).toHaveCount(0);
-    expect(await style(card(page, "cfb:1").locator(".net"), "color")).toBe("rgb(255, 255, 255)");  // white so it pops
+    expect(await style(card(page, "cfb:1").locator(".net"), "color")).toBe("rgb(255, 255, 255)");
   });
 
   test("✕ appears on hover, removes the card and unchecks the row", async ({ page }) => {
@@ -378,8 +378,8 @@ test.describe("game cards", () => {
     expect(await style(remove, "opacity")).toBe("0");
     await card(page, "cfb:1").hover();
     await expect.poll(() => style(remove, "opacity")).toBe("1");
-    expect(await style(remove, "backgroundColor")).toBe("rgb(154, 160, 166)");  // grey
-    expect(await style(remove, "color")).toBe("rgb(0, 0, 0)");                 // black ✕
+    expect(await style(remove, "backgroundColor")).toBe("rgb(154, 160, 166)");
+    expect(await style(remove, "color")).toBe("rgb(0, 0, 0)");
     await remove.click();
     await expect(card(page, "cfb:1")).toHaveCount(0);
     await expect(row(page, "cfb:1").locator("input")).not.toBeChecked();

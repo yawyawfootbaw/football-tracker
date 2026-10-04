@@ -9,7 +9,7 @@
 .card { position: relative; min-width: 0; background: var(--card); border: 1px solid #323846; border-radius: 10px; padding: 12px; }
 .card.redzone { border-color: var(--red); }
 .card.glow { animation: redzone-glow 2.4s ease-in-out; }
-/* "Here it is" flash when a selected game is clicked in the picker. On a pseudo-element so it can't clash with the red-zone glow. */
+/* Flash when a selected game is clicked in the picker. On a pseudo-element so it can't clash with the red-zone glow. */
 .card.flash::after { content: ""; position: absolute; inset: -1px; border-radius: inherit; border: 2px solid var(--accent); pointer-events: none;
   opacity: 0; animation: card-flash 1.6s ease-out; animation-delay: var(--flash-delay, 0ms); }
 @keyframes card-flash {

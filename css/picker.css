@@ -37,7 +37,7 @@
 .group-clip { overflow: hidden; min-height: 0; }
 .group-label .n { margin-left: auto; margin-right: 2px; padding: 1px 7px; border-radius: 10px; background: #1c2029; color: var(--muted); font-weight: 600; letter-spacing: 0; }
 .group-label.selected { color: var(--accent); }
-/* Live is what people come for: red-tinted header, pulsing dot, red edge and bright clock on live rows. */
+/* Live section: red-tinted header, pulsing dot, red edge and bright clock on live rows. */
 .group-label.live { background: #3d1e25; border-color: #61303a; color: #fff; }
 .group-label.live .n { background: var(--red); color: #fff; }
 .group-label.live::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--red); animation: live-pulse 1.6s ease-out infinite; }

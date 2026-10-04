@@ -5,7 +5,7 @@ import { store } from "./store.js";
 export const state = {
   games: { nfl: [], cfb: [] },                             // latest parsed games per league
   selected: new Set(store.get("selected", [])),            // picked game keys, "league:eventId"
-  // Picker tab: cfb or nfl. ("all" was an option for a while; treat a saved "all" as the default.)
+  // Picker tab: cfb or nfl. Anything else saved (e.g. an old "all") falls back to College.
   tab: ["cfb", "nfl"].includes(store.get("tab")) ? store.get("tab") : "cfb",
   filters: store.get("filters", { conf: "", top25: false }),  // College tab only
   collapsedGroups: new Set(store.get("collapsedGroups", [])), // picker sections the viewer has minimized
