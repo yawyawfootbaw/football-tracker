@@ -20,6 +20,8 @@
   .drawer-foot { display: block; position: sticky; bottom: 0; padding: 12px 16px; background: var(--bg); border-top: 1px solid var(--border); }
   #picker-done { width: 100%; padding: 12px; border: 0; border-radius: 8px; background: var(--accent); color: #fff; font: inherit; font-weight: 600; cursor: pointer; }
   #board { grid-template-columns: minmax(0, 1fr); padding: 12px 16px 32px; }
+  .desktop-only { display: none; }
+  .mobile-only { display: inline; }
   /* Narrow screens: tighter scoreboard row so team names fit beside logo, score and clock. */
   .score { grid-template-columns: minmax(0, 1fr) 58px minmax(0, 1fr); gap: 6px; }
   .team { gap: 6px; }

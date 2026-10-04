@@ -421,7 +421,8 @@ test.describe("board view switch", () => {
     await card(page, "cfb:1").hover();
     await card(page, "cfb:1").locator(".remove").click();
     await expect(page.locator(".board-bar")).toHaveCount(0);
-    await expect(page.locator("#board .empty")).toHaveText("Pick games from the list.");
+    await expect(page.locator("#board .empty .desktop-only")).toHaveText("Pick a few games from the list on the left and they'll show up here.");
+    await expect(page.locator("#board .empty .mobile-only")).toBeHidden();
   });
 });
 
@@ -555,6 +556,12 @@ test.describe("animations ignore the OS reduced-motion setting", () => {
 
 test.describe("mobile", () => {
   test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+
+  test("with no picks, the board says to tap the Games bar", async ({ page }) => {
+    await open(page, { storage: { pickerOpen: false } });
+    await expect(page.locator("#board .empty .mobile-only")).toHaveText("Tap ☰ Games at the top to pick a few games, and they'll show up here.");
+    await expect(page.locator("#board .empty .desktop-only")).toBeHidden();
+  });
 
   test("no horizontal scrolling and team names fit on cards", async ({ page }) => {
     await open(page, { storage: { selected: ALL_CFB, pickerOpen: false } });

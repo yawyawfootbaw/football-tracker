@@ -20,7 +20,10 @@ export function renderBoard() {
     .sort((a, b) => (a.state === "in" ? 0 : 1) - (b.state === "in" ? 0 : 1) || a.date - b.date);
   $("picker-count").textContent = picked.length ? `${picked.length} selected` : "";
   if (!picked.length) {
-    $("board").innerHTML = `<div class="empty">Pick games from the list.</div>`;
+    // The picker sits on the left on desktop but hides behind the "☰ Games" bar on phones; CSS shows the matching hint.
+    $("board").innerHTML = `<div class="empty">
+      <span class="desktop-only">Pick a few games from the list on the left and they'll show up here.</span>
+      <span class="mobile-only">Tap ☰ Games at the top to pick a few games, and they'll show up here.</span></div>`;
     return;
   }
   const inView = (view) => picked.filter((g) => view === "all" || g.key.startsWith(view + ":"));

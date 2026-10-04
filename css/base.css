@@ -15,3 +15,4 @@ aside { border-right: 1px solid var(--border); overflow-y: auto; }
 .spinner { width: 32px; height: 32px; margin: 48px auto; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; grid-column: 1 / -1; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .empty { color: var(--muted); padding: 24px; grid-column: 1 / -1; }
+.mobile-only { display: none; }
