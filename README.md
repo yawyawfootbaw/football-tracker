@@ -61,7 +61,3 @@ don't import each other: `main.js` passes each one the callbacks it needs.
 - **College** covers FBS games only (`groups=80`); FCS-only matchups aren't listed.
 - **Finished games** stay listed until ESPN's football week rolls over. ESPN's calendar data puts that at
   early Monday for college and early Wednesday for NFL, Eastern time.
-- **Possession** isn't always in ESPN's data (after kickoffs, scores and timeouts); `espn.js` infers it from the
-  last play when it can, and clears the stale situation ESPN leaves behind at halftime.
-- **Tests never call ESPN.** The API hasn't responded to headless Chrome in testing, and live data isn't
-  repeatable anyway, so every test stubs the API, logos and counter with `tests/fixtures.js`.
