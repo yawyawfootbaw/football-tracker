@@ -341,6 +341,41 @@ test.describe("game cards", () => {
   });
 });
 
+test.describe("board view switch", () => {
+  const seeded = { storage: { selected: ["cfb:1", "cfb:8", "nfl:101"] } };
+  const view = (page, name) => page.locator(`.board-bar button[data-view="${name}"]`);
+
+  test("All shows every pick, with counts per view", async ({ page }) => {
+    await open(page, seeded);
+    await expect(page.locator(".board-bar button")).toHaveText([/All\s*3/, /College\s*2/, /NFL\s*1/]);
+    await expect(view(page, "all")).toHaveAttribute("aria-pressed", "true");
+    await expect(page.locator(".card")).toHaveCount(3);
+  });
+
+  test("College and NFL show only that league, and the choice is remembered", async ({ page }) => {
+    await open(page, seeded);
+    await view(page, "cfb").click();
+    await expect(page.locator(".card")).toHaveCount(2);
+    await expect(card(page, "nfl:101")).toHaveCount(0);
+    await view(page, "nfl").click();
+    await expect(page.locator(".card")).toHaveCount(1);
+    await expect(card(page, "nfl:101")).toBeVisible();
+    await page.reload();
+    await expect(view(page, "nfl")).toHaveAttribute("aria-pressed", "true");
+    await expect(page.locator(".card")).toHaveCount(1);
+  });
+
+  test("an empty view says so; with no picks at all there's no switch", async ({ page }) => {
+    await open(page, { storage: { selected: ["cfb:1"], boardView: "nfl" } });
+    await expect(page.locator("#board .empty")).toHaveText("No NFL games selected.");
+    await view(page, "cfb").click();
+    await card(page, "cfb:1").hover();
+    await card(page, "cfb:1").locator(".remove").click();
+    await expect(page.locator(".board-bar")).toHaveCount(0);
+    await expect(page.locator("#board .empty")).toHaveText("Pick games from the list.");
+  });
+});
+
 test.describe("demo mode and counter", () => {
   test("?demo adds both demo games, skips the hit counter, and demo cards can be removed", async ({ page }) => {
     const state = await open(page, { query: "?demo" });

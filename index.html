@@ -96,7 +96,13 @@
   .bug-team.lost { color: var(--muted); font-weight: 400; }
   .bug-status { flex: none; width: 54px; padding-left: 8px; border-left: 1px solid var(--border); color: var(--muted); font-size: 11px; line-height: 15px; text-align: center; font-variant-numeric: tabular-nums; white-space: nowrap; }
   #board { overflow-y: auto; padding: 16px 16px 32px; display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 16px; align-content: start; }
-  .empty { color: var(--muted); padding: 24px; }
+  .empty { color: var(--muted); padding: 24px; grid-column: 1 / -1; }
+  /* Board view switch: All / College / NFL. */
+  .board-bar { grid-column: 1 / -1; justify-self: start; display: flex; gap: 2px; padding: 3px; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; }
+  .board-bar button { padding: 5px 12px; background: none; border: 0; border-radius: 6px; color: var(--muted); font: inherit; font-size: 13px; cursor: pointer; }
+  .board-bar button:hover { color: var(--text); }
+  .board-bar button[aria-pressed="true"] { background: var(--accent); color: #fff; }
+  .board-bar .n { margin-left: 4px; font-size: 11px; opacity: .75; }
   .spinner { width: 32px; height: 32px; margin: 48px auto; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; grid-column: 1 / -1; }
   @keyframes spin { to { transform: rotate(360deg); } }
   .card { position: relative; min-width: 0; background: var(--card); border: 1px solid #323846; border-radius: 10px; padding: 12px; }
@@ -405,14 +411,25 @@ function renderFilters(show) {
   document.getElementById("top25").setAttribute("aria-pressed", filters.top25);
 }
 
+const BOARD_VIEWS = { all: "All", cfb: "College", nfl: "NFL" };
+let boardView = store.get("boardView", "all");
+
 function renderBoard() {
   const all = [...games.cfb, ...games.nfl];
   const picked = all.filter((g) => selected.has(g.key) || (g.key.includes(":demo") && !demoRemoved.has(g.key)))
     .sort((a, b) => (a.state === "in" ? 0 : 1) - (b.state === "in" ? 0 : 1) || a.date - b.date);
   document.getElementById("picker-count").textContent = picked.length ? `${picked.length} selected` : "";
-  document.getElementById("board").innerHTML = picked.length
-    ? picked.map(card).join("")
-    : `<div class="empty">Pick games from the list.</div>`;
+  if (!picked.length) {
+    document.getElementById("board").innerHTML = `<div class="empty">Pick games from the list.</div>`;
+    return;
+  }
+  const inView = (view) => picked.filter((g) => view === "all" || g.key.startsWith(view + ":"));
+  const bar = `<div class="board-bar">${Object.entries(BOARD_VIEWS).map(([view, label]) =>
+    `<button data-view="${view}" aria-pressed="${view === boardView}">${label}<span class="n">${inView(view).length}</span></button>`).join("")}</div>`;
+  const shown = inView(boardView);
+  document.getElementById("board").innerHTML = bar + (shown.length
+    ? shown.map(card).join("")
+    : `<div class="empty">No ${BOARD_VIEWS[boardView]} games selected.</div>`);
 }
 
 function card(g) {
@@ -707,6 +724,13 @@ document.addEventListener("click", (e) => {
 document.addEventListener("keydown", (e) => { if (e.key === "Escape" && openPlay) { openPlay = null; renderBoard(); } });
 
 document.getElementById("board").addEventListener("click", (e) => {
+  const view = e.target.closest("[data-view]")?.dataset.view;
+  if (view) {
+    boardView = view;
+    store.set("boardView", view);
+    renderBoard();
+    return;
+  }
   const key = e.target.closest("[data-remove]")?.dataset.remove;
   if (!key) return;
   if (key.includes(":demo")) demoRemoved.add(key);
