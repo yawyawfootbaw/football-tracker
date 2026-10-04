@@ -172,14 +172,17 @@ test.describe("game picker", () => {
     expect(pick.x - (status.x + status.width)).toBeGreaterThanOrEqual(22);
   });
 
-  test("with a mouse, the + is a small dimmed hint that brightens on hover; the ✓ stays bold", async ({ page }) => {
+  test("with a mouse, the + is a small dimmed hint that brightens on hover; the ✓ is a full-strength outline", async ({ page }) => {
     await open(page, { storage: { selected: ["cfb:1"] } });
     const plus = row(page, "cfb:5").locator(".pick");
     expect((await plus.boundingBox()).width).toBeCloseTo(22, 0);
     expect(await style(plus, "opacity")).toBe("0.4");
     await row(page, "cfb:5").hover();
     await expect.poll(() => style(plus, "opacity")).toBe("1");
-    expect(await style(row(page, "cfb:1").locator(".pick"), "opacity")).toBe("1");  // picked game's ✓
+    const check = row(page, "cfb:1").locator(".pick");  // picked game's ✓
+    expect(await style(check, "opacity")).toBe("1");
+    expect(await style(check, "backgroundColor")).toBe("rgba(0, 0, 0, 0)");  // outline, not filled
+    expect(await style(check, "borderTopColor")).toBe("rgb(76, 141, 255)");
   });
 
   test("the Live section stands out: tinted header, pulsing dot, red edge on live rows", async ({ page }) => {
@@ -806,6 +809,8 @@ test.describe("mobile", () => {
     const plus = row(page, "cfb:5").locator(".pick");
     expect((await plus.boundingBox()).width).toBeCloseTo(28, 0);
     expect(await style(plus, "opacity")).toBe("1");
+    await row(page, "cfb:5").locator(".bug").click();
+    expect(await style(plus, "backgroundColor")).toBe("rgb(76, 141, 255)");  // solid ✓ once picked
   });
 
   test("✕ on cards is always visible on touch screens", async ({ page }) => {
