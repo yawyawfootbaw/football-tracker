@@ -10,14 +10,12 @@ export const state = {
   tab: ["cfb", "nfl"].includes(store.get("tab")) ? store.get("tab") : "cfb",
   filters: store.get("filters", { conf: "", top25: false }),  // College tab only
   collapsedGroups: new Set(store.get("collapsedGroups", [])), // picker sections the viewer has minimized
-  boardView: store.get("boardView", "all"),                // board switch: all, cfb or nfl
 };
 
-// A ?league= link overrides the saved picker tab and board view, and becomes the new saved choice.
+// A ?league= link overrides the saved picker tab and becomes the new saved choice.
 if (LEAGUE_PARAM) {
-  state.tab = state.boardView = LEAGUE_PARAM;
+  state.tab = LEAGUE_PARAM;
   store.set("tab", LEAGUE_PARAM);
-  store.set("boardView", LEAGUE_PARAM);
 }
 
 export function saveSelected() {

@@ -1,13 +1,11 @@
-// The board: All / College / NFL switch and one card per picked game.
+// The board: one card per picked game, college and NFL together.
 
 import { GLOW_MS, FLASH_MS } from "./config.js";
-import { store } from "./store.js";
 import { state, saveSelected, allGames } from "./state.js";
 import { logoImg, rankBadge, statusLines, escapeAttr } from "./format.js";
 import { field } from "./field.js";
 
 const $ = (id) => document.getElementById(id);
-const VIEWS = { all: "All", cfb: "College", nfl: "NFL" };
 
 const redZoneShown = new Set();  // game keys currently drawn in the red zone
 const glowStart = new Map();     // game key -> when its one-time glow began
@@ -26,13 +24,7 @@ export function renderBoard() {
       <span class="mobile-only">Tap ☰ Games at the top to pick a few games, and they'll show up here.</span></div>`;
     return;
   }
-  const inView = (view) => picked.filter((g) => view === "all" || g.key.startsWith(view + ":"));
-  const bar = `<div class="board-bar">${Object.entries(VIEWS).map(([view, label]) =>
-    `<button data-view="${view}" aria-pressed="${view === state.boardView}">${label}<span class="n">${inView(view).length}</span></button>`).join("")}</div>`;
-  const shown = inView(state.boardView);
-  $("board").innerHTML = bar + (shown.length
-    ? shown.map(card).join("")
-    : `<div class="empty">No ${VIEWS[state.boardView]} games selected.</div>`);
+  $("board").innerHTML = picked.map(card).join("");
 }
 
 function card(g) {
@@ -103,13 +95,6 @@ export function initBoard({ onSelectionChanged }) {
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && openPlay) { openPlay = null; renderBoard(); } });
 
   $("board").addEventListener("click", (e) => {
-    const view = e.target.closest("[data-view]")?.dataset.view;
-    if (view) {
-      state.boardView = view;
-      store.set("boardView", view);
-      renderBoard();
-      return;
-    }
     const key = e.target.closest("[data-remove]")?.dataset.remove;
     if (!key) return;
     state.selected.delete(key);

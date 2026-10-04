@@ -125,13 +125,10 @@ test.describe("loading and layout", () => {
 
 test.describe("?league= links", () => {
   const tabOn = (page, league) => expect(page.locator(`.tabs button[data-league="${league}"]`)).toHaveClass(/on/);
-  const viewOn = (page, view) => expect(page.locator(`.board-bar button[data-view="${view}"]`)).toHaveAttribute("aria-pressed", "true");
 
-  test("?league=nfl opens on NFL, sets the board to NFL, and overrides a saved College choice", async ({ page }) => {
-    await open(page, { query: "?league=nfl", storage: { tab: "cfb", boardView: "all", selected: ["cfb:1", "nfl:101"] } });
+  test("?league=nfl opens the picker on NFL, overriding a saved College choice", async ({ page }) => {
+    await open(page, { query: "?league=nfl", storage: { tab: "cfb" } });
     await tabOn(page, "nfl");
-    await viewOn(page, "nfl");
-    await expect(page.locator(".card")).toHaveCount(1);
   });
 
   test("the choice sticks after visiting without the parameter", async ({ page }) => {
@@ -139,13 +136,11 @@ test.describe("?league= links", () => {
     await tabOn(page, "nfl");
     await page.goto("/index.html");
     await tabOn(page, "nfl");
-    await viewOn(page, "nfl");
   });
 
   test("?league=college opens on College; an unknown value changes nothing", async ({ page }) => {
     await open(page, { query: "?league=college", storage: { tab: "nfl", selected: ["cfb:1"] } });
     await tabOn(page, "cfb");
-    await viewOn(page, "cfb");
     await page.goto("/index.html?league=hockey");
     await tabOn(page, "cfb");
   });
@@ -347,7 +342,8 @@ test.describe("game cards", () => {
     await expect(c).toHaveClass(/glow/);
     await expect(card(page, "cfb:8")).not.toHaveClass(/redzone/);
     await page.waitForTimeout(2500);
-    await page.locator('.board-bar button[data-view="all"]').click();  // re-render the board
+    await c.locator(".last").click();  // opening and closing the last play re-renders the board
+    await page.keyboard.press("Escape");
     await expect(c).not.toHaveClass(/glow/);
     await page.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
     await expect(c).toHaveClass(/glow/);
@@ -429,37 +425,18 @@ test.describe("game cards", () => {
   });
 });
 
-test.describe("board view switch", () => {
-  const seeded = { storage: { selected: ["cfb:1", "cfb:8", "nfl:101"] } };
-  const view = (page, name) => page.locator(`.board-bar button[data-view="${name}"]`);
-
-  test("All shows every pick, with counts per view", async ({ page }) => {
-    await open(page, seeded);
-    await expect(page.locator(".board-bar button")).toHaveText([/All\s*3/, /College\s*2/, /NFL\s*1/]);
-    await expect(view(page, "all")).toHaveAttribute("aria-pressed", "true");
-    await expect(page.locator(".card")).toHaveCount(3);
+test.describe("board", () => {
+  test("shows every selected game from both leagues, live first", async ({ page }) => {
+    await open(page, { storage: { selected: ["cfb:8", "nfl:101", "cfb:1"] } });
+    const keys = await page.locator(".card").evaluateAll((cards) => cards.map((c) => c.dataset.key));
+    expect(keys.slice(0, 2).sort()).toEqual(["cfb:1", "nfl:101"]);
+    expect(keys[2]).toBe("cfb:8");
   });
 
-  test("College and NFL show only that league, and the choice is remembered", async ({ page }) => {
-    await open(page, seeded);
-    await view(page, "cfb").click();
-    await expect(page.locator(".card")).toHaveCount(2);
-    await expect(card(page, "nfl:101")).toHaveCount(0);
-    await view(page, "nfl").click();
-    await expect(page.locator(".card")).toHaveCount(1);
-    await expect(card(page, "nfl:101")).toBeVisible();
-    await page.reload();
-    await expect(view(page, "nfl")).toHaveAttribute("aria-pressed", "true");
-    await expect(page.locator(".card")).toHaveCount(1);
-  });
-
-  test("an empty view says so; with no picks at all there's no switch", async ({ page }) => {
-    await open(page, { storage: { selected: ["cfb:1"], boardView: "nfl" } });
-    await expect(page.locator("#board .empty")).toHaveText("No NFL games selected.");
-    await view(page, "cfb").click();
+  test("with no picks, it says where to pick games", async ({ page }) => {
+    await open(page, { storage: { selected: ["cfb:1"] } });
     await card(page, "cfb:1").hover();
     await card(page, "cfb:1").locator(".remove").click();
-    await expect(page.locator(".board-bar")).toHaveCount(0);
     await expect(page.locator("#board .empty .desktop-only")).toHaveText("Pick a few games from the list on the left and they'll show up here.");
     await expect(page.locator("#board .empty .mobile-only")).toBeHidden();
   });

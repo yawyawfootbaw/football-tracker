@@ -24,7 +24,7 @@ index.html            page markup; loads the CSS and js/main.js
 css/
   base.css            color tokens, page layout, spinner
   picker.css          game picker: tabs, search, filters, sections, score-bug rows
-  board.css           board switch, game cards, field, last play, remove button
+  board.css           game cards, field, last play, remove button
   corner.css          contact footer, settings gear, coach photo
   mobile.css          phone layout (≤700px): slide-in picker drawer, tighter cards
 js/
