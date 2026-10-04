@@ -2,6 +2,7 @@
   "name": "football-tracker",
   "private": true,
   "scripts": {
+    "start": "python3 -m http.server 4173",
     "test": "playwright test"
   },
   "devDependencies": {

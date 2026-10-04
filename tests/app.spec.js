@@ -55,6 +55,20 @@ test.describe("loading and layout", () => {
     await expect(page.locator(".spinner")).toHaveCount(0);
   });
 
+  test("loads every file and runs with no console errors or failed requests", async ({ page }) => {
+    const problems = [];
+    page.on("console", (m) => { if (m.type() === "error") problems.push(m.text()); });
+    page.on("pageerror", (e) => problems.push(String(e)));
+    page.on("requestfailed", (r) => problems.push(`failed: ${r.url()}`));
+    page.on("response", (r) => { if (r.url().startsWith("http://localhost") && r.status() >= 400) problems.push(`${r.status()}: ${r.url()}`); });
+    await open(page, { storage: { selected: ["cfb:1"] } });
+    await page.locator("#settings").click();
+    await page.locator("#google-me").click();
+    await expect(page.locator("#coach img")).toHaveJSProperty("complete", true);
+    expect(await page.locator("#coach img").evaluate((i) => i.naturalWidth)).toBeGreaterThan(0);
+    expect(problems).toEqual([]);
+  });
+
   test("picker tabs are All, College, NFL, with All the default", async ({ page }) => {
     await open(page);
     await expect(page.locator(".tabs button")).toHaveText(["All", "College", "NFL"]);
@@ -294,7 +308,7 @@ test.describe("game cards", () => {
     await expect(c).toHaveClass(/glow/);
     await expect(card(page, "cfb:8")).not.toHaveClass(/redzone/);
     await page.waitForTimeout(2500);
-    await page.evaluate(() => renderBoard());
+    await page.locator('.board-bar button[data-view="all"]').click();  // any re-render
     await expect(c).not.toHaveClass(/glow/);
     await page.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
     await expect(c).toHaveClass(/glow/);
@@ -486,19 +500,44 @@ test.describe("google me: Cignetti, or Pelini one time in ten", () => {
   test("Cignetti on rolls of 0.1 and up", async ({ page }) => {
     await stubRandom(page, 0.1);
     await open(page);
-    expect(await showCoach(page)).toBe("cignetti.png");
+    expect(await showCoach(page)).toBe("images/cignetti.png");
   });
 
   test("Pelini on rolls under 0.1", async ({ page }) => {
     await stubRandom(page, 0.09);
     await open(page);
-    expect(await showCoach(page)).toBe("pelini.png");
+    expect(await showCoach(page)).toBe("images/pelini.png");
+  });
+
+  test("after a swap, the previous coach never shows, even for a frame", async ({ page }) => {
+    // First showing rolls Pelini, second rolls Cignetti.
+    await page.addInitScript(() => { const rolls = [0.05, 0.5]; Math.random = () => rolls.shift() ?? 0.5; });
+    await open(page);
+    // Record which photo is in place, and whether it has loaded, the instant the coach is revealed.
+    await page.evaluate(() => {
+      window.reveals = [];
+      const coach = document.getElementById("coach"), img = coach.querySelector("img");
+      new MutationObserver(() => { if (!coach.hidden) window.reveals.push({ src: img.getAttribute("src"), ready: img.complete && img.naturalWidth > 0 }); })
+        .observe(coach, { attributes: true, attributeFilter: ["hidden"] });
+    });
+    for (let i = 0; i < 2; i++) {
+      await page.locator("#settings").click();
+      await page.locator("#google-me").click();
+      await expect(page.locator("#coach")).toBeVisible();
+      await page.waitForTimeout(600);
+      await page.locator("#coach").click();
+      await expect(page.locator("#coach")).toBeHidden();
+    }
+    expect(await page.evaluate(() => window.reveals)).toEqual([
+      { src: "images/pelini.png", ready: true },
+      { src: "images/cignetti.png", ready: true },
+    ]);
   });
 
   test("always Pelini with ?demo", async ({ page }) => {
     await stubRandom(page, 0.5);
     await open(page, { query: "?demo" });
-    expect(await showCoach(page)).toBe("pelini.png");
+    expect(await showCoach(page)).toBe("images/pelini.png");
   });
 });
 

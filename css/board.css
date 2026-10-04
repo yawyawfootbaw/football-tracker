@@ -1,0 +1,57 @@
+/* Board: view switch, game cards, scoreboard row, field, last play, remove button. */
+#board { overflow-y: auto; padding: 16px 16px 32px; display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 16px; align-content: start; }
+/* Board view switch: All / College / NFL. */
+.board-bar { grid-column: 1 / -1; justify-self: start; display: flex; gap: 2px; padding: 3px; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; }
+.board-bar button { padding: 5px 12px; background: none; border: 0; border-radius: 6px; color: var(--muted); font: inherit; font-size: 13px; cursor: pointer; }
+.board-bar button:hover { color: var(--text); }
+.board-bar button[aria-pressed="true"] { background: var(--accent); color: #fff; }
+.board-bar .n { margin-left: 4px; font-size: 11px; opacity: .75; }
+.card { position: relative; min-width: 0; background: var(--card); border: 1px solid #323846; border-radius: 10px; padding: 12px; }
+.card.redzone { border-color: var(--red); }
+.card.glow { animation: redzone-glow 2.4s ease-in-out; }
+/* "Here it is" flash when a selected game is clicked in the picker. On a pseudo-element so it can't clash with the red-zone glow. */
+.card.flash::after { content: ""; position: absolute; inset: -1px; border-radius: inherit; border: 2px solid var(--accent); pointer-events: none;
+  opacity: 0; animation: card-flash 1.6s ease-out; animation-delay: var(--flash-delay, 0ms); }
+@keyframes card-flash {
+  0%, 30% { opacity: 1; box-shadow: 0 0 18px 4px rgba(76, 141, 255, .55); }
+  100% { opacity: 0; box-shadow: 0 0 0 0 rgba(76, 141, 255, 0); }
+}
+@keyframes redzone-glow {
+  50% { box-shadow: 0 0 20px 5px rgba(255, 90, 90, .8); }
+}
+/* Every slot in a card is always rendered at a fixed size (hidden when empty) so cards side by side line up. */
+.score { display: grid; grid-template-columns: minmax(0, 1fr) 76px minmax(0, 1fr); align-items: center; gap: 8px; }
+.team { min-width: 0; display: flex; align-items: center; gap: 8px; font-weight: 600; }
+.team.home { justify-content: flex-end; }
+.team img { flex: none; width: 24px; height: 24px; }
+/* Faint light edge on every logo so dark ones (maroon, navy, purple) don't vanish into the background. */
+.team img, .bug-team img { filter: drop-shadow(0 0 1px rgba(255, 255, 255, .45)); }
+.team .name { min-width: 0; white-space: nowrap; overflow: hidden; }
+.team.home .name { text-align: right; }
+.team .abbr { overflow: hidden; text-overflow: ellipsis; }
+.team .rank { margin-right: 3px; color: var(--muted); font-size: 11px; font-weight: 600; }
+.team .pts { flex: none; min-width: 2ch; font-size: 22px; line-height: 28px; font-variant-numeric: tabular-nums; }
+.team.away .pts { margin-left: auto; text-align: right; }
+.team.home .pts { margin-right: auto; text-align: left; }
+.team .poss { color: var(--ltg); font-size: 12px; }
+.team .to { color: var(--muted); font-size: 11px; line-height: 15px; font-weight: 400; letter-spacing: 1px; }
+.hide { visibility: hidden; }
+.clock { text-align: center; color: var(--muted); font-size: 12px; line-height: 17px; height: 34px; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; }
+.dd { text-align: center; font-size: 18px; font-weight: 700; margin: 8px 0 6px; height: 25px; line-height: 25px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+svg.field { width: 100%; display: block; border-radius: 4px; }
+.card-foot { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+.net { flex: none; max-width: 40%; color: #fff; font-size: 11px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.last { flex: 1; min-width: 0; color: var(--muted); font-size: 12px; height: 17px; line-height: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.last[data-play] { cursor: pointer; }
+.last[data-play]:hover { color: var(--text); }
+/* Full last-play text floats over the bottom of the card, so opening it never shifts the layout. */
+.last-full { position: absolute; left: 8px; right: 8px; bottom: 8px; z-index: 2; padding: 8px 10px; background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, .5); color: var(--text); font-size: 12px; line-height: 1.45; cursor: pointer; animation: last-in .15s ease-out; }
+@keyframes last-in { from { opacity: 0; transform: translateY(4px); } }
+.remove { flex: none; width: 24px; height: 24px; border: 0; border-radius: 6px; background: #9aa0a6; color: #000; font-size: 14px; line-height: 1; cursor: pointer; }
+.remove:hover, .remove:focus-visible { background: #c4c8cc; }
+/* With a mouse, float the ✕ in the top-right corner and show it on hover. Touch screens keep it in the footer. */
+@media (hover: hover) {
+  .remove { position: absolute; top: 6px; right: 6px; opacity: 0; transition: opacity .15s; }
+  .card:hover .remove, .remove:focus-visible { opacity: 1; }
+}
