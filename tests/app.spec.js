@@ -625,6 +625,32 @@ test.describe("animations ignore the OS reduced-motion setting", () => {
   });
 });
 
+test.describe("desktop game list panel", () => {
+  test("☰ slides the list out and back, the board widens, and the choice is remembered", async ({ page }) => {
+    await open(page, { storage: { selected: ["cfb:1"] } });
+    const aside = page.locator("aside");
+    const boardX = async () => (await page.locator("#board").boundingBox()).x;
+    expect(await boardX()).toBeGreaterThan(290);
+    await page.locator("#panel-toggle").click();
+    await expect(aside).toBeHidden();
+    await expect.poll(boardX).toBeLessThan(5);
+    await expect(page.locator("#panel-toggle")).toHaveAttribute("aria-expanded", "false");
+    await page.reload();
+    await expect(aside).toBeHidden();
+    await page.locator("#panel-toggle").click();
+    await expect(aside).toBeVisible();
+    await expect.poll(boardX).toBeGreaterThan(290);
+  });
+
+  test("the slide uses the same timing as the phone drawer", async ({ page }) => {
+    await open(page);
+    const desktop = await style(page.locator("aside"), "transition");
+    expect(desktop).toContain("transform 0.25s");
+    await page.setViewportSize({ width: 390, height: 844 });
+    expect(await style(page.locator("#picker-body"), "transition")).toContain("transform 0.25s");
+  });
+});
+
 test.describe("mobile", () => {
   test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
 
@@ -658,6 +684,12 @@ test.describe("mobile", () => {
     await page.locator("#picker-toggle").click();
     await page.keyboard.press("Escape");
     await expect(aside).toHaveClass(/collapsed/);
+  });
+
+  test("the desktop ☰ button is hidden, and a saved hidden panel doesn't hide the phone layout", async ({ page }) => {
+    await open(page, { storage: { panelCollapsed: true, pickerOpen: false } });
+    await expect(page.locator("#panel-toggle")).toBeHidden();
+    await expect(page.locator("#picker-toggle")).toBeVisible();
   });
 
   test("Games bar stays pinned to the top while scrolling", async ({ page }) => {

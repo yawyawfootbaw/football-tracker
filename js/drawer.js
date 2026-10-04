@@ -1,10 +1,12 @@
-// Phones only (css/mobile.css): the game picker is a drawer that slides in from the left.
+// Showing and hiding the game picker. On desktop it's a side panel the header's ☰ button hides; on phones
+// (css/mobile.css) it's a drawer that slides in from the left.
 
 import { store } from "./store.js";
 import { state } from "./state.js";
 
 const $ = (id) => document.getElementById(id);
-let pickerOpen;
+let pickerOpen;      // phone drawer
+let panelCollapsed;  // desktop panel
 
 function render() {
   document.querySelector("aside").classList.toggle("collapsed", !pickerOpen);
@@ -17,7 +19,23 @@ export function setPicker(open) {
   render();
 }
 
+function renderPanel() {
+  document.body.classList.toggle("panel-collapsed", panelCollapsed);
+  const label = panelCollapsed ? "Show game list" : "Hide game list";
+  $("panel-toggle").setAttribute("aria-expanded", !panelCollapsed);
+  $("panel-toggle").setAttribute("aria-label", label);
+  $("panel-toggle").title = label;
+}
+
 export function initDrawer() {
+  panelCollapsed = store.get("panelCollapsed", false);
+  $("panel-toggle").addEventListener("click", () => {
+    panelCollapsed = !panelCollapsed;
+    store.set("panelCollapsed", panelCollapsed);
+    renderPanel();
+  });
+  renderPanel();
+
   pickerOpen = store.get("pickerOpen", state.selected.size === 0);  // start open if nothing is picked yet
   $("picker-toggle").addEventListener("click", () => setPicker(!pickerOpen));
   $("picker-close").addEventListener("click", () => setPicker(false));

@@ -37,7 +37,7 @@ js/
   board.js            the cards: rendering, red-zone glow, highlight, last-play popover
   field.js            the SVG field on each card
   format.js           small shared HTML helpers (logos, status lines, escaping)
-  drawer.js           phone-only picker drawer
+  drawer.js           hiding/showing the picker: desktop side panel, phone drawer
   settings.js         settings gear and "google me"
   counter.js          hidden visit counter
 images/               coach photos for "google me", favicon, link-preview image
