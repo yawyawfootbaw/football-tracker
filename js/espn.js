@@ -43,14 +43,20 @@ function parseEvent(league, e) {
   const lp = s.lastPlay;
   const possession = s.possession ??
     (s.downDistanceText && !/timeout|end period|end of/i.test(lp?.type?.text || "") ? lp?.end?.team?.id : undefined);
+  const home = side("home"), away = side("away");
+  // ESPN's isRedZone can be stale (still true during a timeout after the ball has moved), so work it out from
+  // the ball instead: the team with the ball is within 20 yards of the goal it's attacking. The away team
+  // attacks the home goal, and yardLine counts from the home goal line.
+  const toGoal = possession === away.id ? s.yardLine : possession === home.id ? 100 - s.yardLine : null;
+  const redZone = s.yardLine != null && toGoal != null && toGoal <= 20;
   return {
     key: `${league}:${e.id}`, date: new Date(e.date),
     state: e.status.type.state, detail: e.status.type.shortDetail,
     clock: e.status.displayClock, period: e.status.period,
-    home: side("home"), away: side("away"),
+    home, away,
     // ESPN's yardLine is yards from the home team's goal line.
     yardLine: s.yardLine, distance: s.distance, possession,
-    ddText: s.downDistanceText, redZone: s.isRedZone,
+    ddText: s.downDistanceText, redZone,
     homeTO: s.homeTimeouts, awayTO: s.awayTimeouts, lastPlay: lp?.text,
     // Where to watch, e.g. "ABC" or "CBS / Paramount+".
     network: [...new Set((comp.broadcasts || []).flatMap((b) => b.names || []))].join(" / "),

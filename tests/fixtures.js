@@ -75,9 +75,10 @@ function cfbGames() {
       situation: { yardLine: 75, down: 1, distance: 10, downDistanceText: "1st & 10 at CAL 25",
         lastPlay: { id: "21", text: "UNLV kickoff for 65 yds, touchback", type: { text: "Kickoff" }, end: { team: { id: "25" } } } } }),
     // Live right after a timeout: possession omitted and the play's ending team is whoever called it, so no dot.
+    // ESPN also leaves a stale isRedZone behind here; with nobody holding the ball there's no red zone.
     game({ id: 3, away: T.WYO, home: T.NDSU, awayOpts: { score: "0" }, homeOpts: { score: "20" }, state: "in", detail: "15:00 - 4th", clock: "15:00", period: 4,
       conferenceGame: false,
-      situation: { yardLine: 69, down: 2, distance: 4, downDistanceText: "2nd & 4 at WYO 31",
+      situation: { yardLine: 69, down: 2, distance: 4, downDistanceText: "2nd & 4 at WYO 31", isRedZone: true,
         lastPlay: { id: "31", text: "Timeout Wyoming", type: { text: "Timeout" }, end: { team: { id: "2751" } } } } }),
     // Halftime: ESPN leaves a stale situation behind; the app should clear it and show "Half".
     game({ id: 4, away: T.BYU, home: T.TCU, awayOpts: { score: "14", rank: 10 }, homeOpts: { score: "10" }, state: "in", detail: "Halftime",

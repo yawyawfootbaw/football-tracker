@@ -408,6 +408,14 @@ test.describe("game cards", () => {
     await expect(c).toHaveClass(/glow/);
   });
 
+  test("red zone comes from the ball's position, not ESPN's sometimes-stale flag", async ({ page }) => {
+    await open(page, { storage: { selected: ["cfb:1", "cfb:2", "cfb:3", "nfl:101"] } });
+    await expect(card(page, "cfb:1")).toHaveClass(/redzone/);      // away team at the home 12
+    await expect(card(page, "cfb:3")).not.toHaveClass(/redzone/);  // ESPN says red zone, but nobody has the ball
+    await expect(card(page, "cfb:2")).not.toHaveClass(/redzone/);  // own 25
+    await expect(card(page, "nfl:101")).not.toHaveClass(/redzone/);  // own 40
+  });
+
   test("possession falls back to the last play after a kickoff, but not after a timeout", async ({ page }) => {
     await open(page, { storage: { selected: ["cfb:2", "cfb:3"] } });
     await expect(card(page, "cfb:2").locator(".team.away .poss")).not.toHaveClass(/hide/);
