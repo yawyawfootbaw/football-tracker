@@ -3,14 +3,20 @@
 .tabs { display: flex; border-bottom: 1px solid var(--border); }
 .filters { display: flex; gap: 8px; padding: 8px 12px; }
 .conf-wrap { position: relative; flex: 1; min-width: 0; }
-/* Native arrow replaced with our own chevron so it can sit further from the edge. */
-#conf { width: 100%; padding: 5px 30px 5px 8px; -webkit-appearance: none; appearance: none; background: var(--panel)
+/* Conference multi-select: a dropdown-style button that opens a checklist. */
+#conf { width: 100%; padding: 5px 30px 5px 8px; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: var(--panel)
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%238b93a1' stroke-width='1.5'/%3E%3C/svg%3E") no-repeat right 12px center;
   border: 1px solid var(--border); border-radius: 6px; color: var(--text); font: inherit; font-size: 13px; cursor: pointer; }
 #conf.active { padding-right: 52px; border-color: var(--accent); }
 #conf-clear { position: absolute; top: 50%; right: 28px; transform: translateY(-50%); width: 20px; height: 20px; padding: 0; border: 0; border-radius: 50%;
   background: var(--border); color: var(--text); font-size: 11px; line-height: 20px; cursor: pointer; }
 #conf-clear:hover { background: #3a404c; }
+#conf-menu { position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 5; max-height: 320px; overflow-y: auto; padding: 4px;
+  background: var(--panel); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 8px 24px rgba(0, 0, 0, .5); }
+#conf-menu label { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 5px; font-size: 13px; cursor: pointer; }
+#conf-menu label:hover { background: var(--border); }
+#conf-menu input { accent-color: var(--accent); margin: 0; }
+#conf-menu .group { padding: 8px 8px 2px; color: var(--muted); font-size: 11px; font-weight: 700; letter-spacing: .06em; }
 #top25 { flex: none; padding: 5px 10px; background: var(--panel); border: 1px solid var(--border); border-radius: 6px; color: var(--muted); font: inherit; font-size: 13px; cursor: pointer; }
 #top25[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
 .tabs button { flex: 1; padding: 10px; background: none; border: 0; color: var(--muted); font: inherit; cursor: pointer; border-bottom: 2px solid transparent; }

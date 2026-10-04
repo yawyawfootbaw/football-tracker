@@ -24,9 +24,9 @@ export function renderList() {
   const f = filters[tab];
   const ranked = (t) => t.rank && t.rank <= 25;
   // NFL choices can be a whole conference ("AFC") or a division ("AFC East").
-  const inConf = (t) => t.conf === f.conf || (tab === "nfl" && t.conf?.startsWith(f.conf + " "));
+  const inConf = (t) => f.confs.some((c) => t.conf === c || (tab === "nfl" && t.conf?.startsWith(c + " ")));
   const list = games[tab]
-    .filter((g) => !f.conf || inConf(g.away) || inConf(g.home))
+    .filter((g) => !f.confs.length || inConf(g.away) || inConf(g.home))
     .filter((g) => !f.top25 || ranked(g.away) || ranked(g.home))
     .sort((a, b) => ORDER[a.state] - ORDER[b.state] || a.date - b.date);
   // Selected games go first under their own heading, keeping the same order as the full list.
@@ -48,7 +48,7 @@ export function renderList() {
     html += row(g);
   }
   if (lastGroup) html += `</div></div>`;
-  const filtered = f.conf || f.top25;
+  const filtered = f.confs.length || f.top25;
   $("list").innerHTML = html || `<div class="empty">${filtered ? "No matching games." : "No games this week."}</div>`;
 }
 
@@ -68,33 +68,44 @@ function row(g) {
 function renderFilters() {
   const college = state.tab === "cfb";
   const f = state.filters[state.tab];
-  const options = college ? collegeOptions(f.conf) : nflOptions();
-  const select = $("conf");
-  // Only rebuild when the set changes, so a refresh doesn't close the dropdown while it's open.
-  if (select.dataset.options !== options) {
-    select.innerHTML = `<option value="">All conferences</option>` + options;
-    select.dataset.options = options;
+  const options = college ? collegeOptions(f.confs) : nflOptions();
+  const menu = $("conf-menu");
+  // Only rebuild when the choices change, so a refresh doesn't disturb the menu while it's open.
+  const html = options.map((o) => o.group ? `<div class="group">${o.group}</div>`
+    : `<label><input type="checkbox" value="${o.value}">${o.label}</label>`).join("");
+  if (menu.dataset.html !== html) {
+    menu.innerHTML = html;
+    menu.dataset.html = html;
   }
-  select.value = f.conf;
-  select.classList.toggle("active", !!f.conf);
-  $("conf-clear").hidden = !f.conf;
+  menu.querySelectorAll("input").forEach((box) => { box.checked = f.confs.includes(box.value); });
+  const chosen = options.filter((o) => f.confs.includes(o.value)).map((o) => o.short ?? o.label);
+  $("conf").textContent = !chosen.length ? "All conferences" : chosen.length <= 2 ? chosen.join(", ") : `${chosen.length} conferences`;
+  $("conf").classList.toggle("active", chosen.length > 0);
+  $("conf-clear").hidden = !f.confs.length;
   $("top25").hidden = !college;
   $("top25").setAttribute("aria-pressed", !!f.top25);
 }
 
-// Every named conference with a team playing this week.
+// Every named conference with a team playing this week, as { value, label }.
 function collegeOptions(chosen) {
   const ids = new Set(state.games.cfb.flatMap((g) => [g.away.conf, g.home.conf]).filter((id) => confNames[id]));
-  if (chosen) ids.add(chosen);  // keep a saved choice listed even before its name is learned
+  chosen.forEach((id) => ids.add(id));  // keep saved choices listed even before their names are learned
   return [...ids].sort((a, b) => (confNames[a] || "").localeCompare(confNames[b] || ""))
-    .map((id) => `<option value="${id}">${confNames[id] || "Conference " + id}</option>`).join("");
+    .map((id) => ({ value: id, label: confNames[id] || "Conference " + id }));
 }
 
-// AFC and NFC, each followed by its four divisions.
+// AFC and NFC, each a heading with "All AFC" and its four divisions underneath.
 function nflOptions() {
-  return ["AFC", "NFC"].map((conf) => `<optgroup label="${conf}"><option value="${conf}">All ${conf}</option>` +
-    Object.keys(NFL_DIVISIONS).filter((d) => d.startsWith(conf)).map((d) => `<option value="${d}">${d}</option>`).join("") +
-    `</optgroup>`).join("");
+  return ["AFC", "NFC"].flatMap((conf) => [
+    { group: conf },
+    { value: conf, label: `All ${conf}`, short: conf },
+    ...Object.keys(NFL_DIVISIONS).filter((d) => d.startsWith(conf)).map((d) => ({ value: d, label: d })),
+  ]);
+}
+
+function setConfMenu(open) {
+  $("conf-menu").hidden = !open;
+  $("conf").setAttribute("aria-expanded", open);
 }
 
 // FLIP animation: note where each row was, re-render, then slide every row from its old spot to its new one.
@@ -127,8 +138,15 @@ function renderListAnimated(movedKey) {
 export function initPicker({ onSelectionChanged, onHighlight }) {
   const saveFiltersAndRender = () => { store.set("filters", state.filters); renderList(); };
 
-  $("conf").addEventListener("change", (e) => { state.filters[state.tab].conf = e.target.value; saveFiltersAndRender(); });
-  $("conf-clear").addEventListener("click", () => { state.filters[state.tab].conf = ""; saveFiltersAndRender(); });
+  $("conf").addEventListener("click", () => setConfMenu($("conf-menu").hidden));
+  $("conf-menu").addEventListener("change", () => {
+    state.filters[state.tab].confs = [...$("conf-menu").querySelectorAll("input:checked")].map((box) => box.value);
+    saveFiltersAndRender();
+  });
+  $("conf-clear").addEventListener("click", () => { state.filters[state.tab].confs = []; saveFiltersAndRender(); });
+  // Close the checklist on a click anywhere outside it, or Escape.
+  document.addEventListener("click", (e) => { if (!e.target.closest(".conf-wrap")) setConfMenu(false); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") setConfMenu(false); });
   $("top25").addEventListener("click", () => { state.filters.cfb.top25 = !state.filters.cfb.top25; saveFiltersAndRender(); });
 
   document.querySelector(".tabs").addEventListener("click", (e) => {
@@ -136,6 +154,7 @@ export function initPicker({ onSelectionChanged, onHighlight }) {
     if (!league) return;
     state.tab = league;
     store.set("tab", league);
+    setConfMenu(false);
     renderList();
   });
 

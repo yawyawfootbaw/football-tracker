@@ -42,8 +42,9 @@
       </div>
       <div class="filters">
         <div class="conf-wrap">
-          <select id="conf" aria-label="Conference"><option value="">All conferences</option></select>
+          <button id="conf" aria-haspopup="true" aria-expanded="false" aria-controls="conf-menu">All conferences</button>
           <button id="conf-clear" aria-label="Clear conference filter" title="Clear" hidden>✕</button>
+          <div id="conf-menu" hidden></div>
         </div>
         <button id="top25" aria-pressed="false">Top 25</button>
       </div>
