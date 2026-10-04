@@ -139,6 +139,7 @@
   .dd { text-align: center; font-size: 18px; font-weight: 700; margin: 8px 0 6px; height: 25px; line-height: 25px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   svg.field { width: 100%; display: block; border-radius: 4px; }
   .card-foot { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+  .net { flex: none; max-width: 40%; color: var(--muted); font-size: 11px; opacity: .8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .last { flex: 1; min-width: 0; color: var(--muted); font-size: 12px; height: 17px; line-height: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .last[data-play] { cursor: pointer; }
   .last[data-play]:hover { color: var(--text); }
@@ -316,6 +317,8 @@ function parseEvent(league, e) {
     yardLine: s.yardLine, distance: s.distance, possession,
     ddText: s.downDistanceText, redZone: s.isRedZone,
     homeTO: s.homeTimeouts, awayTO: s.awayTimeouts, lastPlay: lp?.text,
+    // Where to watch, e.g. "ABC" or "CBS / Paramount+".
+    network: [...new Set((comp.broadcasts || []).flatMap((b) => b.names || []))].join(" / "),
   };
 }
 
@@ -329,14 +332,14 @@ function demoGames() {
     clock: "2:47", period: 4,
     away: team("12", "KC", "#e31837", "17", nfl("KC")), home: team("2", "BUF", "#00338d", "20", nfl("BUF")),
     yardLine: 12, distance: 6, possession: "12", ddText: "3rd & 6 at BUF 12", redZone: true,
-    awayTO: 2, homeTO: 1, lastPlay: "Demo game: P.Mahomes pass short right to T.Kelce for 9 yards",
+    awayTO: 2, homeTO: 1, lastPlay: "Demo game: P.Mahomes pass short right to T.Kelce for 9 yards", network: "CBS",
   }, {
     // Dark-logo showcase: both logos rely on the faint light edge to stay visible.
     key: "cfb:demo-logos", date: new Date(), state: "in", detail: "Demo",
     clock: "8:14", period: 2,
     away: team("2116", "UCF", "#000000", "10", ncaa(2116)), home: team("344", "MSST", "#5d1725", "14", ncaa(344)),
     yardLine: 58, distance: 10, possession: "344", ddText: "1st & 10 at MSST 42",
-    awayTO: 3, homeTO: 2, lastPlay: "Demo game: dark logos (UCF, Mississippi State) with a light edge",
+    awayTO: 3, homeTO: 2, lastPlay: "Demo game: dark logos (UCF, Mississippi State) with a light edge", network: "SEC Network",
   }];
 }
 
@@ -464,6 +467,7 @@ function card(g) {
       ${live && g.lastPlay
         ? `<div class="last" data-play="${g.key}" title="${escapeAttr(g.lastPlay)}">${g.lastPlay}</div>`
         : `<div class="last">&nbsp;</div>`}
+      ${g.network ? `<span class="net" title="Broadcast on ${escapeAttr(g.network)}">${g.network}</span>` : ""}
       <button class="remove" data-remove="${g.key}" aria-label="Remove game" title="Remove game">✕</button>
     </div>
     ${live && g.lastPlay && openPlay === g.key ? `<div class="last-full" data-play="${g.key}">${g.lastPlay}</div>` : ""}

@@ -319,6 +319,13 @@ test.describe("game cards", () => {
     await expect(c.locator(".last-full")).toHaveCount(0);
   });
 
+  test("each card notes its network at the bottom, and omits it when ESPN has none", async ({ page }) => {
+    await open(page, { storage: { selected: ["cfb:1", "cfb:7", "cfb:5"] } });
+    await expect(card(page, "cfb:1").locator(".card-foot .net")).toHaveText("FOX");
+    await expect(card(page, "cfb:7").locator(".card-foot .net")).toHaveText("CBS / Paramount+");
+    await expect(card(page, "cfb:5").locator(".net")).toHaveCount(0);
+  });
+
   test("✕ appears on hover, removes the card and unchecks the row", async ({ page }) => {
     await open(page, { storage: { selected: ["cfb:1"] } });
     const remove = card(page, "cfb:1").locator(".remove");

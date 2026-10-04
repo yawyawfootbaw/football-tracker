@@ -42,10 +42,11 @@ function competitor(t, homeAway, { score = "0", rank = 99 } = {}, league) {
 }
 
 function game({ id, league = "cfb", away, home, awayOpts, homeOpts, state, detail, statusName, clock = "0:00", period = 1,
-  date = "2026-10-03T20:00Z", situation, conferenceGame = true }) {
+  date = "2026-10-03T20:00Z", situation, conferenceGame = true, networks = [] }) {
   const comp = {
     competitors: [competitor(home, "home", homeOpts, league), competitor(away, "away", awayOpts, league)],
     situation,
+    broadcasts: networks.length ? [{ market: "national", names: networks }] : [],
   };
   // ESPN only attaches the conference to conference games.
   if (league === "cfb" && conferenceGame && away.conf === home.conf && CONF_NAMES[home.conf]) {
@@ -63,7 +64,7 @@ const LONG_PLAY = "(02:00) Shotgun #7 W.Howard pass short middle complete to #4 
 function cfbGames() {
   return [
     // Live, red zone, away team has the ball: field drawing, dot, timeouts, glow, last play popover.
-    game({ id: 1, away: T.OSU, home: T.IOWA, awayOpts: { score: "24", rank: 5 }, homeOpts: { score: "6", rank: 14 },
+    game({ id: 1, away: T.OSU, home: T.IOWA, networks: ["FOX"], awayOpts: { score: "24", rank: 5 }, homeOpts: { score: "6", rank: 14 },
       state: "in", detail: "2:00 - 4th", clock: "2:00", period: 4,
       situation: { possession: "194", yardLine: 12, down: 3, distance: 6, downDistanceText: "3rd & 6 at IOWA 12", isRedZone: true,
         homeTimeouts: 1, awayTimeouts: 2, lastPlay: { id: "11", text: LONG_PLAY, type: { text: "Pass Reception" }, end: { team: { id: "194" } } } } }),
@@ -86,7 +87,7 @@ function cfbGames() {
     // Upcoming, and the search trap: "nd" must not match Maryland.
     game({ id: 6, away: T.MD, home: T.PUR, state: "pre", detail: "Sat 8:00 PM", date: "2026-10-04T00:00Z" }),
     // Final, home team lost: dark-logo team, loser greyed out.
-    game({ id: 7, away: T.ALA, home: T.MSST, awayOpts: { score: "56", rank: 7 }, homeOpts: { score: "23" }, state: "post", detail: "Final", period: 4 }),
+    game({ id: 7, away: T.ALA, home: T.MSST, networks: ["CBS", "Paramount+"], awayOpts: { score: "56", rank: 7 }, homeOpts: { score: "23" }, state: "post", detail: "Final", period: 4 }),
     // Final: Notre Dame, for full-name and mascot search.
     game({ id: 8, away: T.ND, home: T.UNC, awayOpts: { score: "37", rank: 3 }, homeOpts: { score: "26" }, state: "post", detail: "Final", period: 4,
       conferenceGame: false }),
