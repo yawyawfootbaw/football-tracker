@@ -1,6 +1,6 @@
 // Entry point: wires the modules together and polls ESPN.
 
-import { DEMO, LOUD, MOBILE_QUERY, POLL_MS } from "./config.js";
+import { DEMO, MOBILE_QUERY, POLL_MS } from "./config.js";
 import { state } from "./state.js";
 import { fetchGames } from "./espn.js";
 import { renderList, listIsStale, initPicker } from "./picker.js";
@@ -8,7 +8,6 @@ import { renderBoard, highlightCard, initBoard, animateBoardLayout } from "./boa
 import { setPicker, initDrawer } from "./drawer.js";
 import { initSettings } from "./settings.js";
 import { initTheme } from "./theme.js";
-import { startLoudMode } from "./loud.js";
 import { countVisit } from "./counter.js";
 
 let lastUpdated = null;  // when data last arrived successfully; a failed poll leaves the old time showing
@@ -36,7 +35,6 @@ function renderUpdated() {
 }
 
 if (!DEMO) countVisit();
-if (LOUD) startLoudMode();
 
 initPicker({
   onSelectionChanged: renderBoard,  // the picker already re-rendered (and animated) its own list

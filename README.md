@@ -27,7 +27,6 @@ css/
   board.css           game cards, field, last play, remove button
   corner.css          contact footer, settings gear, coach photo
   mobile.css          phone layout (≤700px): slide-in picker drawer, tighter cards
-  loud.css            ?loud's full-screen play button
 js/
   main.js             entry point: wires modules together and polls ESPN every 10s
   config.js           API URLs, timings, ?demo flag
@@ -42,7 +41,6 @@ js/
   settings.js         settings gear and "google me"
   theme.js            light/dark theme and its header switch
   counter.js          hidden visit counter
-  loud.js             ?loud prank mode: nonstop cartoon sound effects
 images/               coach photos for "google me", favicon, link-preview image
 scripts/
   share-images.js     regenerates the link-preview image and touch icon
