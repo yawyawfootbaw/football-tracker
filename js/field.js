@@ -22,7 +22,7 @@ export function field(g) {
       s += `<line x1="${ltg}" y1="0" x2="${ltg}" y2="${H}" stroke="var(--ltg)" stroke-width=".8"/>`;
     }
     s += `<line x1="${ball}" y1="0" x2="${ball}" y2="${H}" stroke="var(--los)" stroke-width=".8"/>`;
-    s += `<ellipse cx="${ball}" cy="${H / 2}" rx="2.2" ry="1.4" fill="#8b4513" stroke="#fff" stroke-width=".3"/>`;
+    s += football(ball, H / 2);
     if (g.possession) {
       const dir = g.possession === g.home.id ? -1 : 1;
       const tip = ball + dir * 6, base = ball + dir * 3.5;
@@ -30,6 +30,14 @@ export function field(g) {
     }
   }
   return s + "</svg>";
+}
+
+// A football centered on (x, y): pointed tips, a dark outline and white laces. Field units, so about 5 yards long.
+function football(x, y) {
+  return `<g class="ball" data-x="${x}" transform="translate(${x} ${y})">
+    <path d="M-2.6 0 C-1.4 -1.8 1.4 -1.8 2.6 0 C1.4 1.8 -1.4 1.8 -2.6 0 Z" fill="#8b4513" stroke="#3b1d08" stroke-width=".25" stroke-linejoin="round"/>
+    <path d="M-.9 0 H.9 M-.55 -.4 V.4 M0 -.4 V.4 M.55 -.4 V.4" stroke="#fff" stroke-width=".22" stroke-linecap="round"/>
+  </g>`;
 }
 
 function endZoneText(x, text) {

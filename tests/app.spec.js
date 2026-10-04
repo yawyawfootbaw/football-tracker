@@ -431,7 +431,7 @@ test.describe("game cards", () => {
     await open(page, { storage: { selected: ["cfb:1"] } });
     const svg = card(page, "cfb:1").locator("svg.field");
     // IOWA 12 is 12 yards from the home goal; the field is 120 units with the away end zone at 0–10.
-    await expect(svg.locator("ellipse")).toHaveAttribute("cx", "98");
+    await expect(svg.locator(".ball")).toHaveAttribute("data-x", "98");
     await expect(svg.locator('line[stroke="var(--ltg)"]')).toHaveAttribute("x1", "104");  // 6 yards toward the home end zone
     const tip = Number((await svg.locator("polygon").getAttribute("points")).split(",")[0]);
     expect(tip).toBeGreaterThan(98);  // arrow points right, toward the home end zone
@@ -470,7 +470,7 @@ test.describe("game cards", () => {
     const c = card(page, "cfb:4");
     await expect(c.locator(".clock")).toHaveText(/^Half/);
     await expect(c.locator(".dd")).toHaveText(/^\s*$/);
-    await expect(c.locator("ellipse")).toHaveCount(0);
+    await expect(c.locator(".ball")).toHaveCount(0);
   });
 
   test("upcoming shows kickoff time and day; final shows Final", async ({ page }) => {
