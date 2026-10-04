@@ -682,25 +682,38 @@ test.describe("?loud", () => {
   const fakeAudio = (page) => page.addInitScript(() => {
     window.started = 0;
     window.contexts = 0;
-    const param = () => ({ setValueAtTime() {}, linearRampToValueAtTime() {}, exponentialRampToValueAtTime() {} });
+    const param = () => ({ value: 0, setValueAtTime() {}, linearRampToValueAtTime() {}, exponentialRampToValueAtTime() {} });
+    const node = (extra) => ({ connect: (target) => target, ...extra });
     window.AudioContext = class {
-      constructor() { window.contexts++; this.state = "suspended"; this.currentTime = 0; this.destination = {}; }
+      constructor() { window.contexts++; this.state = "suspended"; this.currentTime = 0; this.destination = node(); }
       resume() { this.state = "running"; return Promise.resolve(); }
-      createGain() { return { gain: param(), connect() {} }; }
-      createOscillator() { return { frequency: param(), connect() {}, start() { window.started++; }, stop() {} }; }
+      createGain() { return node({ gain: param() }); }
+      createBiquadFilter() { return node({ frequency: param(), Q: param() }); }
+      createDynamicsCompressor() { return node({ threshold: param(), ratio: param() }); }
+      createOscillator() { return node({ frequency: param(), start() { window.started++; }, stop() {} }); }
     };
   });
 
-  test("plays noises back to back, nonstop, once the page has been clicked", async ({ page }) => {
+  test("a full-screen play button blocks the page until pressed", async ({ page }) => {
+    await fakeAudio(page);
+    await open(page, { query: "?loud" });
+    await expect(page.locator("#loud-play")).toBeVisible();
+    // The overlay sits on top of everything, so the rest of the page can't be clicked.
+    const topElement = await page.evaluate(() => document.elementFromPoint(150, 300)?.closest("#loud-gate")?.id);
+    expect(topElement).toBe("loud-gate");
+    expect(await page.evaluate(() => window.started)).toBe(0);
+  });
+
+  test("pressing play removes the button and starts nonstop noise with no way to pause or stop", async ({ page }) => {
     await fakeAudio(page);
     await page.clock.install({ time: new Date("2026-10-03T20:00:00Z") });
     await open(page, { query: "?loud" });
-    await page.clock.runFor(10_000);
-    expect(await page.evaluate(() => window.started)).toBe(0);  // browsers block audio before any interaction
-    await page.locator("header h1").click();
+    await page.locator("#loud-play").click();
+    await expect(page.locator("#loud-gate")).toHaveCount(0);
     await page.clock.runFor(10_000);
     // Each noise lasts at most 1.5s, so 10 seconds holds at least 6 back to back.
     expect(await page.evaluate(() => window.started)).toBeGreaterThanOrEqual(6);
+    await expect(page.getByRole("button", { name: /pause|stop|mute/i })).toHaveCount(0);
   });
 
   test("without ?loud, no audio is set up", async ({ page }) => {

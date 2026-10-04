@@ -14,7 +14,7 @@ export const MOBILE_QUERY = "(max-width: 700px)";  // matches css/mobile.css
 const params = new URLSearchParams(location.search);
 
 export const DEMO = params.has("demo");  // ?demo skips the visit counter, for your own testing
-export const LOUD = params.has("loud");  // ?loud plays nonstop random loud noises (see loud.js)
+export const LOUD = params.has("loud");  // ?loud plays nonstop cartoon sound effects (see loud.js)
 
 // ?league=nfl or ?league=college picks the starting league, for links shared with one audience.
 // null when absent or unrecognized.
