@@ -16,7 +16,8 @@ const PREVIEW_GAMES = ["cfb:1", "cfb:2", "cfb:4", "nfl:101", "cfb:7"];
 
 async function renderIcon(browser) {
   const page = await browser.newPage({ viewport: { width: 180, height: 180 } });
-  await page.setContent(`<body style="margin: 0"><img src="${SITE}/images/favicon.svg" width="180" height="180"></body>`);
+  // The favicon is transparent; give the home-screen version the app's dark background and some padding.
+  await page.setContent(`<body style="margin: 0; background: #0f1115"><img src="${SITE}/images/favicon.svg" width="140" height="140" style="margin: 20px"></body>`);
   await page.locator("img").evaluate((img) => img.decode());
   await page.screenshot({ path: path.join(IMAGES, "apple-touch-icon.png") });
 }
