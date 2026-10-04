@@ -67,7 +67,16 @@
   .group-clip { overflow: hidden; min-height: 0; }
   .group-label .n { margin-left: auto; margin-right: 2px; padding: 1px 7px; border-radius: 10px; background: #1c2029; color: var(--muted); font-weight: 600; letter-spacing: 0; }
   .group-label.selected { color: var(--accent); }
-  .group-label.live::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--red); }
+  /* Live is what people come for: red-tinted header, pulsing dot, red edge and bright clock on live rows. */
+  .group-label.live { background: #3d1e25; border-color: #61303a; color: #fff; }
+  .group-label.live .n { background: var(--red); color: #fff; }
+  .group-label.live::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--red); animation: live-pulse 1.6s ease-out infinite; }
+  @keyframes live-pulse {
+    0% { box-shadow: 0 0 0 0 rgba(255, 90, 90, .7); }
+    70%, 100% { box-shadow: 0 0 0 7px rgba(255, 90, 90, 0); }
+  }
+  label.game.live { box-shadow: inset 3px 0 0 var(--red); }
+  label.game.live .bug-status { color: var(--text); font-weight: 600; }
   label.game { position: relative; display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 8px 12px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
   /* Alternating row shades; declared before hover/selected so those still win. */
   label.game:nth-child(even) { background: #1c2029; }
@@ -380,7 +389,7 @@ function renderList() {
         ${logoImg(t)}${t.rank && t.rank <= 25 ? `<span class="rank">${t.rank}</span>` : ""}<span class="abbr">${t.abbr}</span>
         ${live && g.possession === t.id ? `<span class="poss">●</span>` : ""}
         <span class="pts">${g.state === "pre" ? "" : t.score}</span></span>`;
-    html += `<label class="game"><input type="checkbox" data-key="${g.key}" ${selected.has(g.key) ? "checked" : ""}>
+    html += `<label class="game ${live ? "live" : ""}"><input type="checkbox" data-key="${g.key}" ${selected.has(g.key) ? "checked" : ""}>
       <span class="bug">${line(g.away, g.home)}${line(g.home, g.away)}</span>
       <span class="bug-status">${statusLines(g)}</span><span class="pick" aria-hidden="true"></span></label>`;
   }

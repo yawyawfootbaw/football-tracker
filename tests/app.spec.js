@@ -105,6 +105,17 @@ test.describe("game picker", () => {
     expect(header).not.toBe(even);
   });
 
+  test("the Live section stands out: tinted header, pulsing dot, red edge on live rows", async ({ page }) => {
+    await open(page);
+    const live = page.locator('#list .group-label[data-group="Live"]');
+    const upcoming = page.locator('#list .group-label[data-group="Upcoming"]');
+    expect(await style(live, "backgroundColor")).not.toBe(await style(upcoming, "backgroundColor"));
+    expect(await live.evaluate((el) => getComputedStyle(el, "::before").animationName)).toBe("live-pulse");
+    await expect(row(page, "cfb:1")).toHaveClass(/live/);
+    await expect(row(page, "cfb:5")).not.toHaveClass(/live/);
+    expect(await style(row(page, "cfb:1"), "boxShadow")).toContain("inset");
+  });
+
   test("rows read like a score bug: both teams, scores, status, loser greyed out", async ({ page }) => {
     await open(page);
     const final = row(page, "cfb:7");
