@@ -324,6 +324,7 @@ test.describe("game cards", () => {
     await expect(card(page, "cfb:1").locator(".card-foot .net")).toHaveText("FOX");
     await expect(card(page, "cfb:7").locator(".card-foot .net")).toHaveText("CBS / Paramount+");
     await expect(card(page, "cfb:5").locator(".net")).toHaveCount(0);
+    expect(await style(card(page, "cfb:1").locator(".net"), "color")).toBe("rgb(255, 255, 255)");  // white so it pops
   });
 
   test("✕ appears on hover, removes the card and unchecks the row", async ({ page }) => {
