@@ -172,6 +172,16 @@ test.describe("game picker", () => {
     expect(pick.x - (status.x + status.width)).toBeGreaterThanOrEqual(22);
   });
 
+  test("with a mouse, the + is a small dimmed hint that brightens on hover; the ✓ stays bold", async ({ page }) => {
+    await open(page, { storage: { selected: ["cfb:1"] } });
+    const plus = row(page, "cfb:5").locator(".pick");
+    expect((await plus.boundingBox()).width).toBeCloseTo(22, 0);
+    expect(await style(plus, "opacity")).toBe("0.4");
+    await row(page, "cfb:5").hover();
+    await expect.poll(() => style(plus, "opacity")).toBe("1");
+    expect(await style(row(page, "cfb:1").locator(".pick"), "opacity")).toBe("1");  // picked game's ✓
+  });
+
   test("the Live section stands out: tinted header, pulsing dot, red edge on live rows", async ({ page }) => {
     await open(page);
     const live = page.locator('#list .group-label[data-group="Live"]');
@@ -788,6 +798,14 @@ test.describe("mobile", () => {
     await row(page, "cfb:2").locator(".bug").click();
     await expect(row(page, "cfb:2").locator("input")).toBeChecked();
     await expect(card(page, "cfb:2")).toBeAttached();
+  });
+
+  test("touch screens keep the full-size, full-strength + circle", async ({ page }) => {
+    await open(page);
+    test.skip(await page.evaluate(() => matchMedia("(hover: hover)").matches), "emulated device reports hover");
+    const plus = row(page, "cfb:5").locator(".pick");
+    expect((await plus.boundingBox()).width).toBeCloseTo(28, 0);
+    expect(await style(plus, "opacity")).toBe("1");
   });
 
   test("✕ on cards is always visible on touch screens", async ({ page }) => {
