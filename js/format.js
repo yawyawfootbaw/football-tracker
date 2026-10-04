@@ -1,7 +1,11 @@
 // Small HTML helpers shared by the picker rows and the board cards.
 
-// ESPN's dark-background variant lives at the same path under 500-dark; fall back to the regular logo if it's missing.
+import { currentTheme } from "./theme.js";
+
+// ESPN's regular logos are made for light backgrounds. In dark mode use its dark-background variant, which lives
+// at the same path under 500-dark, falling back to the regular logo if it's missing.
 export function logoImg(t) {
+  if (currentTheme() === "light") return `<img src="${t.logo}" alt="">`;
   return `<img src="${t.logo?.replace("/500/", "/500-dark/")}" alt="" onerror="this.onerror=null; this.src='${t.logo}'">`;
 }
 

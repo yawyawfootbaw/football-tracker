@@ -39,6 +39,7 @@ js/
   format.js           small shared HTML helpers (logos, status lines, escaping)
   drawer.js           hiding/showing the picker: desktop side panel, phone drawer
   settings.js         settings gear and "google me"
+  theme.js            light/dark theme and its header switch
   counter.js          hidden visit counter
 images/               coach photos for "google me", favicon, link-preview image
 scripts/

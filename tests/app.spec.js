@@ -613,6 +613,47 @@ test.describe("google me: Cignetti, or Pelini one time in ten", () => {
   });
 });
 
+test.describe("light and dark themes", () => {
+  const theme = (page) => page.evaluate(() => document.documentElement.dataset.theme);
+
+  test("follows a dark device by default, with dark-background logos and the light logo edge", async ({ page }) => {
+    await open(page, { storage: { selected: ["cfb:1"] } });
+    expect(await theme(page)).toBe("dark");
+    await expect(card(page, "cfb:1").locator(".team.away img")).toHaveAttribute("src", /\/500-dark\/194\.png$/);
+    expect(await page.evaluate(() => getComputedStyle(document.documentElement).colorScheme)).toBe("dark");
+  });
+
+  test("the switch flips to light: light colors, regular logos, no logo edge, and it's remembered", async ({ page }) => {
+    await open(page, { storage: { selected: ["cfb:1"] } });
+    await expect(page.locator("#theme-toggle")).toHaveAttribute("aria-label", "Switch to light mode");
+    await page.locator("#theme-toggle").click();
+    expect(await theme(page)).toBe("light");
+    expect(await style(page.locator("body"), "backgroundColor")).toBe("rgb(244, 245, 247)");
+    const logo = card(page, "cfb:1").locator(".team.away img");
+    await expect(logo).toHaveAttribute("src", /\/500\/194\.png$/);
+    expect(await style(logo, "filter")).toBe("none");
+    await expect(row(page, "cfb:1").locator("img").first()).toHaveAttribute("src", /\/500\/194\.png$/);
+    await page.reload();
+    expect(await theme(page)).toBe("light");
+    await expect(page.locator("#theme-toggle")).toHaveAttribute("aria-label", "Switch to dark mode");
+  });
+
+  test.describe("on a light device", () => {
+    test.use({ colorScheme: "light" });
+
+    test("starts in light mode, before any script but the inline one runs", async ({ page }) => {
+      await page.route("**/js/main.js", (route) => route.abort());  // prove the pre-paint snippet alone sets it
+      await page.goto("/index.html");
+      expect(await theme(page)).toBe("light");
+    });
+
+    test("a saved dark choice wins over the device", async ({ page }) => {
+      await open(page, { storage: { theme: "dark" } });
+      expect(await theme(page)).toBe("dark");
+    });
+  });
+});
+
 test.describe("animations ignore the OS reduced-motion setting", () => {
   test.use({ reducedMotion: "reduce" });
 

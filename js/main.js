@@ -7,6 +7,7 @@ import { renderList, listIsStale, initPicker } from "./picker.js";
 import { renderBoard, highlightCard, initBoard, animateBoardLayout } from "./board.js";
 import { setPicker, initDrawer } from "./drawer.js";
 import { initSettings } from "./settings.js";
+import { initTheme } from "./theme.js";
 import { countVisit } from "./counter.js";
 
 let lastUpdated = null;  // when data last arrived successfully; a failed poll leaves the old time showing
@@ -47,6 +48,7 @@ initBoard({
 });
 initDrawer({ animateLayout: animateBoardLayout });
 initSettings();
+initTheme({ onChange: () => { renderList(); renderBoard(); } });  // logos differ per theme
 
 poll();
 setInterval(poll, POLL_MS);

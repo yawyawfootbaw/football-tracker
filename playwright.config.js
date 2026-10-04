@@ -10,6 +10,7 @@ module.exports = defineConfig({
     channel: "chrome",  // the installed Chrome; no browser download needed
     headless: true,
     viewport: { width: 1300, height: 900 },
+    colorScheme: "dark",  // the app follows the device theme; tests default to dark and opt into light where needed
   },
   webServer: {
     command: "python3 -m http.server 4173",
