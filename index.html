@@ -213,7 +213,7 @@ const LEAGUES = {
 };
 const POLL_MS = 10000;
 const LIST_REFRESH_MS = 30000;  // the picker list refreshes less often than the board so it doesn't shift under your finger
-const DEMO = new URLSearchParams(location.search).has("demo");  // ?demo adds a fake red-zone game and skips the hit counter
+const DEMO = new URLSearchParams(location.search).has("demo");  // ?demo adds fake games and skips the hit counter
 
 // Hit counter: each page load adds one. See the count in DevTools → Network → filter "hits.sh" → Preview.
 if (!DEMO) {
@@ -231,7 +231,7 @@ const filters = store.get("filters", { conf: "", top25: false });  // College ta
 const collapsedGroups = new Set(store.get("collapsedGroups", []));  // picker sections the viewer has minimized
 let selected = new Set(store.get("selected", []));  // "league:eventId"
 const games = { nfl: [], cfb: [] };
-let demoRemoved = false;          // the demo card isn't in `selected`; removing it lasts until reload
+const demoRemoved = new Set();    // demo cards aren't in `selected`; removing one lasts until reload
 const GLOW_MS = 2400;             // matches the redzone-glow animation length
 const redZoneShown = new Set();   // game keys currently drawn in the red zone
 const glowStart = new Map();      // game key -> when its one-time glow began
@@ -243,7 +243,7 @@ async function poll() {
     try {
       const data = await (await fetch(url)).json();
       games[league] = data.events.map((e) => parseEvent(league, e));
-      if (DEMO && league === "nfl") games.nfl.unshift(demoGame());
+      if (DEMO) games[league].unshift(...demoGames().filter((g) => g.key.startsWith(league + ":")));
       lastUpdated = Date.now();
     } catch (err) {
       console.error(league, err);
@@ -296,16 +296,25 @@ function parseEvent(league, e) {
   };
 }
 
-function demoGame() {
-  const team = (id, abbr, color, score) =>
-    ({ id, abbr, color, score, searchText: " " + abbr.toLowerCase(), logo: `https://a.espncdn.com/i/teamlogos/nfl/500/${abbr.toLowerCase()}.png` });
-  return {
+function demoGames() {
+  const team = (id, abbr, color, score, logo) => ({ id, abbr, color, score, searchText: " " + abbr.toLowerCase(), logo });
+  const nfl = (abbr) => `https://a.espncdn.com/i/teamlogos/nfl/500/${abbr.toLowerCase()}.png`;
+  const ncaa = (id) => `https://a.espncdn.com/i/teamlogos/ncaa/500/${id}.png`;
+  return [{
+    // Red-zone showcase.
     key: "nfl:demo", date: new Date(), state: "in", detail: "Demo",
     clock: "2:47", period: 4,
-    away: team("12", "KC", "#e31837", "17"), home: team("2", "BUF", "#00338d", "20"),
+    away: team("12", "KC", "#e31837", "17", nfl("KC")), home: team("2", "BUF", "#00338d", "20", nfl("BUF")),
     yardLine: 12, distance: 6, possession: "12", ddText: "3rd & 6 at BUF 12", redZone: true,
     awayTO: 2, homeTO: 1, lastPlay: "Demo game: P.Mahomes pass short right to T.Kelce for 9 yards",
-  };
+  }, {
+    // Dark-logo showcase: both logos rely on the faint light edge to stay visible.
+    key: "cfb:demo-logos", date: new Date(), state: "in", detail: "Demo",
+    clock: "8:14", period: 2,
+    away: team("2116", "UCF", "#000000", "10", ncaa(2116)), home: team("344", "MSST", "#5d1725", "14", ncaa(344)),
+    yardLine: 58, distance: 10, possession: "344", ddText: "1st & 10 at MSST 42",
+    awayTO: 3, homeTO: 2, lastPlay: "Demo game: dark logos (UCF, Mississippi State) with a light edge",
+  }];
 }
 
 let lastListRender = -Infinity;
@@ -381,7 +390,7 @@ function renderFilters(show) {
 
 function renderBoard() {
   const all = [...games.cfb, ...games.nfl];
-  const picked = all.filter((g) => selected.has(g.key) || (g.key === "nfl:demo" && !demoRemoved))
+  const picked = all.filter((g) => selected.has(g.key) || (g.key.includes(":demo") && !demoRemoved.has(g.key)))
     .sort((a, b) => (a.state === "in" ? 0 : 1) - (b.state === "in" ? 0 : 1) || a.date - b.date);
   document.getElementById("picker-count").textContent = picked.length ? `${picked.length} selected` : "";
   document.getElementById("board").innerHTML = picked.length
@@ -637,7 +646,7 @@ function renderListAnimated(movedKey) {
 document.getElementById("board").addEventListener("click", (e) => {
   const key = e.target.closest("[data-remove]")?.dataset.remove;
   if (!key) return;
-  if (key === "nfl:demo") demoRemoved = true;
+  if (key.includes(":demo")) demoRemoved.add(key);
   selected.delete(key);
   store.set("selected", [...selected]);
   renderList();  // uncheck it in the picker
