@@ -62,7 +62,7 @@ function row(g) {
   return `<label class="game ${live ? "live" : ""}"><input type="checkbox" data-key="${g.key}" ${state.selected.has(g.key) ? "checked" : ""}>
     <span class="bug">${line(g.away, g.home)}${line(g.home, g.away)}</span>
     <span class="bug-status">${statusLines(g)}</span>
-    <span class="pick" aria-hidden="true"></span></label>`;
+    <span class="pick" title="${state.selected.has(g.key) ? "Remove" : "Add"}" aria-hidden="true"></span></label>`;
 }
 
 function renderFilters() {

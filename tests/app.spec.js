@@ -172,17 +172,28 @@ test.describe("game picker", () => {
     expect(pick.x - (status.x + status.width)).toBeGreaterThanOrEqual(22);
   });
 
-  test("with a mouse, the + is a small dimmed hint that brightens on hover; the ✓ is a full-strength outline", async ({ page }) => {
-    await open(page, { storage: { selected: ["cfb:1"] } });
+  test("with a mouse, the + is a small dimmed hint that brightens on hover", async ({ page }) => {
+    await open(page);
     const plus = row(page, "cfb:5").locator(".pick");
     expect((await plus.boundingBox()).width).toBeCloseTo(22, 0);
     expect(await style(plus, "opacity")).toBe("0.4");
+    await expect(plus).toHaveAttribute("title", "Add");
     await row(page, "cfb:5").hover();
     await expect.poll(() => style(plus, "opacity")).toBe("1");
-    const check = row(page, "cfb:1").locator(".pick");  // picked game's ✓
-    expect(await style(check, "opacity")).toBe("1");
-    expect(await style(check, "backgroundColor")).toBe("rgba(0, 0, 0, 0)");  // outline, not filled
-    expect(await style(check, "borderTopColor")).toBe("rgb(76, 141, 255)");
+  });
+
+  test("with a mouse, picked rows show no mark until hovered, then a ✕ that removes the game", async ({ page }) => {
+    await open(page, { storage: { selected: ["cfb:1"] } });
+    const mark = row(page, "cfb:1").locator(".pick");
+    expect(await style(mark, "opacity")).toBe("0");
+    await expect(mark).toHaveAttribute("title", "Remove");
+    await row(page, "cfb:1").locator(".bug").hover();
+    await expect.poll(() => style(mark, "opacity")).toBe("0.5");
+    await mark.hover();
+    await expect.poll(() => style(mark, "opacity")).toBe("1");
+    await mark.click();
+    await expect(row(page, "cfb:1").locator("input")).not.toBeChecked();
+    await expect(card(page, "cfb:1")).toHaveCount(0);
   });
 
   test("the Live section stands out: tinted header, pulsing dot, red edge on live rows", async ({ page }) => {
