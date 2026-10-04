@@ -162,6 +162,15 @@ test.describe("game picker", () => {
     expect(header).not.toBe(even);
   });
 
+  test("the + circle keeps its spot at the row's right edge, with room between it and the time", async ({ page }) => {
+    await open(page);
+    const r = await row(page, "cfb:5").boundingBox();
+    const pick = await row(page, "cfb:5").locator(".pick").boundingBox();
+    const status = await row(page, "cfb:5").locator(".bug-status").boundingBox();
+    expect(r.x + r.width - (pick.x + pick.width)).toBeCloseTo(12, 0);  // row padding
+    expect(pick.x - (status.x + status.width)).toBeGreaterThanOrEqual(16);
+  });
+
   test("the Live section stands out: tinted header, pulsing dot, red edge on live rows", async ({ page }) => {
     await open(page);
     const live = page.locator('#list .group-label[data-group="Live"]');
