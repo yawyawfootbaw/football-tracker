@@ -404,7 +404,7 @@ test.describe("settings gear and google me", () => {
   });
 });
 
-test.describe("google me: Cignetti or, rarely, Pelini", () => {
+test.describe("google me: Cignetti or Pelini, half and half", () => {
   const showCoach = async (page) => {
     await page.locator("#settings").click();
     await page.locator("#google-me").click();
@@ -413,14 +413,14 @@ test.describe("google me: Cignetti or, rarely, Pelini", () => {
   };
   const stubRandom = (page, value) => page.addInitScript((v) => { Math.random = () => v; }, value);
 
-  test("usually Cignetti", async ({ page }) => {
+  test("Cignetti on the upper half of rolls", async ({ page }) => {
     await stubRandom(page, 0.5);
     await open(page);
     expect(await showCoach(page)).toBe("cignetti.png");
   });
 
-  test("one time in a hundred, Pelini", async ({ page }) => {
-    await stubRandom(page, 0.005);
+  test("Pelini on the lower half of rolls", async ({ page }) => {
+    await stubRandom(page, 0.49);
     await open(page);
     expect(await showCoach(page)).toBe("pelini.png");
   });

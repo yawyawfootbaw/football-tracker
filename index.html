@@ -571,9 +571,9 @@ function coachOffset(point) {
   const dy = point.top + point.height / 2 - (to.top + to.height / 2);
   return `translate(${dx}px, ${dy}px) scale(.08)`;
 }
-// One time in a hundred (and always with ?demo) it's Bo Pelini instead.
+// Half the time (and always with ?demo) it's Bo Pelini instead.
 function pickCoach() {
-  const pelini = DEMO || Math.random() < 0.01;
+  const pelini = DEMO || Math.random() < 0.5;
   const img = coach.querySelector("img");
   img.src = pelini ? "pelini.png" : "cignetti.png";
   img.alt = pelini ? "Former Nebraska head coach Bo Pelini" : "Indiana head coach Curt Cignetti";
