@@ -69,6 +69,8 @@
   .group-label.selected { color: var(--accent); }
   .group-label.live::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--red); }
   label.game { position: relative; display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 8px 12px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  /* Alternating row shades; declared before hover/selected so those still win. */
+  label.game:nth-child(even) { background: #14171d; }
   label.game:hover { background: var(--panel); }
   label.game:has(input:checked) { background: rgba(76, 141, 255, .12); }
   /* The checkbox stays for keyboards and screen readers; the round + / ✓ button is what you see. */
@@ -107,6 +109,8 @@
   .team { min-width: 0; display: flex; align-items: center; gap: 8px; font-weight: 600; }
   .team.home { justify-content: flex-end; }
   .team img { flex: none; width: 24px; height: 24px; }
+  /* Faint light edge on every logo so dark ones (maroon, navy, purple) don't vanish into the background. */
+  .team img, .bug-team img { filter: drop-shadow(0 0 1px rgba(255, 255, 255, .45)); }
   .team .name { min-width: 0; white-space: nowrap; overflow: hidden; }
   .team.home .name { text-align: right; }
   .team .abbr { overflow: hidden; text-overflow: ellipsis; }
