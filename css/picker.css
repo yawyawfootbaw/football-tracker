@@ -58,19 +58,18 @@ label.game input { position: absolute; opacity: 0; width: 1px; height: 1px; poin
 label.game input:checked ~ .pick { background: var(--accent); border-color: var(--accent); color: #fff; }
 label.game input:checked ~ .pick::before { width: 6px; height: 11px; background: none; border: solid currentColor; border-width: 0 2px 2px 0; transform: translateY(-1px) rotate(45deg); }
 label.game input:focus-visible ~ .pick { outline: 2px solid var(--accent); outline-offset: 2px; }
-/* With a mouse, the + is a smaller, dimmed hint that brightens when you hover its row. Picked rows show nothing
-   there (the Selected header and row tint already say so); hovering one shows a ✕ to remove it. Touch screens keep
-   the larger + and solid ✓ circles as tap targets. */
+/* With a mouse, rows show nothing at rest. Hovering a row reveals a quiet + (or a ✕ on picked rows, whose
+   Selected header and tint already mark them), which brightens when pointed at. Touch screens keep the larger
+   + and solid ✓ circles as tap targets. */
 @media (hover: hover) {
-  .pick { width: 22px; height: 22px; border-width: 1.5px; opacity: .4; transition: opacity .15s, background .15s, border-color .15s; }
+  .pick { width: 22px; height: 22px; border-width: 1.5px; opacity: 0; transition: opacity .15s, background .15s, border-color .15s; }
   .pick::before { width: 10px; height: 10px; }
-  label.game:hover .pick, label.game input:focus-visible ~ .pick { opacity: 1; }
-  label.game input:checked ~ .pick { background: none; border-color: var(--muted); color: var(--muted); opacity: 0; }
+  label.game input:checked ~ .pick { background: none; border-color: var(--muted); color: var(--muted); }
   label.game input:checked ~ .pick::before { width: 10px; height: 10px; border: 0; transform: rotate(45deg);  /* the + turned into a ✕ */
     background: linear-gradient(currentColor, currentColor) center / 100% 2px no-repeat,
                 linear-gradient(currentColor, currentColor) center / 2px 100% no-repeat; }
-  label.game:hover input:checked ~ .pick { opacity: .5; }
-  label.game input:checked ~ .pick:hover, label.game input:checked:focus-visible ~ .pick { opacity: 1; color: var(--text); border-color: var(--text); }
+  label.game:hover .pick { opacity: .5; }
+  label.game input ~ .pick:hover, label.game input:focus-visible ~ .pick { opacity: 1; color: var(--text); border-color: var(--text); }
 }
 .drawer-foot { display: none; }
 /* Picker rows look like a TV score bug: two stacked team lines, then the game status. */

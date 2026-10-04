@@ -172,14 +172,18 @@ test.describe("game picker", () => {
     expect(pick.x - (status.x + status.width)).toBeGreaterThanOrEqual(22);
   });
 
-  test("with a mouse, the + is a small dimmed hint that brightens on hover", async ({ page }) => {
+  test("with a mouse, the + is hidden until its row is hovered, then brightens when pointed at", async ({ page }) => {
     await open(page);
     const plus = row(page, "cfb:5").locator(".pick");
     expect((await plus.boundingBox()).width).toBeCloseTo(22, 0);
-    expect(await style(plus, "opacity")).toBe("0.4");
+    expect(await style(plus, "opacity")).toBe("0");
     await expect(plus).toHaveAttribute("title", "Add");
-    await row(page, "cfb:5").hover();
+    await row(page, "cfb:5").locator(".bug").hover();
+    await expect.poll(() => style(plus, "opacity")).toBe("0.5");
+    await plus.hover();
     await expect.poll(() => style(plus, "opacity")).toBe("1");
+    await plus.click();
+    await expect(row(page, "cfb:5").locator("input")).toBeChecked();
   });
 
   test("with a mouse, picked rows show no mark until hovered, then a ✕ that removes the game", async ({ page }) => {
