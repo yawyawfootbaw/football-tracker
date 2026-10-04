@@ -66,22 +66,9 @@ don't import each other: `main.js` passes each one the callbacks it needs.
 - **Tests never call ESPN.** The API hasn't responded to headless Chrome in testing, and live data isn't
   repeatable anyway, so every test stubs the API, logos and counter with `tests/fixtures.js`.
 
-## Extras
-
-- `?demo` on the URL adds two fake games (a red-zone NFL game and a dark-logo college game), skips the visit
-  counter, and makes "google me" always show Bo Pelini.
-- The settings gear's one option, "google me", shows Curt Cignetti, or Bo Pelini one time in ten.
-  **Bo Pelini is a secret. Don't tell anyone.** 🤫
-- Visit count: https://hits.sh/yawyawfootbaw.github.io/football-tracker/ (opening the `.svg` itself adds a hit).
-
 ## Photo credits
 
 - `images/cignetti.png`: cutout from a photo by [Bobak Ha'Eri](https://commons.wikimedia.org/wiki/File:2025-0722_-_Curt_Cignetti.jpg), CC BY 3.0.
 - `images/pelini.png`: cutout from a photo by [Supplesipple](https://commons.wikimedia.org/wiki/File:Bo_Pelini.jpg), CC BY-SA 4.0. The cutout is shared under the same license.
 
 Team logos are loaded from ESPN and belong to their teams and leagues.
-
-## Link previews
-
-`index.html` has Open Graph tags so shared links show a title, description and `images/og.png`. If the layout
-changes, regenerate that image (and the touch icon) with `npm start` and then `node scripts/share-images.js`.
