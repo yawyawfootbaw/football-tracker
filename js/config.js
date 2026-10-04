@@ -13,7 +13,7 @@ export const MOBILE_QUERY = "(max-width: 700px)";  // matches css/mobile.css
 
 const params = new URLSearchParams(location.search);
 
-export const DEMO = params.has("demo");  // ?demo skips the visit counter (for your own testing) and always shows Pelini
+export const DEMO = params.has("demo");  // ?demo skips the visit counter, for your own testing
 
 // ?league=nfl or ?league=college picks the starting league, for links shared with one audience.
 // null when absent or unrecognized.

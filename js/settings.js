@@ -1,7 +1,5 @@
 // Settings gear in the corner. Its one option, "google me", toggles a coach photo:
-// Curt Cignetti usually, Bo Pelini one time in ten (always with ?demo).
-
-import { DEMO } from "./config.js";
+// Curt Cignetti usually, Bo Pelini one time in ten.
 
 const $ = (id) => document.getElementById(id);
 let settingsBtn, settingsMenu, coach, googleMe;
@@ -40,7 +38,7 @@ const COACHES = {
 // Swap in this showing's coach and wait until the new photo can paint; otherwise the previous coach
 // stays on screen for a moment after a swap.
 async function pickCoach() {
-  const { src, alt } = DEMO || Math.random() < 0.1 ? COACHES.pelini : COACHES.cignetti;
+  const { src, alt } = Math.random() < 0.1 ? COACHES.pelini : COACHES.cignetti;
   const img = coach.querySelector("img");
   img.alt = alt;
   if (img.getAttribute("src") !== src) {

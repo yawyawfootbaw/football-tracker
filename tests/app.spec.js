@@ -606,10 +606,10 @@ test.describe("google me: Cignetti, or Pelini one time in ten", () => {
     ]);
   });
 
-  test("always Pelini with ?demo", async ({ page }) => {
+  test("?demo doesn't change the odds", async ({ page }) => {
     await stubRandom(page, 0.5);
     await open(page, { query: "?demo" });
-    expect(await showCoach(page)).toBe("images/pelini.png");
+    expect(await showCoach(page)).toBe("images/cignetti.png");
   });
 });
 
