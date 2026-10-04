@@ -31,19 +31,41 @@
   aside { border-right: 1px solid var(--border); overflow-y: auto; }
   .list-head { position: sticky; top: 0; background: var(--bg); border-bottom: 1px solid var(--border); z-index: 1; }
   .tabs { display: flex; border-bottom: 1px solid var(--border); }
-  #search { display: block; width: calc(100% - 24px); margin: 8px 12px; padding: 6px 10px; background: var(--panel); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font: inherit; }
+  .search-row { display: flex; gap: 8px; padding: 8px 12px; }
+  #search { flex: 1; min-width: 0; padding: 6px 10px; background: var(--panel); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font: inherit; }
   #search:focus { outline: none; border-color: var(--accent); }
+  #filter-toggle { position: relative; flex: none; width: 34px; display: grid; place-items: center; padding: 0; background: var(--panel); border: 1px solid var(--border); border-radius: 6px; color: var(--muted); cursor: pointer; }
+  #filter-toggle:hover, #filter-toggle[aria-expanded="true"] { color: var(--text); border-color: var(--accent); }
+  #filter-toggle.has-filters::after { content: ""; position: absolute; top: 4px; right: 4px; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
+  #filter-toggle[hidden], .filters-panel[hidden] { display: none; }
+  /* Collapsible filter row: animates height via grid rows (0fr ↔ 1fr). */
+  .filters-panel { display: grid; grid-template-rows: 0fr; visibility: hidden; transition: grid-template-rows .22s ease, visibility 0s .22s; }
+  .filters-panel.open { grid-template-rows: 1fr; visibility: visible; transition: grid-template-rows .22s ease, visibility 0s; }
+  .filters-clip { overflow: hidden; min-height: 0; }
   .filters { display: flex; gap: 8px; padding: 0 12px 8px; }
-  .filters[hidden] { display: none; }
-  #conf { flex: 1; min-width: 0; padding: 5px 8px; background: var(--panel); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font: inherit; font-size: 13px; }
+  .conf-wrap { position: relative; flex: 1; min-width: 0; }
+  /* Native arrow replaced with our own chevron so it can sit further from the edge. */
+  #conf { width: 100%; padding: 5px 30px 5px 8px; -webkit-appearance: none; appearance: none; background: var(--panel)
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%238b93a1' stroke-width='1.5'/%3E%3C/svg%3E") no-repeat right 12px center;
+    border: 1px solid var(--border); border-radius: 6px; color: var(--text); font: inherit; font-size: 13px; cursor: pointer; }
+  #conf.active { padding-right: 52px; border-color: var(--accent); }
+  #conf-clear { position: absolute; top: 50%; right: 28px; transform: translateY(-50%); width: 20px; height: 20px; padding: 0; border: 0; border-radius: 50%;
+    background: var(--border); color: var(--text); font-size: 11px; line-height: 20px; cursor: pointer; }
+  #conf-clear:hover { background: #3a404c; }
   #top25 { flex: none; padding: 5px 10px; background: var(--panel); border: 1px solid var(--border); border-radius: 6px; color: var(--muted); font: inherit; font-size: 13px; cursor: pointer; }
   #top25[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
   .tabs button { flex: 1; padding: 10px; background: none; border: 0; color: var(--muted); font: inherit; cursor: pointer; border-bottom: 2px solid transparent; }
   .tabs button.on { color: var(--text); border-bottom-color: var(--accent); }
   /* Section headers: a solid bar with a count, so they read as titles rather than rows. */
-  .group-label { display: flex; align-items: center; gap: 8px; padding: 7px 12px; background: var(--panel); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
-    font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--text); }
-  .group-label .n { margin-left: auto; padding: 1px 7px; border-radius: 10px; background: var(--border); color: var(--muted); font-weight: 600; letter-spacing: 0; }
+  .group-label { display: flex; align-items: center; gap: 8px; width: 100%; padding: 7px 12px; background: var(--panel); border: 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+    font-family: inherit; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--text); text-align: left; cursor: pointer; }
+  .group-label .chev { width: 10px; height: 6px; transition: transform .2s; }
+  .group-label[aria-expanded="false"] .chev { transform: rotate(-90deg); }
+  /* Collapsible section body, same 0fr ↔ 1fr trick as the filters. */
+  .group-body { display: grid; grid-template-rows: 1fr; transition: grid-template-rows .22s ease; }
+  .group-body.collapsed { grid-template-rows: 0fr; }
+  .group-clip { overflow: hidden; min-height: 0; }
+  .group-label .n { margin-left: auto; margin-right: 2px; padding: 1px 7px; border-radius: 10px; background: var(--border); color: var(--muted); font-weight: 600; letter-spacing: 0; }
   .group-label.selected { color: var(--accent); }
   .group-label.live::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--red); }
   label.game { position: relative; display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 8px 12px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
@@ -139,11 +161,19 @@
         <button data-league="cfb">College</button>
         <button data-league="nfl">NFL</button>
       </div>
-      <input id="search" type="search" placeholder="Search teams" autocomplete="off">
-      <div class="filters" id="filters">
-        <select id="conf" aria-label="Conference"><option value="">All conferences</option></select>
-        <button id="top25" aria-pressed="false">Top 25</button>
+      <div class="search-row">
+        <input id="search" type="search" placeholder="Search teams" autocomplete="off">
+        <button id="filter-toggle" aria-label="Filters" title="Filters" aria-expanded="false" aria-controls="filters">
+          <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 3h12l-4.5 5.5V13l-3 1.5V8.5z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+        </button>
       </div>
+      <div class="filters-panel" id="filters"><div class="filters-clip"><div class="filters">
+        <div class="conf-wrap">
+          <select id="conf" aria-label="Conference"><option value="">All conferences</option></select>
+          <button id="conf-clear" aria-label="Clear conference filter" title="Clear" hidden>✕</button>
+        </div>
+        <button id="top25" aria-pressed="false">Top 25</button>
+      </div></div></div>
     </div>
     <div id="list"><div class="spinner" role="status" aria-label="Loading games"></div></div>
     <div class="drawer-foot"><button id="picker-done">Done</button></div>
@@ -181,6 +211,7 @@ const store = {
 
 let tab = store.get("tab", "cfb");
 const filters = store.get("filters", { conf: "", top25: false });  // College tab only
+const collapsedGroups = new Set(store.get("collapsedGroups", []));  // picker sections the viewer has minimized
 let selected = new Set(store.get("selected", []));  // "league:eventId"
 const games = { nfl: [], cfb: [] };
 let demoRemoved = false;          // the demo card isn't in `selected`; removing it lasts until reload
@@ -285,10 +316,16 @@ function renderList() {
   const groupOf = (g) => (selected.has(g.key) ? "Selected" : groups[g.state]);
   const counts = {};
   for (const g of ordered) counts[groupOf(g)] = (counts[groupOf(g)] || 0) + 1;
+  const chevron = `<svg class="chev" viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>`;
   let html = "", lastGroup;
   for (const g of ordered) {
     const group = groupOf(g);
-    if (group !== lastGroup) html += `<div class="group-label ${group.toLowerCase()}">${group}<span class="n">${counts[group]}</span></div>`;
+    if (group !== lastGroup) {
+      if (lastGroup) html += `</div></div>`;
+      const open = !collapsedGroups.has(group);
+      html += `<button class="group-label ${group.toLowerCase()}" data-group="${group}" aria-expanded="${open}">${group}<span class="n">${counts[group]}</span>${chevron}</button>
+        <div class="group-body ${open ? "" : "collapsed"}"><div class="group-clip">`;
+    }
     lastGroup = group;
     const status = g.state === "pre" ? fmtKickoff(g.date) : g.detail;
     const score = g.state === "pre" ? "" : ` ${g.away.score}–${g.home.score}`;
@@ -296,13 +333,19 @@ function renderList() {
       <span class="info"><div class="teams">${teamLabel(g.away)} @ ${teamLabel(g.home)}${score}</div>
       <div class="status">${status}</div></span><span class="pick" aria-hidden="true"></span></label>`;
   }
+  if (lastGroup) html += `</div></div>`;
   const filtered = query || (college && (filters.conf || filters.top25));
   document.getElementById("list").innerHTML = html || `<div class="empty">${filtered ? "No matching games." : "No games this week."}</div>`;
 }
 
+let filtersOpen = false;
 function renderFilters(show) {
-  document.getElementById("filters").hidden = !show;
+  const panel = document.getElementById("filters"), toggle = document.getElementById("filter-toggle");
+  panel.hidden = toggle.hidden = !show;
   if (!show) return;
+  panel.classList.toggle("open", filtersOpen);
+  toggle.setAttribute("aria-expanded", filtersOpen);
+  toggle.classList.toggle("has-filters", !!(filters.conf || filters.top25));  // dot so active filters aren't forgotten
   // Offer every named conference with a team playing this week.
   const ids = new Set(games.cfb.flatMap((g) => [g.away.conf, g.home.conf]).filter((id) => confNames[id]));
   if (filters.conf) ids.add(filters.conf);  // keep a saved choice listed even before its name is learned
@@ -315,6 +358,8 @@ function renderFilters(show) {
     select.dataset.options = options;
   }
   select.value = filters.conf;
+  select.classList.toggle("active", !!filters.conf);
+  document.getElementById("conf-clear").hidden = !filters.conf;
   document.getElementById("top25").setAttribute("aria-pressed", filters.top25);
 }
 
@@ -423,6 +468,15 @@ document.getElementById("conf").addEventListener("change", (e) => {
   store.set("filters", filters);
   renderList();
 });
+document.getElementById("filter-toggle").addEventListener("click", () => {
+  filtersOpen = !filtersOpen;
+  renderFilters(true);
+});
+document.getElementById("conf-clear").addEventListener("click", () => {
+  filters.conf = "";
+  store.set("filters", filters);
+  renderList();
+});
 document.getElementById("top25").addEventListener("click", () => {
   filters.top25 = !filters.top25;
   store.set("filters", filters);
@@ -518,6 +572,17 @@ document.querySelector(".tabs").addEventListener("click", (e) => {
   tab = league;
   store.set("tab", tab);
   renderList();
+});
+
+// Section headers minimize their section. Toggle the existing element (no re-render) so the slide animates.
+document.getElementById("list").addEventListener("click", (e) => {
+  const header = e.target.closest(".group-label");
+  if (!header) return;
+  const group = header.dataset.group, open = collapsedGroups.has(group);
+  open ? collapsedGroups.delete(group) : collapsedGroups.add(group);
+  store.set("collapsedGroups", [...collapsedGroups]);
+  header.setAttribute("aria-expanded", open);
+  header.nextElementSibling.classList.toggle("collapsed", !open);
 });
 
 document.getElementById("list").addEventListener("change", (e) => {
