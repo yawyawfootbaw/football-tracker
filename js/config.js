@@ -11,4 +11,10 @@ export const GLOW_MS = 2400;           // matches the redzone-glow animation len
 export const FLASH_MS = 1600;          // matches the card-flash animation length (css/board.css)
 export const MOBILE_QUERY = "(max-width: 700px)";  // matches css/mobile.css
 
-export const DEMO = new URLSearchParams(location.search).has("demo");  // ?demo adds fake games, skips the hit counter, always Pelini
+const params = new URLSearchParams(location.search);
+
+export const DEMO = params.has("demo");  // ?demo adds fake games, skips the hit counter, always Pelini
+
+// ?league=nfl or ?league=college picks the starting league, for links shared with one audience.
+// null when absent or unrecognized.
+export const LEAGUE_PARAM = { nfl: "nfl", college: "cfb", cfb: "cfb", ncaa: "cfb" }[params.get("league")?.toLowerCase()] ?? null;

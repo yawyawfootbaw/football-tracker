@@ -123,6 +123,34 @@ test.describe("loading and layout", () => {
   });
 });
 
+test.describe("?league= links", () => {
+  const tabOn = (page, league) => expect(page.locator(`.tabs button[data-league="${league}"]`)).toHaveClass(/on/);
+  const viewOn = (page, view) => expect(page.locator(`.board-bar button[data-view="${view}"]`)).toHaveAttribute("aria-pressed", "true");
+
+  test("?league=nfl opens on NFL, sets the board to NFL, and overrides a saved College choice", async ({ page }) => {
+    await open(page, { query: "?league=nfl", storage: { tab: "cfb", boardView: "all", selected: ["cfb:1", "nfl:101"] } });
+    await tabOn(page, "nfl");
+    await viewOn(page, "nfl");
+    await expect(page.locator(".card")).toHaveCount(1);
+  });
+
+  test("the choice sticks after visiting without the parameter", async ({ page }) => {
+    await open(page, { query: "?league=nfl", storage: { selected: ["nfl:101"] } });
+    await tabOn(page, "nfl");
+    await page.goto("/index.html");
+    await tabOn(page, "nfl");
+    await viewOn(page, "nfl");
+  });
+
+  test("?league=college opens on College; an unknown value changes nothing", async ({ page }) => {
+    await open(page, { query: "?league=college", storage: { tab: "nfl", selected: ["cfb:1"] } });
+    await tabOn(page, "cfb");
+    await viewOn(page, "cfb");
+    await page.goto("/index.html?league=hockey");
+    await tabOn(page, "cfb");
+  });
+});
+
 test.describe("game picker", () => {
   test("groups games into Live, Upcoming and Final with counts", async ({ page }) => {
     await open(page);

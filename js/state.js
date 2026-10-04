@@ -1,6 +1,7 @@
 // State shared by the picker and the board. Viewer preferences are restored from localStorage.
 
 import { store } from "./store.js";
+import { LEAGUE_PARAM } from "./config.js";
 
 export const state = {
   games: { nfl: [], cfb: [] },                             // latest parsed games per league
@@ -12,6 +13,13 @@ export const state = {
   boardView: store.get("boardView", "all"),                // board switch: all, cfb or nfl
   demoRemoved: new Set(),                                  // demo cards aren't in `selected`; removing one lasts until reload
 };
+
+// A ?league= link overrides the saved picker tab and board view, and becomes the new saved choice.
+if (LEAGUE_PARAM) {
+  state.tab = state.boardView = LEAGUE_PARAM;
+  store.set("tab", LEAGUE_PARAM);
+  store.set("boardView", LEAGUE_PARAM);
+}
 
 export function saveSelected() {
   store.set("selected", [...state.selected]);
