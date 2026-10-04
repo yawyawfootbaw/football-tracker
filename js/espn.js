@@ -33,9 +33,6 @@ function parseEvent(league, e) {
     // conf: a college conference id, or an NFL division name like "AFC East".
     const conf = league === "nfl" ? nflDivisionOf[c.team.abbreviation] : c.team.conferenceId;
     return { id: c.team.id, abbr: c.team.abbreviation, logo: c.team.logo, conf,
-             // Everything a search can match: "ND", "Notre Dame", "Notre Dame Fighting Irish".
-             searchText: " " + [c.team.abbreviation, c.team.shortDisplayName, c.team.displayName, c.team.location]
-               .filter(Boolean).join(" ").toLowerCase(),
              color: "#" + (c.team.color || "555"), score: c.score, rank: c.curatedRank?.current,
              record: c.records?.find((r) => r.type === "total")?.summary };  // overall W-L, e.g. "4-1"
   };

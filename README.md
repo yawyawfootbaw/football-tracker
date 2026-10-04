@@ -23,7 +23,7 @@ No framework and no build: one HTML page, plain CSS, and native JavaScript modul
 index.html            page markup; loads the CSS and js/main.js
 css/
   base.css            color tokens, page layout, spinner
-  picker.css          game picker: tabs, search, filters, sections, score-bug rows
+  picker.css          game picker: tabs, filters, sections, score-bug rows
   board.css           game cards, field, last play, remove button
   corner.css          contact footer, settings gear, coach photo
   mobile.css          phone layout (≤700px): slide-in picker drawer, tighter cards
@@ -33,7 +33,7 @@ js/
   store.js            localStorage wrapper that never throws
   state.js            state shared by picker and board (games, picks, tab, filters, …)
   espn.js             fetches ESPN's scoreboard and normalizes each game
-  picker.js           the game list: rendering, search, filters, sections, selection
+  picker.js           the game list: rendering, filters, sections, selection
   board.js            the cards: rendering, red-zone glow, highlight, last-play popover
   field.js            the SVG field on each card
   format.js           small shared HTML helpers (logos, status lines, escaping)

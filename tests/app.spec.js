@@ -251,66 +251,18 @@ test.describe("game picker", () => {
   });
 });
 
-test.describe("search and filters", () => {
-  test("search matches abbreviations from the start of a word", async ({ page }) => {
+test.describe("filters", () => {
+  test("filters are visible on both tabs; Top 25 is college-only", async ({ page }) => {
     await open(page);
-    await page.fill("#search", "nd");
-    // ND and NDSU, but not Maryland.
-    await expect(page.locator("#list label.game")).toHaveCount(2);
-    await expect(row(page, "cfb:8")).toBeAttached();
-    await expect(row(page, "cfb:3")).toBeAttached();
-    await expect(row(page, "cfb:6")).toHaveCount(0);
-  });
-
-  test("search covers both leagues: no tab highlighted, league tags on rows, no College filters", async ({ page }) => {
-    await open(page);  // College tab
-    await page.fill("#search", "dallas");
-    await expect(page.locator("#list label.game")).toHaveCount(1);
-    await expect(row(page, "nfl:102").locator(".lg")).toHaveText("NFL");
-    await expect(page.locator(".tabs button.on")).toHaveCount(0);
-    await expect(page.locator("#filter-toggle")).toBeHidden();
-    await page.fill("#search", "");
-    await expect(page.locator('.tabs button[data-league="cfb"]')).toHaveClass(/on/);
-    await expect(row(page, "cfb:1").locator(".lg")).toHaveCount(0);
-  });
-
-  test("clicking a tab during a search clears it and shows that league", async ({ page }) => {
-    await open(page);
-    await page.fill("#search", "notre dame");
-    await page.locator('.tabs button[data-league="nfl"]').click();
-    await expect(page.locator("#search")).toHaveValue("");
-    await expect(page.locator('.tabs button[data-league="nfl"]')).toHaveClass(/on/);
-    await expect(page.locator("#list label.game")).toHaveCount(2);
-  });
-
-  test("search matches full school names and mascots, and says when nothing matches", async ({ page }) => {
-    await open(page);
-    await page.fill("#search", "notre dame");
-    await expect(page.locator("#list label.game")).toHaveCount(1);
-    await page.fill("#search", "fighting irish");
-    await expect(row(page, "cfb:8")).toBeAttached();
-    await page.fill("#search", "zzz");
-    await expect(page.locator("#list .empty")).toHaveText("No matching games.");
-  });
-
-  test("filter controls hide behind the funnel on both tabs; Top 25 is college-only", async ({ page }) => {
-    await open(page);
-    const panel = page.locator("#filters");
-    await expect(panel).not.toHaveClass(/open/);
-    await page.locator("#filter-toggle").click();
-    await expect(panel).toHaveClass(/open/);
     await expect(page.locator("#conf")).toBeVisible();
     await expect(page.locator("#top25")).toBeVisible();
     await page.locator('.tabs button[data-league="nfl"]').click();
     await expect(page.locator("#conf")).toBeVisible();
     await expect(page.locator("#top25")).toBeHidden();
-    await page.locator("#filter-toggle").click();
-    await expect(panel).not.toHaveClass(/open/);
   });
 
   test("NFL filter offers AFC, NFC and their divisions, and filters by either", async ({ page }) => {
     await open(page, { storage: { tab: "nfl" } });
-    await page.locator("#filter-toggle").click();
     const options = await page.locator("#conf option").allTextContents();
     expect(options).toEqual(["All conferences",
       "All AFC", "AFC East", "AFC North", "AFC South", "AFC West",
@@ -327,7 +279,6 @@ test.describe("search and filters", () => {
 
   test("each league remembers its own filter", async ({ page }) => {
     await open(page);
-    await page.locator("#filter-toggle").click();
     await page.selectOption("#conf", { label: "SEC" });
     await page.locator('.tabs button[data-league="nfl"]').click();
     await expect(page.locator("#conf")).toHaveValue("");
@@ -345,12 +296,10 @@ test.describe("search and filters", () => {
 
   test("conference filter lists named conferences, filters games, and clears with one click", async ({ page }) => {
     await open(page);
-    await page.locator("#filter-toggle").click();
     const options = await page.locator("#conf option").allTextContents();
     expect(options).toEqual(["All conferences", "Big 12", "Big Ten", "Independent", "SEC"]);
     await page.selectOption("#conf", { label: "SEC" });
     await expect(page.locator("#list label.game")).toHaveCount(2);  // VAN @ UGA, ALA @ MSST
-    await expect(page.locator("#filter-toggle")).toHaveClass(/has-filters/);
     await page.locator("#conf-clear").click();
     await expect(page.locator("#list label.game")).toHaveCount(8);
     await expect(page.locator("#conf-clear")).toBeHidden();
@@ -358,13 +307,11 @@ test.describe("search and filters", () => {
 
   test("dropdown arrow sits well inside the right edge", async ({ page }) => {
     await open(page);
-    await page.locator("#filter-toggle").click();
     expect(await style(page.locator("#conf"), "backgroundPosition")).toContain("12px");
   });
 
   test("Top 25 shows only games with a ranked team and is remembered", async ({ page }) => {
     await open(page);
-    await page.locator("#filter-toggle").click();
     await page.locator("#top25").click();
     await expect(page.locator("#list label.game")).toHaveCount(5);
     await page.reload();

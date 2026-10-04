@@ -84,11 +84,10 @@ function cfbGames() {
       statusName: "STATUS_HALFTIME", clock: "0:00", period: 2,
       situation: { possession: "252", yardLine: 76, downDistanceText: "2nd & 10 at BYU 24", isRedZone: false } }),
     game({ id: 5, away: T.VAN, home: T.UGA, homeOpts: { rank: 2 }, state: "pre", detail: "Sat 7:30 PM", date: "2026-10-03T23:30Z" }),
-    // Upcoming, and the search trap: "nd" must not match Maryland.
     game({ id: 6, away: T.MD, home: T.PUR, state: "pre", detail: "Sat 8:00 PM", date: "2026-10-04T00:00Z" }),
     // Final, home team lost: dark-logo team, loser greyed out.
     game({ id: 7, away: T.ALA, home: T.MSST, networks: ["CBS", "Paramount+"], awayOpts: { score: "56", rank: 7 }, homeOpts: { score: "23" }, state: "post", detail: "Final", period: 4 }),
-    // Final: Notre Dame, for full-name and mascot search.
+    // Final: an independent (Notre Dame), for the conference list.
     game({ id: 8, away: T.ND, home: T.UNC, awayOpts: { score: "37", rank: 3 }, homeOpts: { score: "26" }, state: "post", detail: "Final", period: 4,
       conferenceGame: false }),
   ];

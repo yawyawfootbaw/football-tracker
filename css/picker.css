@@ -1,18 +1,7 @@
-/* Game picker: tabs, search, filters, collapsible sections, score-bug rows. */
+/* Game picker: tabs, filters, collapsible sections, score-bug rows. */
 .list-head { position: sticky; top: 0; background: var(--bg); border-bottom: 1px solid var(--border); z-index: 1; }
 .tabs { display: flex; border-bottom: 1px solid var(--border); }
-.search-row { display: flex; gap: 8px; padding: 8px 12px; }
-#search { flex: 1; min-width: 0; padding: 6px 10px; background: var(--panel); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font: inherit; }
-#search:focus { outline: none; border-color: var(--accent); }
-#filter-toggle { position: relative; flex: none; width: 34px; display: grid; place-items: center; padding: 0; background: var(--panel); border: 1px solid var(--border); border-radius: 6px; color: var(--muted); cursor: pointer; }
-#filter-toggle:hover, #filter-toggle[aria-expanded="true"] { color: var(--text); border-color: var(--accent); }
-#filter-toggle.has-filters::after { content: ""; position: absolute; top: 4px; right: 4px; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
-#filter-toggle[hidden], .filters-panel[hidden] { display: none; }
-/* Collapsible filter row: animates height via grid rows (0fr ↔ 1fr). */
-.filters-panel { display: grid; grid-template-rows: 0fr; visibility: hidden; transition: grid-template-rows .22s ease, visibility 0s .22s; }
-.filters-panel.open { grid-template-rows: 1fr; visibility: visible; transition: grid-template-rows .22s ease, visibility 0s; }
-.filters-clip { overflow: hidden; min-height: 0; }
-.filters { display: flex; gap: 8px; padding: 0 12px 8px; }
+.filters { display: flex; gap: 8px; padding: 8px 12px; }
 .conf-wrap { position: relative; flex: 1; min-width: 0; }
 /* Native arrow replaced with our own chevron so it can sit further from the edge. */
 #conf { width: 100%; padding: 5px 30px 5px 8px; -webkit-appearance: none; appearance: none; background: var(--panel)
@@ -74,5 +63,4 @@ label.game input:focus-visible ~ .pick { outline: 2px solid var(--accent); outli
 .bug-team .poss { color: var(--ltg); font-size: 9px; }
 .bug-team .pts { margin-left: auto; font-variant-numeric: tabular-nums; }
 .bug-team.lost { color: var(--muted); font-weight: 400; }
-.bug-status .lg { display: block; margin-top: 1px; font-size: 9px; font-weight: 600; letter-spacing: .06em; color: var(--muted); }
 .bug-status { flex: none; width: 54px; margin-right: 12px; padding-left: 8px; border-left: 1px solid var(--border); color: var(--muted); font-size: 11px; line-height: 15px; text-align: center; font-variant-numeric: tabular-nums; white-space: nowrap; }

@@ -1,4 +1,4 @@
-// The game picker: tabs, search, filters, collapsible sections and score-bug rows.
+// The game picker: tabs, filters, collapsible sections and score-bug rows.
 
 import { LIST_REFRESH_MS } from "./config.js";
 import { store } from "./store.js";
@@ -12,7 +12,6 @@ const GROUPS = { in: "Live", pre: "Upcoming", post: "Final" };
 const CHEVRON = `<svg class="chev" viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>`;
 
 let lastListRender = -Infinity;
-let filtersOpen = false;
 
 /** True once the list has gone LIST_REFRESH_MS without a render (polls refresh it no more often than that). */
 export const listIsStale = () => Date.now() - lastListRender >= LIST_REFRESH_MS;
@@ -20,20 +19,15 @@ export const listIsStale = () => Date.now() - lastListRender >= LIST_REFRESH_MS;
 export function renderList() {
   lastListRender = Date.now();
   const { tab, filters, selected, games } = state;
-  const query = $("search").value.trim().toLowerCase();
-  // Searching covers both leagues, so no tab is highlighted and the league's filters step aside.
-  const searching = !!query;
-  document.querySelectorAll(".tabs button").forEach((b) => b.classList.toggle("on", !searching && b.dataset.league === tab));
-  renderFilters(!searching);
+  document.querySelectorAll(".tabs button").forEach((b) => b.classList.toggle("on", b.dataset.league === tab));
+  renderFilters();
   const f = filters[tab];
   const ranked = (t) => t.rank && t.rank <= 25;
   // NFL choices can be a whole conference ("AFC") or a division ("AFC East").
   const inConf = (t) => t.conf === f.conf || (tab === "nfl" && t.conf?.startsWith(f.conf + " "));
-  const list = (searching ? [...games.cfb, ...games.nfl] : games[tab])
-    // Match from the start of a word, so "nd" finds ND and NDSU but not Maryland.
-    .filter((g) => !query || g.away.searchText.includes(" " + query) || g.home.searchText.includes(" " + query))
-    .filter((g) => searching || !f.conf || inConf(g.away) || inConf(g.home))
-    .filter((g) => searching || !f.top25 || ranked(g.away) || ranked(g.home))
+  const list = games[tab]
+    .filter((g) => !f.conf || inConf(g.away) || inConf(g.home))
+    .filter((g) => !f.top25 || ranked(g.away) || ranked(g.home))
     .sort((a, b) => ORDER[a.state] - ORDER[b.state] || a.date - b.date);
   // Selected games go first under their own heading, keeping the same order as the full list.
   const ordered = [...list.filter((g) => selected.has(g.key)), ...list.filter((g) => !selected.has(g.key))];
@@ -51,16 +45,15 @@ export function renderList() {
         <div class="group-body ${open ? "" : "collapsed"}"><div class="group-clip">`;
     }
     lastGroup = group;
-    html += row(g, searching);
+    html += row(g);
   }
   if (lastGroup) html += `</div></div>`;
-  const filtered = searching || f.conf || f.top25;
+  const filtered = f.conf || f.top25;
   $("list").innerHTML = html || `<div class="empty">${filtered ? "No matching games." : "No games this week."}</div>`;
 }
 
 // One picker row, styled like a TV score bug: two stacked team lines, then the game status.
-// With showLeague (search results mix leagues), the status column gets a CFB/NFL tag.
-function row(g, showLeague) {
+function row(g) {
   const final = g.state === "post", live = g.state === "in";
   const line = (t, other) => `<span class="bug-team ${final && +t.score < +other.score ? "lost" : ""}">
       ${logoImg(t)}${rankBadge(t)}<span class="abbr">${t.abbr}</span>${t.record ? `<span class="rec">${t.record}</span>` : ""}
@@ -68,19 +61,13 @@ function row(g, showLeague) {
       <span class="pts">${g.state === "pre" ? "" : t.score}</span></span>`;
   return `<label class="game ${live ? "live" : ""}"><input type="checkbox" data-key="${g.key}" ${state.selected.has(g.key) ? "checked" : ""}>
     <span class="bug">${line(g.away, g.home)}${line(g.home, g.away)}</span>
-    <span class="bug-status">${statusLines(g)}${showLeague ? `<span class="lg">${g.key.startsWith("nfl:") ? "NFL" : "CFB"}</span>` : ""}</span>
+    <span class="bug-status">${statusLines(g)}</span>
     <span class="pick" aria-hidden="true"></span></label>`;
 }
 
-function renderFilters(show) {
-  const panel = $("filters"), toggle = $("filter-toggle");
-  panel.hidden = toggle.hidden = !show;
-  if (!show) return;
+function renderFilters() {
   const college = state.tab === "cfb";
   const f = state.filters[state.tab];
-  panel.classList.toggle("open", filtersOpen);
-  toggle.setAttribute("aria-expanded", filtersOpen);
-  toggle.classList.toggle("has-filters", !!(f.conf || f.top25));  // dot so active filters aren't forgotten
   const options = college ? collegeOptions(f.conf) : nflOptions();
   const select = $("conf");
   // Only rebuild when the set changes, so a refresh doesn't close the dropdown while it's open.
@@ -140,16 +127,13 @@ function renderListAnimated(movedKey) {
 export function initPicker({ onSelectionChanged, onHighlight }) {
   const saveFiltersAndRender = () => { store.set("filters", state.filters); renderList(); };
 
-  $("search").addEventListener("input", renderList);
   $("conf").addEventListener("change", (e) => { state.filters[state.tab].conf = e.target.value; saveFiltersAndRender(); });
   $("conf-clear").addEventListener("click", () => { state.filters[state.tab].conf = ""; saveFiltersAndRender(); });
   $("top25").addEventListener("click", () => { state.filters.cfb.top25 = !state.filters.cfb.top25; saveFiltersAndRender(); });
-  $("filter-toggle").addEventListener("click", () => { filtersOpen = !filtersOpen; renderFilters(true); });
 
   document.querySelector(".tabs").addEventListener("click", (e) => {
     const league = e.target.dataset?.league;
     if (!league) return;
-    $("search").value = "";  // picking a league ends a search
     state.tab = league;
     store.set("tab", league);
     renderList();

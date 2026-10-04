@@ -40,19 +40,13 @@
         <button data-league="cfb">College</button>
         <button data-league="nfl">NFL</button>
       </div>
-      <div class="search-row">
-        <input id="search" type="search" placeholder="Search teams" autocomplete="off">
-        <button id="filter-toggle" aria-label="Filters" title="Filters" aria-expanded="false" aria-controls="filters">
-          <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 3h12l-4.5 5.5V13l-3 1.5V8.5z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
-        </button>
-      </div>
-      <div class="filters-panel" id="filters"><div class="filters-clip"><div class="filters">
+      <div class="filters">
         <div class="conf-wrap">
           <select id="conf" aria-label="Conference"><option value="">All conferences</option></select>
           <button id="conf-clear" aria-label="Clear conference filter" title="Clear" hidden>✕</button>
         </div>
         <button id="top25" aria-pressed="false">Top 25</button>
-      </div></div></div>
+      </div>
     </div>
     <div id="list"><div class="spinner" role="status" aria-label="Loading games"></div></div>
     <div class="drawer-foot"><button id="picker-done">Done</button></div>
