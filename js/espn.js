@@ -20,7 +20,8 @@ function parseEvent(league, e) {
              // Everything a search can match: "ND", "Notre Dame", "Notre Dame Fighting Irish".
              searchText: " " + [c.team.abbreviation, c.team.shortDisplayName, c.team.displayName, c.team.location]
                .filter(Boolean).join(" ").toLowerCase(),
-             color: "#" + (c.team.color || "555"), score: c.score, rank: c.curatedRank?.current };
+             color: "#" + (c.team.color || "555"), score: c.score, rank: c.curatedRank?.current,
+             record: c.records?.find((r) => r.type === "total")?.summary };  // overall W-L, e.g. "4-1"
   };
   // At halftime ESPN keeps the last down and distance around; nobody has the ball, so drop the situation.
   const s = e.status.type.name === "STATUS_HALFTIME" ? {} : comp.situation || {};

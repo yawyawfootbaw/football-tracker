@@ -69,7 +69,7 @@ function team(g, t, side, timeouts) {
   const showTO = live && timeouts != null;
   const name = `<div class="name">
       <div>${rankBadge(t)}<span class="abbr">${t.abbr}</span> <span class="poss ${live && g.possession === t.id ? "" : "hide"}">●</span></div>
-      <div class="to ${showTO ? "" : "hide"}">${showTO ? "▮".repeat(timeouts) + "▯".repeat(Math.max(0, 3 - timeouts)) : "▮▮▮"}</div>
+      <div class="sub"><span class="rec">${t.record ?? ""}</span><span class="to ${showTO ? "" : "hide"}">${showTO ? "▮".repeat(timeouts) + "▯".repeat(Math.max(0, 3 - timeouts)) : "▮▮▮"}</span></div>
     </div>`;
   const logo = logoImg(t);
   // Mirrored: logo on the outside edge, points next to the clock.

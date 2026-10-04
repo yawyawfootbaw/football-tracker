@@ -323,6 +323,13 @@ test.describe("game cards", () => {
     await expect(c.locator(".team.away .rank")).toHaveText("5");
   });
 
+  test("cards show each team's overall record under its name", async ({ page }) => {
+    await open(page, { storage: { selected: ["cfb:1", "cfb:8"] } });
+    await expect(card(page, "cfb:1").locator(".team.away .rec")).toHaveText("5-0");
+    await expect(card(page, "cfb:1").locator(".team.home .rec")).toHaveText("3-2");
+    await expect(card(page, "cfb:8").locator(".team.away .rec")).toHaveText("");  // ESPN sent no record
+  });
+
   test("field shows the ball, line of scrimmage, line to gain and direction", async ({ page }) => {
     await open(page, { storage: { selected: ["cfb:1"] } });
     const svg = card(page, "cfb:1").locator("svg.field");

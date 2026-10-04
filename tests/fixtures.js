@@ -29,9 +29,10 @@ const T = {
 
 const CONF_NAMES = { 1: "ACC", 4: "Big 12", 5: "Big Ten", 8: "SEC", 17: "Mountain West" };
 
-function competitor(t, homeAway, { score = "0", rank = 99 } = {}, league) {
+function competitor(t, homeAway, { score = "0", rank = 99, record } = {}, league) {
   return {
     homeAway, score, curatedRank: { current: rank },
+    records: record ? [{ name: "overall", type: "total", summary: record }, { name: "Home", type: "home", summary: "2-0" }] : [],
     team: {
       id: t.id, abbreviation: t.abbr, location: t.location, name: t.mascot,
       displayName: `${t.location} ${t.mascot}`, shortDisplayName: t.location, color: t.color,
@@ -64,7 +65,7 @@ const LONG_PLAY = "(02:00) Shotgun #7 W.Howard pass short middle complete to #4 
 function cfbGames() {
   return [
     // Live, red zone, away team has the ball: field drawing, dot, timeouts, glow, last play popover.
-    game({ id: 1, away: T.OSU, home: T.IOWA, networks: ["FOX"], awayOpts: { score: "24", rank: 5 }, homeOpts: { score: "6", rank: 14 },
+    game({ id: 1, away: T.OSU, home: T.IOWA, networks: ["FOX"], awayOpts: { score: "24", rank: 5, record: "5-0" }, homeOpts: { score: "6", rank: 14, record: "3-2" },
       state: "in", detail: "2:00 - 4th", clock: "2:00", period: 4,
       situation: { possession: "194", yardLine: 12, down: 3, distance: 6, downDistanceText: "3rd & 6 at IOWA 12", isRedZone: true,
         homeTimeouts: 1, awayTimeouts: 2, lastPlay: { id: "11", text: LONG_PLAY, type: { text: "Pass Reception" }, end: { team: { id: "194" } } } } }),

@@ -34,7 +34,9 @@
 .team.away .pts { margin-left: auto; text-align: right; }
 .team.home .pts { margin-right: auto; text-align: left; }
 .team .poss { color: var(--ltg); font-size: 12px; }
-.team .to { color: var(--muted); font-size: 11px; line-height: 15px; font-weight: 400; letter-spacing: 1px; }
+.team .sub { color: var(--muted); font-size: 11px; line-height: 15px; font-weight: 400; }
+.team .rec { margin-right: 5px; }
+.team .to { letter-spacing: 1px; }
 .hide { visibility: hidden; }
 .clock { text-align: center; color: var(--muted); font-size: 12px; line-height: 17px; height: 34px; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; }
 .dd { text-align: center; font-size: 18px; font-weight: 700; margin: 8px 0 6px; height: 25px; line-height: 25px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
