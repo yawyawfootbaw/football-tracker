@@ -82,9 +82,16 @@
   label.game input:checked ~ .pick::before { width: 6px; height: 11px; background: none; border: solid currentColor; border-width: 0 2px 2px 0; transform: translateY(-1px) rotate(45deg); }
   label.game input:focus-visible ~ .pick { outline: 2px solid var(--accent); outline-offset: 2px; }
   .drawer-foot { display: none; }
-  label.game .info { flex: 1; min-width: 0; }
-  label.game .teams { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  label.game .status { color: var(--muted); font-size: 12px; }
+  /* Picker rows look like a TV score bug: two stacked team lines, then the game status. */
+  .bug { flex: 1; min-width: 0; display: grid; gap: 3px; }
+  .bug-team { display: flex; align-items: center; gap: 6px; min-width: 0; font-weight: 600; white-space: nowrap; }
+  .bug-team img { flex: none; width: 18px; height: 18px; }
+  .bug-team .rank { color: var(--muted); font-size: 10px; font-weight: 600; }
+  .bug-team .abbr { overflow: hidden; text-overflow: ellipsis; }
+  .bug-team .poss { color: var(--ltg); font-size: 9px; }
+  .bug-team .pts { margin-left: auto; font-variant-numeric: tabular-nums; }
+  .bug-team.lost { color: var(--muted); font-weight: 400; }
+  .bug-status { flex: none; width: 54px; padding-left: 8px; border-left: 1px solid var(--border); color: var(--muted); font-size: 11px; line-height: 15px; text-align: center; font-variant-numeric: tabular-nums; white-space: nowrap; }
   #board { overflow-y: auto; padding: 16px 16px 32px; display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 16px; align-content: start; }
   .empty { color: var(--muted); padding: 24px; }
   .spinner { width: 32px; height: 32px; margin: 48px auto; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; grid-column: 1 / -1; }
@@ -297,10 +304,6 @@ function demoGame() {
   };
 }
 
-function teamLabel(t) {
-  return (t.rank && t.rank <= 25 ? `#${t.rank} ` : "") + t.abbr;
-}
-
 let lastListRender = -Infinity;
 function renderList() {
   lastListRender = Date.now();
@@ -333,11 +336,14 @@ function renderList() {
         <div class="group-body ${open ? "" : "collapsed"}"><div class="group-clip">`;
     }
     lastGroup = group;
-    const status = g.state === "pre" ? fmtKickoff(g.date) : g.detail;
-    const score = g.state === "pre" ? "" : ` ${g.away.score}–${g.home.score}`;
+    const final = g.state === "post", live = g.state === "in";
+    const line = (t, other) => `<span class="bug-team ${final && +t.score < +other.score ? "lost" : ""}">
+        ${logoImg(t)}${t.rank && t.rank <= 25 ? `<span class="rank">${t.rank}</span>` : ""}<span class="abbr">${t.abbr}</span>
+        ${live && g.possession === t.id ? `<span class="poss">●</span>` : ""}
+        <span class="pts">${g.state === "pre" ? "" : t.score}</span></span>`;
     html += `<label class="game"><input type="checkbox" data-key="${g.key}" ${selected.has(g.key) ? "checked" : ""}>
-      <span class="info"><div class="teams">${teamLabel(g.away)} @ ${teamLabel(g.home)}${score}</div>
-      <div class="status">${status}</div></span><span class="pick" aria-hidden="true"></span></label>`;
+      <span class="bug">${line(g.away, g.home)}${line(g.home, g.away)}</span>
+      <span class="bug-status">${statusLines(g)}</span><span class="pick" aria-hidden="true"></span></label>`;
   }
   if (lastGroup) html += `</div></div>`;
   const filtered = query || (college && (filters.conf || filters.top25));
@@ -369,10 +375,6 @@ function renderFilters(show) {
   document.getElementById("top25").setAttribute("aria-pressed", filters.top25);
 }
 
-function fmtKickoff(d) {
-  return d.toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" });
-}
-
 function renderBoard() {
   const all = [...games.cfb, ...games.nfl];
   const picked = all.filter((g) => selected.has(g.key) || (g.key === "nfl:demo" && !demoRemoved))
@@ -392,16 +394,11 @@ function card(g) {
         <div>${t.rank && t.rank <= 25 ? `<span class="rank">${t.rank}</span>` : ""}<span class="abbr">${t.abbr}</span> <span class="poss ${live && g.possession === t.id ? "" : "hide"}">●</span></div>
         <div class="to ${showTO ? "" : "hide"}">${showTO ? "▮".repeat(timeouts) + "▯".repeat(Math.max(0, 3 - timeouts)) : "▮▮▮"}</div>
       </div>`;
-    // ESPN's dark-background variant lives at the same path under 500-dark; fall back to the regular logo if it's missing.
-    const darkLogo = t.logo?.replace("/500/", "/500-dark/");
-    const logo = `<img src="${darkLogo}" alt="" onerror="this.onerror=null; this.src='${t.logo}'">`;
+    const logo = logoImg(t);
     // Mirrored: logo on the outside edge, points next to the clock.
     return `<div class="team ${side}">${side === "away" ? logo + name + pts : pts + name + logo}</div>`;
   };
-  // Always two lines so the clock column is the same height in every state.
-  const clock = live ? `${g.clock}<br>${periodName(g)}`
-    : g.state === "pre" ? `${g.date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}<br>${g.date.toLocaleDateString([], { weekday: "short" })}`
-    : `${g.detail}<br>&nbsp;`;
+  const clock = statusLines(g);
   const inRedZone = live && g.redZone;
   if (inRedZone && !redZoneShown.has(g.key)) glowStart.set(g.key, Date.now());  // just entered the red zone
   inRedZone ? redZoneShown.add(g.key) : redZoneShown.delete(g.key);
@@ -418,6 +415,18 @@ function card(g) {
       <button class="remove" data-remove="${g.key}" aria-label="Remove game" title="Remove game">✕</button>
     </div>
   </div>`;
+}
+
+// ESPN's dark-background variant lives at the same path under 500-dark; fall back to the regular logo if it's missing.
+function logoImg(t) {
+  return `<img src="${t.logo?.replace("/500/", "/500-dark/")}" alt="" onerror="this.onerror=null; this.src='${t.logo}'">`;
+}
+
+// Always two lines so the status block is the same height in every state.
+function statusLines(g) {
+  if (g.state === "in") return g.detail === "Halftime" ? "Half<br>&nbsp;" : `${g.clock}<br>${periodName(g)}`;
+  if (g.state === "pre") return `${g.date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}<br>${g.date.toLocaleDateString([], { weekday: "short" })}`;
+  return `${g.detail}<br>&nbsp;`;
 }
 
 function periodName(g) {
