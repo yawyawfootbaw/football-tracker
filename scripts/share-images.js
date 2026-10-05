@@ -25,7 +25,7 @@ async function renderIcon(browser) {
 // A screenshot of the app filled with the test fixtures instead of live ESPN data, so it comes out the same every time.
 // Taken in the dark theme at a larger size than the preview so more cards fit, then scaled down beside the logo.
 async function screenshotApp(browser) {
-  const page = await browser.newPage({ viewport: { width: 1500, height: 788 }, colorScheme: "dark" });
+  const page = await browser.newPage({ viewport: { width: 1300, height: 683 }, deviceScaleFactor: 1.5, colorScheme: "dark" });
   await page.addInitScript((keys) => localStorage.setItem("selected", JSON.stringify(keys)), PREVIEW_GAMES);
   await page.route("https://site.api.espn.com/**", (route) => {
     const url = route.request().url();

@@ -573,16 +573,24 @@ test.describe("board", () => {
     expect(await width("cfb:7")).toBeLessThan(await width("cfb:1"));
   });
 
-  test("cards never stretch past their column's cap, however wide the board gets", async ({ page }) => {
-    await open(page, { storage: { selected: ["cfb:1", "cfb:7", "cfb:5"] } });
+  test("cards share each section's full width, with the column count set by the board's width", async ({ page }) => {
+    await open(page, { storage: { selected: ["cfb:1", "cfb:2", "cfb:7", "cfb:5", "cfb:6", "cfb:8"] } });
+    // The columns fill the section exactly: no leftover space at the end of a row.
+    const fill = (sel) => page.locator(sel).first().evaluate((el) => {
+      const s = getComputedStyle(el), tracks = s.gridTemplateColumns.split(" ").map(parseFloat);
+      return Math.abs(tracks.reduce((a, b) => a + b) + (tracks.length - 1) * parseFloat(s.columnGap) - el.clientWidth);
+    });
     for (const width of [760, 1000, 1300, 1900]) {
       await page.setViewportSize({ width, height: 900 });
-      expect((await card(page, "cfb:1").boundingBox()).width).toBeLessThanOrEqual(560);
-      expect((await card(page, "cfb:7").boundingBox()).width).toBeLessThanOrEqual(300);
-      expect((await card(page, "cfb:5").boundingBox()).width).toBeLessThanOrEqual(300);
+      expect(await fill(".live .cards")).toBeLessThan(1);
+      expect(await fill(".compact .cards")).toBeLessThan(1);
+      expect((await card(page, "cfb:1").boundingBox()).width).toBeGreaterThanOrEqual(340);
+      const compact = (await card(page, "cfb:7").boundingBox()).width;
+      expect(compact).toBeGreaterThan(220);
+      expect(compact).toBeLessThan(460);
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     }
-    // At 1300px the board (about 970px) fits two live columns and three compact ones.
+    // At 1300px the board (about 970px) has two live columns and three compact ones.
     await page.setViewportSize({ width: 1300, height: 900 });
     const cols = (sel) => page.locator(sel).first().evaluate((el) => getComputedStyle(el).gridTemplateColumns.split(" ").length);
     expect(await cols(".live .cards")).toBe(2);
@@ -933,6 +941,25 @@ test.describe("mobile", () => {
     await expect(card(page, "cfb:1")).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
     const clipped = await page.locator(".card .name").evaluateAll((els) => els.filter((e) => e.scrollWidth > e.clientWidth + 1).length);
+    expect(clipped).toBe(0);
+  });
+
+  test("phones around 500px wide fit two stacked Final/Upcoming cards to a row, with even margins", async ({ page }) => {
+    await page.setViewportSize({ width: 500, height: 900 });
+    await open(page, { storage: { selected: ["cfb:7", "cfb:5", "cfb:6"], pickerOpen: false } });
+    const box = (key) => card(page, key).boundingBox();
+    const [fin, up1, up2] = [await box("cfb:7"), await box("cfb:5"), await box("cfb:6")];
+    expect(Math.abs(up1.y - up2.y)).toBeLessThan(1);                // side by side
+    expect(Math.abs(up1.width - up2.width)).toBeLessThan(1);
+    expect(Math.abs(up1.x - (500 - (up2.x + up2.width)))).toBeLessThan(1);  // same margin left and right
+    // The lone Final card spans the whole row instead of leaving half of it empty.
+    expect(Math.abs(fin.x - up1.x)).toBeLessThan(1);
+    expect(Math.abs(fin.x + fin.width - (up2.x + up2.width))).toBeLessThan(1);
+    // Narrow cards stack away over home, with the status on the right.
+    expect(await card(page, "cfb:5").locator(".score").evaluate((el) => getComputedStyle(el).gridTemplateAreas)).toContain("away clock");
+    const away = await card(page, "cfb:5").locator(".team.away").boundingBox(), home = await card(page, "cfb:5").locator(".team.home").boundingBox();
+    expect(home.y).toBeGreaterThan(away.y + away.height - 1);
+    const clipped = await page.locator(".card .abbr").evaluateAll((els) => els.filter((e) => e.getBoundingClientRect().right > e.closest(".name").getBoundingClientRect().right + 1).length);
     expect(clipped).toBe(0);
   });
 
