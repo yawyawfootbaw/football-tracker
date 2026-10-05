@@ -81,9 +81,9 @@ export function initSettings() {
     e.stopPropagation();
     setSettingsMenu(!settingsOpen);
   });
+  // The menu stays open, so you can keep clicking "google me" (re-rolling the coach) without reopening it.
   googleMe.addEventListener("click", () => {
-    const from = googleMe.getBoundingClientRect();  // measure before the menu closes
-    setSettingsMenu(false);
+    const from = googleMe.getBoundingClientRect();
     googleMe.getAttribute("aria-pressed") === "true" ? hideCoach(from) : showCoach(from);
   });
   coach.addEventListener("click", () => {

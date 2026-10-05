@@ -754,7 +754,7 @@ test.describe("settings gear and google me", () => {
     await expect(coach).toBeVisible();
     expect(await coach.evaluate((c) => c.getAnimations().length)).toBeGreaterThan(0);
     await expect(page.locator("#google-me")).toHaveAttribute("aria-pressed", "true");
-    await expect(page.locator("#settings-menu")).toBeHidden();
+    await expect(page.locator("#settings-menu")).toBeVisible();  // stays open for another click
     await expect(coach.locator("figcaption")).toHaveCount(0);
     await page.waitForTimeout(600);
     await coach.click();
@@ -768,9 +768,9 @@ test.describe("settings gear and google me", () => {
     await page.locator("#google-me").click();
     await expect(page.locator("#coach")).toBeVisible();
     await page.waitForTimeout(600);
-    await page.locator("#settings").click();
-    await page.locator("#google-me").click();
+    await page.locator("#google-me").click();  // the menu is still open
     await expect(page.locator("#coach")).toBeHidden();
+    await expect(page.locator("#settings-menu")).toBeVisible();
   });
 });
 
