@@ -625,12 +625,66 @@ test.describe("board", () => {
   });
 });
 
+test.describe("header football", () => {
+  test("sits still beside the title and spirals once when clicked", async ({ page }) => {
+    await open(page);
+    const logo = page.locator("#logo");
+    const title = await page.locator("header h1").boundingBox(), box = await logo.boundingBox();
+    expect(box.x).toBeGreaterThan(title.x + title.width);
+    expect(box.x - (title.x + title.width)).toBeLessThan(16);
+    expect(await style(logo.locator(".laces"), "animationName")).toBe("none");
+    await logo.click();
+    expect(await style(logo.locator(".laces"), "animationName")).toBe("spiral-once");
+    await expect(logo).not.toHaveClass(/spiral/);  // done after one turn
+    expect(await style(logo.locator(".laces"), "animationName")).toBe("none");
+  });
+});
+
+test.describe("?loading", () => {
+  test("never fetches games, so the spinners stay up, and skips the hit counter", async ({ page }) => {
+    await page.clock.install({ time: new Date("2026-10-03T20:00:00Z") });
+    const state = await open(page, { query: "?loading", gate: new Promise(() => {}) });
+    await expect(page.locator("#list .spinner")).toBeVisible();
+    await expect(page.locator("#board .spinner")).toBeVisible();
+    await page.clock.runFor(30_000);
+    await expect(page.locator(".spinner")).toHaveCount(2);
+    expect(state.espnRequests).toBe(0);
+    expect(state.hits).toBe(0);
+  });
+});
+
 test.describe("demo mode and counter", () => {
-  test("?demo skips the hit counter and adds no fake games", async ({ page }) => {
+  test("?demo skips the hit counter and adds one picked demo game", async ({ page }) => {
     const state = await open(page, { query: "?demo" });
-    await expect(page.locator("#list label.game")).toHaveCount(8);  // just the fixtures
+    await expect(page.locator("#list label.game")).toHaveCount(9);  // the fixtures plus the demo game
+    await expect(page.locator('.board-group[data-section="pre"] .card[data-key="cfb:demo"]')).toBeVisible();
     await page.waitForTimeout(500);
     expect(state.hits).toBe(0);
+  });
+
+  test("the demo game kicks off after 10 seconds and its card grows from Upcoming into Live", async ({ page }) => {
+    await page.clock.install({ time: new Date("2026-10-03T20:00:00Z") });
+    // Record card animations as they start; they're too quick to catch reliably by polling getAnimations().
+    await page.addInitScript(() => {
+      window.cardAnimations = [];
+      const animate = Element.prototype.animate;
+      Element.prototype.animate = function (keyframes, options) {
+        if (this.classList.contains("card")) window.cardAnimations.push({ key: this.dataset.key, keyframes });
+        return animate.call(this, keyframes, options);
+      };
+    });
+    await open(page, { query: "?demo" });
+    const demo = card(page, "cfb:demo");
+    await expect(page.locator('.board-group[data-section="pre"] .card[data-key="cfb:demo"]')).toBeVisible();
+    await expect(demo.locator("svg.field")).toHaveCount(0);
+    expect(await page.evaluate(() => window.cardAnimations.length)).toBe(0);  // nothing moves on ordinary refreshes
+    await page.clock.runFor(10_000);
+    await expect(page.locator('.board-group[data-section="in"] .card[data-key="cfb:demo"]')).toBeVisible();
+    await expect(demo.locator(".dd")).toHaveText("1st & 10 at OSU 25");
+    await expect(demo.locator("svg.field")).toHaveCount(1);
+    const grow = (await page.evaluate(() => window.cardAnimations)).find((a) => a.key === "cfb:demo");
+    expect(parseFloat(grow.keyframes[0].height)).toBeLessThan(parseFloat(grow.keyframes[1].height));
+    expect(parseFloat(grow.keyframes[0].width)).toBeLessThan(parseFloat(grow.keyframes[1].width));
   });
 
   test("without ?demo, the hidden hit counter is requested once and isn't on the page", async ({ page }) => {

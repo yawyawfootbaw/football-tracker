@@ -25,12 +25,42 @@ export function renderBoard() {
       <span class="mobile-only">Tap ☰ Games at the top to pick a few games, and they'll show up here.</span></div>`;
     return;
   }
+  const before = cardSpots();
   // Live, then Final, then Upcoming; a section only shows when it has games.
   $("board").innerHTML = SECTIONS.map(([st, label]) => {
     const games = picked.filter((g) => g.state === st);
-    return games.length ? `<section class="board-group ${st === "in" ? "live" : "compact"}">
+    return games.length ? `<section class="board-group ${st === "in" ? "live" : "compact"}" data-section="${st}">
       <h2 class="board-section">${label}</h2><div class="cards">${games.map(card).join("")}</div></section>` : "";
   }).join("");
+  animateSectionChanges(before);
+}
+
+// Each card's on-screen box and section, taken before a render replaces the cards.
+function cardSpots() {
+  return new Map([...document.querySelectorAll("#board .card")].map((c) =>
+    [c.dataset.key, { box: c.getBoundingClientRect(), section: c.closest(".board-group").dataset.section }]));
+}
+
+/**
+ * When a game changes section (it kicked off, or it ended), grow or shrink its card from its old spot and size
+ * into the new one, and glide the cards it pushed around. Renders where nothing changed section don't animate.
+ */
+function animateSectionChanges(before) {
+  const cards = [...document.querySelectorAll("#board .card")];
+  const changed = (c) => before.has(c.dataset.key) && before.get(c.dataset.key).section !== c.closest(".board-group").dataset.section;
+  if (!cards.some(changed)) return;
+  for (const c of cards) {
+    const was = before.get(c.dataset.key)?.box, now = c.getBoundingClientRect();
+    if (!was) continue;
+    const from = { transform: `translate(${was.left - now.left}px, ${was.top - now.top}px)` }, to = { transform: "none" };
+    if (changed(c)) {
+      // Animate the real size rather than scaling, so the text doesn't stretch; the field is revealed as it grows.
+      Object.assign(from, { width: `${was.width}px`, height: `${was.height}px` });
+      Object.assign(to, { width: `${now.width}px`, height: `${now.height}px` });
+      c.style.overflow = "hidden";
+    } else if (was.left === now.left && was.top === now.top) continue;
+    c.animate([from, to], { duration: 400, easing: "ease" }).onfinish = () => { c.style.overflow = ""; };
+  }
 }
 
 function card(g) {

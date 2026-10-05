@@ -1,6 +1,6 @@
 // Entry point: wires the modules together and polls ESPN.
 
-import { DEMO, MOBILE_QUERY, POLL_MS } from "./config.js";
+import { DEMO, LOADING, MOBILE_QUERY, POLL_MS } from "./config.js";
 import { state, allGames } from "./state.js";
 import { fetchGames } from "./espn.js";
 import { checkRecaps } from "./recap.js";
@@ -10,13 +10,17 @@ import { setPicker, initDrawer } from "./drawer.js";
 import { initSettings } from "./settings.js";
 import { initTheme } from "./theme.js";
 import { countVisit } from "./counter.js";
+import { initLogo } from "./logo.js";
+import { DEMO_KEY, demoGame } from "./demo.js";
 
 let lastUpdated = null;  // when data last arrived successfully; a failed poll leaves the old time showing
 
 async function poll() {
+  if (LOADING) return;
   await Promise.all(Object.keys(state.games).map(async (league) => {
     try {
       state.games[league] = await fetchGames(league);
+      if (DEMO && league === "cfb") state.games.cfb.push(demoGame());
       lastUpdated = Date.now();
     } catch (err) {
       console.error(league, err);
@@ -36,7 +40,8 @@ function renderUpdated() {
     "Games updated at " + new Date(lastUpdated).toLocaleTimeString([], { hour: "numeric", minute: "2-digit", second: "2-digit" });
 }
 
-if (!DEMO) countVisit();
+if (DEMO) state.selected.add(DEMO_KEY);  // not saved, so it's gone once you leave ?demo
+if (!DEMO && !LOADING) countVisit();
 
 initPicker({
   onSelectionChanged: renderBoard,  // the picker already re-rendered (and animated) its own list
@@ -50,6 +55,7 @@ initBoard({
 });
 initDrawer({ animateLayout: animateBoardLayout });
 initSettings();
+initLogo();
 initTheme({ onChange: () => { renderList(); renderBoard(); } });  // logos differ per theme
 
 // Poll now and every POLL_MS after. Background tabs get their timers slowed down by the browser, so coming
