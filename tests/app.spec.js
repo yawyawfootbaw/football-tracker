@@ -1,6 +1,6 @@
 // @ts-check
 const { test, expect } = require("@playwright/test");
-const { LONG_PLAY, cfbGames, nflGames, scoreboard, PNG } = require("./fixtures");
+const { LONG_PLAY, cfbGames, nflGames, scoreboard, summary, PNG } = require("./fixtures");
 
 const CORS = { "access-control-allow-origin": "*" };
 
@@ -9,8 +9,15 @@ const CORS = { "access-control-allow-origin": "*" };
  * Returns a mutable state object: change state.cfb / state.nfl to alter what the next poll sees.
  */
 async function open(page, opts = {}) {
-  const state = { cfb: opts.cfb ?? cfbGames(), nfl: opts.nfl ?? nflGames(), hits: 0, espnRequests: 0, gate: opts.gate };
+  // recaps: event ids whose summary has a written recap. summaryRequests counts summary fetches per event id.
+  const state = { cfb: opts.cfb ?? cfbGames(), nfl: opts.nfl ?? nflGames(), hits: 0, espnRequests: 0, gate: opts.gate,
+    recaps: new Set(opts.recaps ?? ["7", "8"]), summaryRequests: {} };
   await page.route("https://site.api.espn.com/**", async (route) => {
+    const id = route.request().url().match(/summary\?event=(\w+)/)?.[1];
+    if (id) {
+      state.summaryRequests[id] = (state.summaryRequests[id] ?? 0) + 1;
+      return route.fulfill({ json: summary(id, state.recaps.has(id)), headers: CORS });
+    }
     state.espnRequests++;
     if (state.gate) await state.gate;
     const games = route.request().url().includes("college-football") ? state.cfb : state.nfl;
@@ -545,19 +552,23 @@ test.describe("board", () => {
 
   test("cards are grouped into Live, Final and Upcoming sections, in that order", async ({ page }) => {
     await open(page, { storage: { selected: ["cfb:7", "cfb:5", "cfb:1", "nfl:101"] } });
-    const order = await page.locator("#board > .card, #board > .board-section").evaluateAll((els) =>
+    const order = await page.locator("#board .card, #board .board-section").evaluateAll((els) =>
       els.map((el) => el.dataset.key ?? el.textContent));
     expect(order.slice(0, 1)).toEqual(["Live"]);
     expect(order.slice(1, 3).sort()).toEqual(["cfb:1", "nfl:101"]);
     expect(order.slice(3)).toEqual(["Final", "cfb:7", "Upcoming", "cfb:5"]);
   });
 
-  test("final cards have no field; live and upcoming cards keep theirs", async ({ page }) => {
+  test("final and upcoming cards share a narrower layout with no field; live cards keep theirs", async ({ page }) => {
     await open(page, { storage: { selected: ["cfb:7", "cfb:5", "cfb:1"] } });
-    await expect(card(page, "cfb:7").locator("svg.field")).toHaveCount(0);
-    await expect(card(page, "cfb:7").locator(".dd")).toHaveCount(0);
+    for (const key of ["cfb:7", "cfb:5"]) {
+      await expect(card(page, key).locator("svg.field")).toHaveCount(0);
+      await expect(card(page, key).locator(".dd")).toHaveCount(0);
+    }
     await expect(card(page, "cfb:1").locator("svg.field")).toHaveCount(1);
-    await expect(card(page, "cfb:5").locator("svg.field")).toHaveCount(1);
+    const width = async (key) => (await card(page, key).boundingBox()).width;
+    expect(await width("cfb:7")).toBe(await width("cfb:5"));
+    expect(await width("cfb:7")).toBeLessThan(await width("cfb:1"));
   });
 
   test("a section only appears when it has games", async ({ page }) => {
@@ -565,12 +576,42 @@ test.describe("board", () => {
     await expect(page.locator(".board-section")).toHaveText(["Live"]);
   });
 
-  test("final cards link to ESPN's recap in a new tab, when there is one", async ({ page }) => {
-    await open(page, { storage: { selected: ["cfb:7", "cfb:8"] } });
+  test("final cards link to ESPN's recap in a new tab once the story exists", async ({ page }) => {
+    await open(page, { storage: { selected: ["cfb:7", "cfb:8", "cfb:1"] }, recaps: ["7", "8"] });
     const recap = card(page, "cfb:7").locator("a.recap");
-    await expect(recap).toHaveAttribute("href", "https://www.espn.com/college-football/recap/_/gameId/7");
+    await expect(recap).toHaveAttribute("href", "https://www.espn.com/college-football/recap/_/gameId/7");  // the scoreboard's link
     await expect(recap).toHaveAttribute("target", "_blank");
-    await expect(card(page, "cfb:8").locator("a.recap")).toHaveCount(0);
+    // No recap link on the scoreboard: falls back to the article's own link, made https.
+    await expect(card(page, "cfb:8").locator("a.recap")).toHaveAttribute("href", "https://www.espn.com/ncf/recap?gameId=8");
+    await expect(card(page, "cfb:1").locator("a.recap")).toHaveCount(0);
+  });
+
+  test("no recap link while the recap isn't written; it appears on a later check", async ({ page }) => {
+    await page.clock.install({ time: new Date("2026-10-03T20:00:00Z") });
+    const state = await open(page, { storage: { selected: ["cfb:7"] }, recaps: [] });
+    await expect.poll(() => state.summaryRequests["7"]).toBe(1);
+    await expect(card(page, "cfb:7").locator("a.recap")).toHaveCount(0);
+    state.recaps.add("7");
+    await page.clock.runFor(60_000);
+    expect(state.summaryRequests["7"]).toBe(1);  // checks every 2 minutes, not on every 10-second poll
+    await page.clock.runFor(60_000);
+    await expect(card(page, "cfb:7").locator("a.recap")).toHaveCount(1);
+    await page.clock.runFor(10 * 60_000);
+    expect(state.summaryRequests["7"]).toBe(2);  // found it, so it stops checking
+  });
+
+  test("stops checking for a recap after an hour", async ({ page }) => {
+    await page.clock.install({ time: new Date("2026-10-03T20:00:00Z") });
+    const state = await open(page, { storage: { selected: ["cfb:7"] }, recaps: [] });
+    await expect.poll(() => state.summaryRequests["7"]).toBe(1);
+    await page.clock.runFor(60 * 60_000);
+    const checks = state.summaryRequests["7"];
+    // On load, then about every 2 minutes through the hour. The fake clock can jump past a check while a fetch is
+    // pending, so the exact count varies a little.
+    expect(checks).toBeGreaterThanOrEqual(25);
+    expect(checks).toBeLessThanOrEqual(31);
+    await page.clock.runFor(30 * 60_000);
+    expect(state.summaryRequests["7"]).toBe(checks);
   });
 
   test("with no picks, it says where to pick games", async ({ page }) => {
@@ -765,8 +806,8 @@ test.describe("desktop game list panel", () => {
   });
 
   test("cards animate to their new sizes and positions when the list hides or shows", async ({ page }) => {
-    await open(page, { storage: { selected: ["cfb:1", "cfb:2", "cfb:7"] } });
-    const third = card(page, "cfb:7");
+    await open(page, { storage: { selected: ["cfb:1", "cfb:2", "cfb:3"] } });
+    const third = card(page, "cfb:3");
     const before = await third.boundingBox();
     await page.locator("#panel-toggle").click();
     const moving = await page.locator(".card").evaluateAll((cards) =>

@@ -1,8 +1,9 @@
 // Entry point: wires the modules together and polls ESPN.
 
 import { DEMO, MOBILE_QUERY, POLL_MS } from "./config.js";
-import { state } from "./state.js";
+import { state, allGames } from "./state.js";
 import { fetchGames } from "./espn.js";
+import { checkRecaps } from "./recap.js";
 import { renderList, listIsStale, initPicker } from "./picker.js";
 import { renderBoard, highlightCard, initBoard, animateBoardLayout } from "./board.js";
 import { setPicker, initDrawer } from "./drawer.js";
@@ -25,6 +26,7 @@ async function poll() {
   // First load renders right away; after that the list waits out LIST_REFRESH_MS so it doesn't shift under your finger.
   if (listIsStale()) renderList();
   renderBoard();
+  if (await checkRecaps(allGames().filter((g) => state.selected.has(g.key)))) renderBoard();
 }
 
 function renderUpdated() {

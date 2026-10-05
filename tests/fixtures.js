@@ -91,7 +91,7 @@ function cfbGames() {
     // Final, home team lost: dark-logo team, loser greyed out.
     game({ id: 7, away: T.ALA, home: T.MSST, networks: ["CBS", "Paramount+"], awayOpts: { score: "56", rank: 7 }, homeOpts: { score: "23" }, state: "post", detail: "Final", period: 4,
       recap: "https://www.espn.com/college-football/recap/_/gameId/7" }),
-    // Final: an independent (Notre Dame), for the conference list. No recap posted yet.
+    // Final: an independent (Notre Dame), for the conference list. No recap link on the scoreboard.
     game({ id: 8, away: T.ND, home: T.UNC, awayOpts: { score: "37", rank: 3 }, homeOpts: { score: "26" }, state: "post", detail: "Final", period: 4,
       conferenceGame: false }),
   ];
@@ -110,4 +110,11 @@ const scoreboard = (events) => ({ events });
 // A 1×1 transparent PNG stands in for every logo.
 const PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==", "base64");
 
-module.exports = { T, LONG_PLAY, cfbGames, nflGames, scoreboard, PNG };
+// ESPN's game summary, cut down to the article. Before the recap is written, the article is the preview.
+const summary = (id, hasRecap) => ({
+  article: hasRecap
+    ? { type: "Recap", links: { web: { href: `http://www.espn.com/ncf/recap?gameId=${id}` } } }
+    : { type: "Preview", links: { web: { href: `http://www.espn.com/ncf/preview?gameId=${id}` } } },
+});
+
+module.exports = { T, LONG_PLAY, cfbGames, nflGames, scoreboard, summary, PNG };

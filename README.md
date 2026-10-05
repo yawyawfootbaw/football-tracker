@@ -24,7 +24,7 @@ index.html            page markup; loads the CSS and js/main.js
 css/
   base.css            color tokens, page layout, spinner
   picker.css          game picker: tabs, filters, sections, score-bug rows
-  board.css           game cards, field, last play, remove button
+  board.css           board sections, game cards, field, last play, remove button
   corner.css          contact footer, settings gear, coach photo
   mobile.css          phone layout (≤700px): slide-in picker drawer, tighter cards
 js/
@@ -34,7 +34,8 @@ js/
   state.js            state shared by picker and board (games, picks, tab, filters, …)
   espn.js             fetches ESPN's scoreboard and normalizes each game
   picker.js           the game list: rendering, filters, sections, selection
-  board.js            the cards: rendering, red-zone glow, highlight, last-play popover
+  board.js            the cards: Live/Final/Upcoming sections, red-zone glow, highlight, last-play popover
+  recap.js            checks finished games for ESPN's written recap
   field.js            the SVG field on each card
   format.js           small shared HTML helpers (logos, status lines, escaping)
   drawer.js           hiding/showing the picker: desktop side panel, phone drawer
@@ -59,5 +60,8 @@ don't import each other: `main.js` passes each one the callbacks it needs.
   requests from any website. It's undocumented, so it could change without notice. Check ESPN's terms of use
   before any commercial use.
 - **College** covers FBS games only (`groups=80`); FCS-only matchups aren't listed.
+- **Recaps:** ESPN posts its written recap a while after a game ends, usually 5–50 minutes (one weekend's
+  sample; a few took half a day). The app checks each picked final game's summary every 2 minutes for up to an
+  hour and shows a Recap link once the story exists.
 - **Finished games** stay listed until ESPN's football week rolls over. ESPN's calendar data puts that at
   early Monday for college and early Wednesday for NFL, Eastern time.
