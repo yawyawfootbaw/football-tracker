@@ -30,4 +30,6 @@
   .team { gap: 6px; }
   .team img { width: 20px; height: 20px; }
   .team .pts { font-size: 20px; }
+  /* A phone's single column is narrow already, so Final/Upcoming cards may fill it (up to 400px on wider phones). */
+  .compact .cards { --max: 400px; }
 }

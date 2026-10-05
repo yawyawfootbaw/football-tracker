@@ -578,8 +578,8 @@ test.describe("board", () => {
     for (const width of [760, 1000, 1300, 1900]) {
       await page.setViewportSize({ width, height: 900 });
       expect((await card(page, "cfb:1").boundingBox()).width).toBeLessThanOrEqual(560);
-      expect((await card(page, "cfb:7").boundingBox()).width).toBeLessThanOrEqual(400);
-      expect((await card(page, "cfb:5").boundingBox()).width).toBeLessThanOrEqual(400);
+      expect((await card(page, "cfb:7").boundingBox()).width).toBeLessThanOrEqual(300);
+      expect((await card(page, "cfb:5").boundingBox()).width).toBeLessThanOrEqual(300);
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     }
     // At 1300px the board (about 970px) fits two live columns and three compact ones.
@@ -587,6 +587,14 @@ test.describe("board", () => {
     const cols = (sel) => page.locator(sel).first().evaluate((el) => getComputedStyle(el).gridTemplateColumns.split(" ").length);
     expect(await cols(".live .cards")).toBe(2);
     expect(await cols(".compact .cards")).toBe(3);
+  });
+
+  test("team names fit on the narrow Final and Upcoming cards", async ({ page }) => {
+    await open(page, { storage: { selected: [...ALL_CFB, "nfl:101", "nfl:102"] } });
+    await expect(card(page, "cfb:7")).toBeVisible();
+    const clipped = await page.locator(".compact .card .name").evaluateAll((els) =>
+      els.filter((e) => e.scrollWidth > e.clientWidth + 1).map((e) => e.textContent.trim()));
+    expect(clipped).toEqual([]);
   });
 
   test("a section only appears when it has games", async ({ page }) => {

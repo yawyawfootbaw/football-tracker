@@ -2,7 +2,7 @@
 #board { overflow-y: auto; padding: 16px 16px 32px; }
 /* Live / Final / Upcoming. Final and Upcoming cards have no field, so they sit in narrower columns. */
 .board-group + .board-group { margin-top: 24px; }
-/* Live cards are 380–560px wide and Final/Upcoming cards 300–400px: each section fits as many columns as its minimum
+/* Live cards are 380–560px wide and Final/Upcoming cards 300px: each section fits as many columns as its minimum
    allows, and the columns stop growing at the maximum, leaving any spare room on the right. (auto-fill can't do this:
    it counts columns by the maximum.) Breakpoints are n × min + (n − 1) × 16px gap. */
 .board-group { container-type: inline-size; }
@@ -10,7 +10,7 @@
 @container (min-width: 776px) { .live .cards { --cols: 2; } }
 @container (min-width: 1172px) { .live .cards { --cols: 3; } }
 @container (min-width: 1568px) { .live .cards { --cols: 4; } }
-.compact .cards { --max: 400px; }
+.compact .cards { --max: 300px; }
 @container (min-width: 616px) { .compact .cards { --cols: 2; } }
 @container (min-width: 932px) { .compact .cards { --cols: 3; } }
 @container (min-width: 1248px) { .compact .cards { --cols: 4; } }
@@ -48,6 +48,13 @@
 .team .rec { margin-right: 5px; }
 .team .to { letter-spacing: 1px; }
 .hide { visibility: hidden; }
+/* Final/Upcoming cards are narrow, so they use the phone's tighter scoreboard row (css/mobile.css) to fit the names. */
+.compact .score { grid-template-columns: minmax(0, 1fr) 58px minmax(0, 1fr); gap: 6px; }
+.compact .team { gap: 6px; }
+.compact .team img { width: 20px; height: 20px; }
+.compact .team .pts { font-size: 20px; }
+/* No possession dot or timeouts before or after a game, so drop their placeholders instead of reserving room. */
+.compact .poss.hide, .compact .to.hide { display: none; }
 .clock { text-align: center; color: var(--muted); font-size: 12px; line-height: 17px; height: 34px; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; }
 .dd { text-align: center; font-size: 18px; font-weight: 700; margin: 8px 0 6px; height: 25px; line-height: 25px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 svg.field { width: 100%; display: block; border-radius: 4px; }
