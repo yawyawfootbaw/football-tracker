@@ -573,6 +573,22 @@ test.describe("board", () => {
     expect(await width("cfb:7")).toBeLessThan(await width("cfb:1"));
   });
 
+  test("cards never stretch past their column's cap, however wide the board gets", async ({ page }) => {
+    await open(page, { storage: { selected: ["cfb:1", "cfb:7", "cfb:5"] } });
+    for (const width of [760, 1000, 1300, 1900]) {
+      await page.setViewportSize({ width, height: 900 });
+      expect((await card(page, "cfb:1").boundingBox()).width).toBeLessThanOrEqual(560);
+      expect((await card(page, "cfb:7").boundingBox()).width).toBeLessThanOrEqual(400);
+      expect((await card(page, "cfb:5").boundingBox()).width).toBeLessThanOrEqual(400);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    }
+    // At 1300px the board (about 970px) fits two live columns and three compact ones.
+    await page.setViewportSize({ width: 1300, height: 900 });
+    const cols = (sel) => page.locator(sel).first().evaluate((el) => getComputedStyle(el).gridTemplateColumns.split(" ").length);
+    expect(await cols(".live .cards")).toBe(2);
+    expect(await cols(".compact .cards")).toBe(3);
+  });
+
   test("a section only appears when it has games", async ({ page }) => {
     await open(page, { storage: { selected: ["cfb:1"] } });
     await expect(page.locator(".board-section")).toHaveText(["Live"]);
@@ -603,17 +619,17 @@ test.describe("board", () => {
   });
 
   test("stops checking for a recap after an hour", async ({ page }) => {
+    // Paused, so the page's time moves only when the test moves it and every check lands exactly on schedule.
     await page.clock.install({ time: new Date("2026-10-03T20:00:00Z") });
+    await page.clock.pauseAt(new Date("2026-10-03T20:00:01Z"));
     const state = await open(page, { storage: { selected: ["cfb:7"] }, recaps: [] });
     await expect.poll(() => state.summaryRequests["7"]).toBe(1);
-    await page.clock.runFor(60 * 60_000);
-    const checks = state.summaryRequests["7"];
-    // On load, then about every 2 minutes through the hour. The fake clock can jump past a check while a fetch is
-    // pending, so the exact count varies a little.
-    expect(checks).toBeGreaterThanOrEqual(25);
-    expect(checks).toBeLessThanOrEqual(31);
+    for (let n = 2; n <= 31; n++) {  // every 2 minutes through the hour
+      await page.clock.runFor(2 * 60_000);
+      await expect.poll(() => state.summaryRequests["7"]).toBe(n);
+    }
     await page.clock.runFor(30 * 60_000);
-    expect(state.summaryRequests["7"]).toBe(checks);
+    expect(state.summaryRequests["7"]).toBe(31);
   });
 
   test("with no picks, it says where to pick games", async ({ page }) => {
@@ -626,17 +642,29 @@ test.describe("board", () => {
 });
 
 test.describe("header football", () => {
-  test("sits still beside the title and spirals once when clicked", async ({ page }) => {
+  test("leads the wordmark, sits still, and spirals once when clicked", async ({ page }) => {
     await open(page);
     const logo = page.locator("#logo");
     const title = await page.locator("header h1").boundingBox(), box = await logo.boundingBox();
-    expect(box.x).toBeGreaterThan(title.x + title.width);
-    expect(box.x - (title.x + title.width)).toBeLessThan(16);
+    expect(box.x + box.width).toBeLessThanOrEqual(title.x);
+    expect(title.x - (box.x + box.width)).toBeLessThan(16);
     expect(await style(logo.locator(".laces"), "animationName")).toBe("none");
     await logo.click();
     expect(await style(logo.locator(".laces"), "animationName")).toBe("spiral-once");
     await expect(logo).not.toHaveClass(/spiral/);  // done after one turn
     expect(await style(logo.locator(".laces"), "animationName")).toBe("none");
+  });
+});
+
+test.describe("wordmark", () => {
+  test("GAME over TRACKER in the self-hosted condensed face, read as one name", async ({ page }) => {
+    await open(page);
+    const h1 = page.locator("header h1");
+    await expect(h1).toHaveText(/^Game Tracker$/);
+    const game = await h1.locator(".l1").boundingBox(), tracker = await h1.locator(".l2").boundingBox();
+    expect(game.y + game.height).toBeLessThanOrEqual(tracker.y + 1);  // stacked
+    expect(await page.evaluate(() => document.fonts.check('700 18px "Barlow Condensed"'))).toBe(true);
+    expect(await page.evaluate(async () => (await document.fonts.ready, [...document.fonts].some((f) => f.family.includes("Barlow") && f.status === "loaded")))).toBe(true);
   });
 });
 

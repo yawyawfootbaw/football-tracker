@@ -46,6 +46,7 @@ js/
   theme.js            light/dark theme and its header switch
   logo.js             the football beside the title, which spirals once when clicked
   counter.js          hidden visit counter
+fonts/                Barlow Condensed Bold for the wordmark (self-hosted, SIL Open Font License in OFL.txt)
 images/               coach photos for "google me", favicon, link-preview image
 scripts/
   share-images.js     regenerates the link-preview image and touch icon

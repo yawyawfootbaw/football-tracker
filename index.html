@@ -26,6 +26,7 @@
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
+<link rel="preload" href="fonts/barlow-condensed-700.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="css/base.css">
 <link rel="stylesheet" href="css/picker.css">
 <link rel="stylesheet" href="css/board.css">
@@ -36,8 +37,8 @@
 <body>
 <header>
   <button id="panel-toggle" aria-label="Hide game list" title="Hide game list" aria-expanded="true" aria-controls="picker-body">☰</button>
-  <h1>Game Tracker</h1>
-  <!-- The spinner's football, standing still. Click it and it spirals once (js/logo.js). -->
+  <!-- Wordmark: the spinner's football, standing still (click it and it spirals once, js/logo.js), then the name on
+       two lines over yard-line hash marks. -->
   <button id="logo" aria-label="Spiral the football" title="Spiral the football"><svg viewBox="0 0 64 64" aria-hidden="true">
     <clipPath id="football-clip-logo"><path d="M1 32 C14 10 50 10 63 32 C50 54 14 54 1 32 Z"/></clipPath>
     <g transform="rotate(-35 32 32)">
@@ -49,6 +50,7 @@
       </g></g>
     </g>
   </svg></button>
+  <h1><span class="l1">Game</span> <span class="l2">Tracker</span><span class="hash" aria-hidden="true"></span></h1>
   <span id="updated"></span>
   <button id="theme-toggle"></button>
 </header>
