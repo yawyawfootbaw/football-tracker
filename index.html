@@ -60,11 +60,35 @@
         <button id="top25" aria-pressed="false">Top 25</button>
       </div>
     </div>
-    <div id="list"><div class="spinner" role="status" aria-label="Loading games"></div></div>
+    <div id="list"><svg class="spinner" viewBox="0 0 64 64" role="status" aria-label="Loading games">
+      <!-- The favicon's football, with its laces rolling over the top like a spiral pass. -->
+      <clipPath id="spinner-clip-list"><path d="M1 32 C14 10 50 10 63 32 C50 54 14 54 1 32 Z"/></clipPath>
+      <g transform="rotate(-35 32 32)">
+        <path d="M1 32 C14 10 50 10 63 32 C50 54 14 54 1 32 Z" fill="#a0522d" stroke="#5c2d0c" stroke-width="2" stroke-linejoin="round"/>
+        <path d="M12 21 Q8 32 12 43 M52 21 Q56 32 52 43" fill="none" stroke="#fff" stroke-width="3.5"/>
+        <g clip-path="url(#spinner-clip-list)"><g class="laces">
+          <path d="M22 32 H42" stroke="#fff" stroke-width="5" stroke-linecap="round"/>
+          <path d="M26 26 V38 M32 26 V38 M38 26 V38" stroke="#fff" stroke-width="4.5" stroke-linecap="round"/>
+        </g></g>
+      </g>
+    </svg></div>
     <div class="drawer-foot"><button id="picker-done">Done</button></div>
     </div>
   </aside>
-  <section id="board"><div class="spinner" role="status" aria-label="Loading games"></div></section>
+  <section id="board">
+    <svg class="spinner" viewBox="0 0 64 64" role="status" aria-label="Loading games">
+      <!-- The favicon's football, with its laces rolling over the top like a spiral pass. -->
+      <clipPath id="spinner-clip-board"><path d="M1 32 C14 10 50 10 63 32 C50 54 14 54 1 32 Z"/></clipPath>
+      <g transform="rotate(-35 32 32)">
+        <path d="M1 32 C14 10 50 10 63 32 C50 54 14 54 1 32 Z" fill="#a0522d" stroke="#5c2d0c" stroke-width="2" stroke-linejoin="round"/>
+        <path d="M12 21 Q8 32 12 43 M52 21 Q56 32 52 43" fill="none" stroke="#fff" stroke-width="3.5"/>
+        <g clip-path="url(#spinner-clip-board)"><g class="laces">
+          <path d="M22 32 H42" stroke="#fff" stroke-width="5" stroke-linecap="round"/>
+          <path d="M26 26 V38 M32 26 V38 M38 26 V38" stroke="#fff" stroke-width="4.5" stroke-linecap="round"/>
+        </g></g>
+      </g>
+    </svg>
+  </section>
 </main>
 <figure id="coach" hidden>
   <img src="images/cignetti.png" alt="Indiana head coach Curt Cignetti">

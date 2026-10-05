@@ -58,6 +58,8 @@ test.describe("loading and layout", () => {
     await open(page, { gate });
     await expect(page.locator("#list .spinner")).toBeVisible();
     await expect(page.locator("#board .spinner")).toBeVisible();
+    // The spinner is the favicon football with its laces rolling.
+    expect(await style(page.locator("#board .spinner .laces"), "animationName")).toBe("spiral");
     release();
     await expect(page.locator("#list label.game").first()).toBeVisible();
     await expect(page.locator(".spinner")).toHaveCount(0);

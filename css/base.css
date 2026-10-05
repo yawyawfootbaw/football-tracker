@@ -37,7 +37,14 @@ aside { width: 300px; background: var(--bg); border-right: 1px solid var(--borde
 body.panel-collapsed main { grid-template-columns: 0 minmax(0, 1fr); }
 body.panel-collapsed aside { transform: translateX(-100%); visibility: hidden; transition: transform .25s ease, visibility 0s .25s; }
 main:has(aside.preload), aside.preload { transition: none; }  /* no slide on first paint */
-.spinner { width: 32px; height: 32px; margin: 48px auto; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; grid-column: 1 / -1; }
-@keyframes spin { to { transform: rotate(360deg); } }
+/* Loading spinner: the favicon football with its laces rolling over the top and back underneath, like a spiral. */
+.spinner { display: block; width: 32px; height: 32px; margin: 48px auto; grid-column: 1 / -1; }
+.spinner .laces { transform-box: view-box; transform-origin: 32px 32px; animation: spiral .7s linear infinite; }
+@keyframes spiral {
+  0% { transform: translateY(-15px) scaleY(.3); opacity: 0; }
+  20%, 80% { opacity: 1; }
+  50% { transform: translateY(0) scaleY(1); }
+  100% { transform: translateY(15px) scaleY(.3); opacity: 0; }
+}
 .empty { color: var(--muted); padding: 24px; grid-column: 1 / -1; }
 .mobile-only { display: none; }
