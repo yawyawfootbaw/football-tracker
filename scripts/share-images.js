@@ -3,13 +3,16 @@
 //
 // Usage: start the local server (npm start), then run: node scripts/share-images.js
 //
-// The preview is the app's logo (football and wordmark), not a screenshot, so it doesn't go stale as the layout changes.
+// The preview is the app's logo (football and wordmark) over a faded screenshot of the app. Re-run this when the
+// app's look changes so the screenshot stays current.
 
 const path = require("path");
 const { chromium } = require("@playwright/test");
+const { cfbGames, nflGames, scoreboard } = require("../tests/fixtures");
 
 const SITE = "http://localhost:4173";
 const IMAGES = path.join(__dirname, "..", "images");
+const PREVIEW_GAMES = ["cfb:1", "cfb:2", "cfb:4", "nfl:101", "cfb:7", "cfb:5"];
 
 async function renderIcon(browser) {
   const page = await browser.newPage({ viewport: { width: 180, height: 180 } });
@@ -19,26 +22,57 @@ async function renderIcon(browser) {
   await page.screenshot({ path: path.join(IMAGES, "apple-touch-icon.png") });
 }
 
-// The preview is the header's logo, blown up: the football, then GAME over TRACKER over yard-line hash marks, on the
-// app's dark background. Same font, colors and proportions as the header (css/base.css).
+// A screenshot of the app filled with the test fixtures instead of live ESPN data, so it comes out the same every time.
+// Taken in the dark theme at a larger size than the preview so more cards fit, then scaled down beside the logo.
+async function screenshotApp(browser) {
+  const page = await browser.newPage({ viewport: { width: 1500, height: 788 }, colorScheme: "dark" });
+  await page.addInitScript((keys) => localStorage.setItem("selected", JSON.stringify(keys)), PREVIEW_GAMES);
+  await page.route("https://site.api.espn.com/**", (route) => {
+    const url = route.request().url();
+    if (url.includes("/summary")) return route.fulfill({ json: {}, headers: { "access-control-allow-origin": "*" } });
+    const games = url.includes("college-football") ? cfbGames() : nflGames();
+    route.fulfill({ json: scoreboard(games), headers: { "access-control-allow-origin": "*" } });
+  });
+  await page.route("https://hits.sh/**", (route) => route.abort());  // don't count this as a visit
+  await page.goto(SITE);
+  await page.waitForSelector(".card");
+  await page.waitForTimeout(3000);  // let the team logos load and the red-zone glow finish
+  // Just the cards: hide the header (the logo is drawn over it anyway), the game list, and the contact footer and gear.
+  await page.addStyleTag({ content: "header, aside, #corner { display: none; } main { grid-template-columns: minmax(0, 1fr) !important; }" });
+  const png = await page.screenshot();
+  await page.close();
+  return png;
+}
+
+// The preview is the header's logo, blown up (the football, then GAME over TRACKER over yard-line hash marks), on
+// the app's dark background, with a screenshot of the app tilted away on the right. Same font, colors and proportions
+// as the header (css/base.css).
 async function renderPreview(browser) {
+  const shot = (await screenshotApp(browser)).toString("base64");
   const page = await browser.newPage({ viewport: { width: 1200, height: 630 } });
   // Served from the local site's own origin (not setContent's about:blank) so the self-hosted font loads without CORS.
   const html = `<style>
     @font-face { font-family: "Barlow Condensed"; font-weight: 700; src: url("${SITE}/fonts/barlow-condensed-700.woff2") format("woff2"); }
-    body { margin: 0; height: 630px; display: flex; align-items: center; justify-content: center; gap: 48px; background: #0f1115; }
-    img { width: 280px; height: 280px; }
+    body { margin: 0; height: 630px; overflow: hidden; position: relative; display: flex; align-items: center; gap: 32px;
+      padding-left: 56px; background: #0f1115; }
+    /* The app, as a window tilted away to the right and running off the edge. */
+    .shot { position: absolute; left: 730px; top: 70px; width: 900px; border-radius: 12px; border: 1px solid #2a2f3a;
+      box-shadow: 0 30px 80px rgba(0, 0, 0, .6); transform: perspective(1400px) rotateY(-24deg) rotateX(8deg) rotateZ(2deg);
+      transform-origin: left center; opacity: .9; }
+    .mark { position: relative; display: flex; align-items: center; gap: 32px; }
+    .mark img { width: 190px; height: 190px; }
     h1 { display: grid; margin: 0; font-family: "Barlow Condensed", sans-serif; font-weight: 700; text-transform: uppercase; line-height: .92; }
-    .l1 { font-size: 125px; letter-spacing: .16em; color: #8b93a1; }
-    .l2 { font-size: 150px; letter-spacing: .05em; color: #e8eaed; }
-    .hash { height: 30px; margin-top: 22px; background: repeating-linear-gradient(90deg, #8b93a1 0 7px, transparent 7px 46px); opacity: .7; }
+    .l1 { font-size: 92px; letter-spacing: .16em; color: #8b93a1; }
+    .l2 { font-size: 110px; letter-spacing: .05em; color: #e8eaed; }
+    .hash { height: 22px; margin-top: 16px; background: repeating-linear-gradient(90deg, #8b93a1 0 5px, transparent 5px 34px); opacity: .7; }
   </style>
-  <img src="${SITE}/images/favicon.svg" alt="">
-  <h1><span class="l1">Game</span><span class="l2">Tracker</span><span class="hash"></span></h1>`;
+  <img class="shot" src="data:image/png;base64,${shot}" alt="">
+  <div class="mark"><img src="${SITE}/images/favicon.svg" alt="">
+  <h1><span class="l1">Game</span><span class="l2">Tracker</span><span class="hash"></span></h1></div>`;
   await page.route(`${SITE}/preview`, (route) => route.fulfill({ body: html, contentType: "text/html" }));
   await page.goto(`${SITE}/preview`);
-  await page.evaluate(async () => { await document.fonts.ready; await document.querySelector("img").decode(); });
-  if (!(await page.evaluate(() => document.fonts.check('700 150px "Barlow Condensed"')))) throw new Error("wordmark font didn't load");
+  await page.evaluate(async () => { await document.fonts.ready; await Promise.all([...document.images].map((i) => i.decode())); });
+  if (!(await page.evaluate(() => document.fonts.check('700 110px "Barlow Condensed"')))) throw new Error("wordmark font didn't load");
   await page.screenshot({ path: path.join(IMAGES, "og.png") });
 }
 
