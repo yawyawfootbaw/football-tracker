@@ -60,5 +60,7 @@ function parseEvent(league, e) {
     homeTO: s.homeTimeouts, awayTO: s.awayTimeouts, lastPlay: lp?.text,
     // Where to watch, e.g. "ABC" or "CBS / Paramount+".
     network: [...new Set((comp.broadcasts || []).flatMap((b) => b.names || []))].join(" / "),
+    // ESPN's written recap; it shows up on the event a little while after the game ends.
+    recap: e.links?.find((l) => l.rel?.includes("recap"))?.href,
   };
 }

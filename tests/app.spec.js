@@ -543,6 +543,29 @@ test.describe("board", () => {
     expect(keys[2]).toBe("cfb:8");
   });
 
+  test("finished games move to a Final section below the rest, without a field", async ({ page }) => {
+    await open(page, { storage: { selected: ["cfb:7", "cfb:5", "cfb:1"] } });
+    const order = await page.locator("#board > .card, #board > .board-section").evaluateAll((els) =>
+      els.map((el) => el.dataset.key ?? el.textContent));
+    expect(order).toEqual(["cfb:1", "cfb:5", "Final", "cfb:7"]);
+    await expect(card(page, "cfb:7").locator("svg.field")).toHaveCount(0);
+    await expect(card(page, "cfb:7").locator(".dd")).toHaveCount(0);
+    await expect(card(page, "cfb:1").locator("svg.field")).toHaveCount(1);
+  });
+
+  test("the Final section only appears when a picked game is over", async ({ page }) => {
+    await open(page, { storage: { selected: ["cfb:1"] } });
+    await expect(page.locator(".board-section")).toHaveCount(0);
+  });
+
+  test("final cards link to ESPN's recap in a new tab, when there is one", async ({ page }) => {
+    await open(page, { storage: { selected: ["cfb:7", "cfb:8"] } });
+    const recap = card(page, "cfb:7").locator("a.recap");
+    await expect(recap).toHaveAttribute("href", "https://www.espn.com/college-football/recap/_/gameId/7");
+    await expect(recap).toHaveAttribute("target", "_blank");
+    await expect(card(page, "cfb:8").locator("a.recap")).toHaveCount(0);
+  });
+
   test("with no picks, it says where to pick games", async ({ page }) => {
     await open(page, { storage: { selected: ["cfb:1"] } });
     await card(page, "cfb:1").hover();

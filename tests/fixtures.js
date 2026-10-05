@@ -43,7 +43,7 @@ function competitor(t, homeAway, { score = "0", rank = 99, record } = {}, league
 }
 
 function game({ id, league = "cfb", away, home, awayOpts, homeOpts, state, detail, statusName, clock = "0:00", period = 1,
-  date = "2026-10-03T20:00Z", situation, conferenceGame = true, networks = [] }) {
+  date = "2026-10-03T20:00Z", situation, conferenceGame = true, networks = [], recap }) {
   const comp = {
     competitors: [competitor(home, "home", homeOpts, league), competitor(away, "away", awayOpts, league)],
     situation,
@@ -57,6 +57,8 @@ function game({ id, league = "cfb", away, home, awayOpts, homeOpts, state, detai
     id: String(id), date, shortName: `${away.abbr} @ ${home.abbr}`,
     status: { displayClock: clock, period, type: { name: statusName || ({ in: "STATUS_IN_PROGRESS", pre: "STATUS_SCHEDULED", post: "STATUS_FINAL" })[state], state, shortDetail: detail } },
     competitions: [comp],
+    links: [{ rel: ["summary", "desktop", "event"], href: `https://www.espn.com/college-football/game/_/gameId/${id}` },
+      ...(recap ? [{ rel: ["recap", "desktop", "event"], href: recap }] : [])],
   };
 }
 
@@ -87,8 +89,9 @@ function cfbGames() {
     game({ id: 5, away: T.VAN, home: T.UGA, homeOpts: { rank: 2 }, state: "pre", detail: "Sat 7:30 PM", date: "2026-10-03T23:30Z" }),
     game({ id: 6, away: T.MD, home: T.PUR, state: "pre", detail: "Sat 8:00 PM", date: "2026-10-04T00:00Z" }),
     // Final, home team lost: dark-logo team, loser greyed out.
-    game({ id: 7, away: T.ALA, home: T.MSST, networks: ["CBS", "Paramount+"], awayOpts: { score: "56", rank: 7 }, homeOpts: { score: "23" }, state: "post", detail: "Final", period: 4 }),
-    // Final: an independent (Notre Dame), for the conference list.
+    game({ id: 7, away: T.ALA, home: T.MSST, networks: ["CBS", "Paramount+"], awayOpts: { score: "56", rank: 7 }, homeOpts: { score: "23" }, state: "post", detail: "Final", period: 4,
+      recap: "https://www.espn.com/college-football/recap/_/gameId/7" }),
+    // Final: an independent (Notre Dame), for the conference list. No recap posted yet.
     game({ id: 8, away: T.ND, home: T.UNC, awayOpts: { score: "37", rank: 3 }, homeOpts: { score: "26" }, state: "post", detail: "Final", period: 4,
       conferenceGame: false }),
   ];

@@ -24,11 +24,14 @@ export function renderBoard() {
       <span class="mobile-only">Tap ☰ Games at the top to pick a few games, and they'll show up here.</span></div>`;
     return;
   }
-  $("board").innerHTML = picked.map(card).join("");
+  // Finished games move to their own section below the rest.
+  const playing = picked.filter((g) => g.state !== "post"), done = picked.filter((g) => g.state === "post");
+  $("board").innerHTML = playing.map(card).join("") +
+    (done.length ? `<h2 class="board-section">Final</h2>` + done.map(card).join("") : "");
 }
 
 function card(g) {
-  const live = g.state === "in";
+  const live = g.state === "in", final = g.state === "post";
   const inRedZone = live && g.redZone;
   if (inRedZone && !redZoneShown.has(g.key)) glowStart.set(g.key, Date.now());  // just entered the red zone
   inRedZone ? redZoneShown.add(g.key) : redZoneShown.delete(g.key);
@@ -41,12 +44,13 @@ function card(g) {
   return `<div class="card ${inRedZone ? "redzone" : ""} ${glowing ? "glow" : ""} ${flashing ? "flash" : ""}" data-key="${g.key}"
     style="${glowing ? `animation-delay: -${glowAge}ms;` : ""}${flashing ? `--flash-delay: -${flashAge}ms;` : ""}">
     <div class="score">${team(g, g.away, "away", g.awayTO)}<div class="clock">${statusLines(g)}</div>${team(g, g.home, "home", g.homeTO)}</div>
-    <div class="dd">${live ? (g.ddText || "&nbsp;") : "&nbsp;"}</div>
-    ${field(g)}
+    ${final ? "" : `<div class="dd">${live ? (g.ddText || "&nbsp;") : "&nbsp;"}</div>${field(g)}`}
     <div class="card-foot">
       ${live && g.lastPlay
         ? `<div class="last" data-play="${g.key}" title="${escapeAttr(g.lastPlay)}">${g.lastPlay}</div>`
-        : `<div class="last">&nbsp;</div>`}
+        : final && g.recap
+          ? `<div class="last"><a class="recap" href="${escapeAttr(g.recap)}" target="_blank" rel="noopener">Recap ↗</a></div>`
+          : `<div class="last">&nbsp;</div>`}
       ${g.network ? `<span class="net" title="Broadcast on ${escapeAttr(g.network)}">${g.network}</span>` : ""}
       <button class="remove" data-remove="${g.key}" aria-label="Remove game" title="Remove game">✕</button>
     </div>
