@@ -952,9 +952,9 @@ test.describe("mobile", () => {
     expect(Math.abs(up1.y - up2.y)).toBeLessThan(1);                // side by side
     expect(Math.abs(up1.width - up2.width)).toBeLessThan(1);
     expect(Math.abs(up1.x - (500 - (up2.x + up2.width)))).toBeLessThan(1);  // same margin left and right
-    // The lone Final card spans the whole row instead of leaving half of it empty.
+    // A lone Final card keeps to one column, the same size as the Upcoming cards below it.
     expect(Math.abs(fin.x - up1.x)).toBeLessThan(1);
-    expect(Math.abs(fin.x + fin.width - (up2.x + up2.width))).toBeLessThan(1);
+    expect(Math.abs(fin.width - up1.width)).toBeLessThan(1);
     // Narrow cards stack away over home, with the status on the right.
     expect(await card(page, "cfb:5").locator(".score").evaluate((el) => getComputedStyle(el).gridTemplateAreas)).toContain("away clock");
     const away = await card(page, "cfb:5").locator(".team.away").boundingBox(), home = await card(page, "cfb:5").locator(".team.home").boundingBox();

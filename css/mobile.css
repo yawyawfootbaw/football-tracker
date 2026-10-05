@@ -30,6 +30,4 @@
   .team { gap: 6px; }
   .team img { width: 20px; height: 20px; }
   .team .pts { font-size: 20px; }
-  /* Two Final/Upcoming cards to a row: an odd one out takes the whole last row, so no row is left half empty. */
-  @container section (min-width: 458px) { .compact .card:last-child:nth-child(odd) { grid-column: 1 / -1; } }
 }
