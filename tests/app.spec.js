@@ -480,9 +480,9 @@ test.describe("game cards", () => {
   });
 
   test("cards side by side line up regardless of game state", async ({ page }) => {
-    await open(page, { storage: { selected: ["cfb:1", "cfb:5"] } });
+    await open(page, { storage: { selected: ["cfb:1", "cfb:4"] } });  // red zone with a ball vs. halftime with none
     const a = await card(page, "cfb:1").locator("svg.field").boundingBox();
-    const b = await card(page, "cfb:5").locator("svg.field").boundingBox();
+    const b = await card(page, "cfb:4").locator("svg.field").boundingBox();
     expect(Math.abs(a.y - b.y)).toBeLessThan(1);
     expect(Math.abs(a.height - b.height)).toBeLessThan(1);
   });
@@ -543,19 +543,26 @@ test.describe("board", () => {
     expect(keys[2]).toBe("cfb:8");
   });
 
-  test("finished games move to a Final section below the rest, without a field", async ({ page }) => {
-    await open(page, { storage: { selected: ["cfb:7", "cfb:5", "cfb:1"] } });
+  test("cards are grouped into Live, Final and Upcoming sections, in that order", async ({ page }) => {
+    await open(page, { storage: { selected: ["cfb:7", "cfb:5", "cfb:1", "nfl:101"] } });
     const order = await page.locator("#board > .card, #board > .board-section").evaluateAll((els) =>
       els.map((el) => el.dataset.key ?? el.textContent));
-    expect(order).toEqual(["cfb:1", "cfb:5", "Final", "cfb:7"]);
+    expect(order.slice(0, 1)).toEqual(["Live"]);
+    expect(order.slice(1, 3).sort()).toEqual(["cfb:1", "nfl:101"]);
+    expect(order.slice(3)).toEqual(["Final", "cfb:7", "Upcoming", "cfb:5"]);
+  });
+
+  test("final cards have no field; live and upcoming cards keep theirs", async ({ page }) => {
+    await open(page, { storage: { selected: ["cfb:7", "cfb:5", "cfb:1"] } });
     await expect(card(page, "cfb:7").locator("svg.field")).toHaveCount(0);
     await expect(card(page, "cfb:7").locator(".dd")).toHaveCount(0);
     await expect(card(page, "cfb:1").locator("svg.field")).toHaveCount(1);
+    await expect(card(page, "cfb:5").locator("svg.field")).toHaveCount(1);
   });
 
-  test("the Final section only appears when a picked game is over", async ({ page }) => {
+  test("a section only appears when it has games", async ({ page }) => {
     await open(page, { storage: { selected: ["cfb:1"] } });
-    await expect(page.locator(".board-section")).toHaveCount(0);
+    await expect(page.locator(".board-section")).toHaveText(["Live"]);
   });
 
   test("final cards link to ESPN's recap in a new tab, when there is one", async ({ page }) => {

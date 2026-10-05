@@ -12,10 +12,10 @@ const glowStart = new Map();     // game key -> when its one-time glow began
 let flash = null;                // { key, at }: the card most recently highlighted from the picker
 let openPlay = null;             // game key whose full last-play text is showing; survives board refreshes
 
+const SECTIONS = [["in", "Live"], ["post", "Final"], ["pre", "Upcoming"]];
+
 export function renderBoard() {
-  const picked = allGames()
-    .filter((g) => state.selected.has(g.key))
-    .sort((a, b) => (a.state === "in" ? 0 : 1) - (b.state === "in" ? 0 : 1) || a.date - b.date);
+  const picked = allGames().filter((g) => state.selected.has(g.key)).sort((a, b) => a.date - b.date);
   $("picker-count").textContent = picked.length ? `${picked.length} selected` : "";
   if (!picked.length) {
     // The picker sits on the left on desktop but hides behind the "☰ Games" bar on phones; CSS shows the matching hint.
@@ -24,10 +24,11 @@ export function renderBoard() {
       <span class="mobile-only">Tap ☰ Games at the top to pick a few games, and they'll show up here.</span></div>`;
     return;
   }
-  // Finished games move to their own section below the rest.
-  const playing = picked.filter((g) => g.state !== "post"), done = picked.filter((g) => g.state === "post");
-  $("board").innerHTML = playing.map(card).join("") +
-    (done.length ? `<h2 class="board-section">Final</h2>` + done.map(card).join("") : "");
+  // Live, then Final, then Upcoming; a section only shows when it has games.
+  $("board").innerHTML = SECTIONS.map(([st, label]) => {
+    const games = picked.filter((g) => g.state === st);
+    return games.length ? `<h2 class="board-section">${label}</h2>` + games.map(card).join("") : "";
+  }).join("");
 }
 
 function card(g) {
