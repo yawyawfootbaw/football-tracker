@@ -97,7 +97,7 @@ function team(g, t, side, timeouts) {
   const pts = `<span class="pts">${g.state === "pre" ? "" : t.score}</span>`;
   const showTO = live && timeouts != null;
   const name = `<div class="name">
-      <div>${rankBadge(t)}<span class="abbr">${t.abbr}</span> <span class="poss ${live && g.possession === t.id ? "" : "hide"}">●</span></div>
+      <div class="top">${rankBadge(t)}<span class="abbr">${t.abbr}</span><span class="poss ${live && g.possession === t.id ? "" : "hide"}">●</span></div>
       <div class="sub"><span class="rec">${t.record ?? ""}</span><span class="to ${showTO ? "" : "hide"}">${showTO ? "▮".repeat(timeouts) + "▯".repeat(Math.max(0, 3 - timeouts)) : "▮▮▮"}</span></div>
     </div>`;
   const logo = logoImg(t);

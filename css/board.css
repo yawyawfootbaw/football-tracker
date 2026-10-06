@@ -40,12 +40,16 @@
 .team img, .bug-team img { filter: var(--logo-edge); }
 .team .name { min-width: 0; white-space: nowrap; overflow: hidden; }
 .team.home .name { text-align: right; }
-.team .abbr { overflow: hidden; text-overflow: ellipsis; }
+/* The name gives way (ellipsis) before the rank or possession dot does, so the dot is never clipped off. */
+.team .top { display: flex; align-items: baseline; }
+.team.home .top { justify-content: flex-end; }
+.team .abbr { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.team .rank, .team .poss { flex: none; }
 .team .rank { margin-right: 3px; color: var(--muted); font-size: 11px; font-weight: 600; }
 .team .pts { flex: none; min-width: 2ch; font-size: 22px; line-height: 28px; font-variant-numeric: tabular-nums; }
 .team.away .pts { margin-left: auto; text-align: right; }
 .team.home .pts { margin-right: auto; text-align: left; }
-.team .poss { color: var(--poss); font-size: 12px; }
+.team .poss { margin-left: 4px; color: var(--poss); font-size: 12px; }
 .team .sub { color: var(--muted); font-size: 11px; line-height: 15px; font-weight: 400; }
 .team .rec { margin-right: 5px; }
 .team .to { letter-spacing: 1px; }
@@ -67,6 +71,7 @@
   .compact .team.away { grid-area: away; }
   .compact .team.home { grid-area: home; flex-direction: row-reverse; }  /* its markup is mirrored (score, name, logo) */
   .compact .team.home .name { text-align: left; }
+  .compact .team.home .top { justify-content: flex-start; }
   .compact .team.home .pts { margin-left: auto; margin-right: 0; text-align: right; }
   .compact .team .pts { font-size: 18px; line-height: 22px; }
   .compact .clock { grid-area: clock; height: auto; text-align: right; }
