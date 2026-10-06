@@ -987,6 +987,30 @@ test.describe("mobile", () => {
     await expect(page.locator("#picker-toggle")).toBeVisible();
   });
 
+  test("gear and contact sit in a footer after the cards, with a full-size gear and a mailto link", async ({ page }) => {
+    await open(page, { storage: { selected: ALL_CFB, pickerOpen: false } });
+    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+    const gear = await page.locator("#settings").boundingBox();
+    expect(gear.width).toBeGreaterThanOrEqual(44);
+    expect(gear.height).toBeGreaterThanOrEqual(44);
+    const last = await page.locator(".card").last().boundingBox();
+    expect(gear.y).toBeGreaterThan(last.y + last.height);  // below the cards, not over them
+    await expect(page.locator("#contact a")).toHaveAttribute("href", "mailto:sean@homeworkdots.com");
+    await page.locator("#settings").tap();
+    const menu = await page.locator("#settings-menu").boundingBox();
+    expect(menu.y + menu.height).toBeLessThanOrEqual(gear.y);  // pops up above the gear
+  });
+
+  test("a clipped name never hides the possession dot", async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 844 });
+    await open(page, { storage: { selected: ALL_CFB, pickerOpen: false } });
+    await expect(card(page, "cfb:1")).toBeVisible();
+    const clipped = await page.locator(".card .poss:not(.hide)").evaluateAll((dots) =>
+      dots.filter((d) => d.getBoundingClientRect().right > d.closest(".name").getBoundingClientRect().right + 0.5).length);
+    expect(clipped).toBe(0);
+    expect(await page.locator(".card .poss:not(.hide)").count()).toBeGreaterThan(0);
+  });
+
   test("Games bar stays pinned to the top while scrolling", async ({ page }) => {
     await open(page, { storage: { selected: ALL_CFB, pickerOpen: false } });
     await page.evaluate(() => window.scrollTo(0, 600));

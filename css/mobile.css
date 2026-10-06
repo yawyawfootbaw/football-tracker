@@ -30,4 +30,14 @@
   .team { gap: 6px; }
   .team img { width: 20px; height: 20px; }
   .team .pts { font-size: 20px; }
+  /* The corner bar becomes a footer at the end of the page, so it never covers cards, with a full-size gear to tap
+     and a tappable email. The settings menu still pops up out of the gear. */
+  #corner { position: relative; width: fit-content; margin: 0 auto; padding: 0 16px calc(16px + env(safe-area-inset-bottom));
+    align-items: center; gap: 12px; font-size: 13px; }
+  #settings { width: 44px; height: 44px; padding: 0; border-bottom: 1px solid var(--border); border-radius: 10px; font-size: 20px; }
+  #contact { padding: 0; background: none; border-radius: 0; user-select: auto; }
+  #contact a { display: inline-block; padding: 12px 0; color: var(--text); }
+  #settings-menu { min-width: 160px; }
+  #settings-menu button { padding: 12px 14px; font-size: 15px; }
+  #coach { right: 16px; bottom: calc(76px + env(safe-area-inset-bottom)); width: 130px; }
 }
