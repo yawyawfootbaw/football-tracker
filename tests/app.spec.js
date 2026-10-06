@@ -698,10 +698,14 @@ test.describe("?loading", () => {
 });
 
 test.describe("demo mode and counter", () => {
-  test("?demo skips the hit counter and adds one picked demo game", async ({ page }) => {
+  test("?demo skips the hit counter and adds two picked demo games, one upcoming and one already live", async ({ page }) => {
     const state = await open(page, { query: "?demo" });
-    await expect(page.locator("#list label.game")).toHaveCount(9);  // the fixtures plus the demo game
+    await expect(page.locator("#list label.game")).toHaveCount(10);  // the fixtures plus the two demo games
     await expect(page.locator('.board-group[data-section="pre"] .card[data-key="cfb:demo"]')).toBeVisible();
+    const live = page.locator('.board-group[data-section="in"] .card[data-key="cfb:demo-live"]');
+    await expect(live).toBeVisible();
+    await expect(live.locator(".dd")).toHaveText("2nd & 7 at MICH 12");
+    await expect(live.locator("svg.field")).toHaveCount(1);
     await page.waitForTimeout(500);
     expect(state.hits).toBe(0);
   });
@@ -997,6 +1001,7 @@ test.describe("mobile", () => {
     expect(gear.y).toBeGreaterThan(last.y + last.height);  // below the cards, not over them
     await expect(page.locator("#contact a")).toHaveAttribute("href", "mailto:sean@homeworkdots.com");
     await page.locator("#settings").tap();
+    await page.locator("#settings-menu").evaluate((m) => Promise.all(m.getAnimations().map((a) => a.finished)));
     const menu = await page.locator("#settings-menu").boundingBox();
     expect(menu.y + menu.height).toBeLessThanOrEqual(gear.y);  // pops up above the gear
   });

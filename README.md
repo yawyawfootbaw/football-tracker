@@ -10,7 +10,7 @@ Live: https://yawyawfootbaw.github.io/football-tracker/
 | | |
 |---|---|
 | Run locally | `npm start`, then open http://localhost:4173. The app uses ES modules, which browsers won't load from `file://`, so open it through the server. |
-| Demo | Add `?demo` to the URL. It skips the visit counter and picks a made-up game that's upcoming when the page opens and goes live 10 seconds later, so you can watch its card move from Upcoming to Live. |
+| Demo | Add `?demo` to the URL. It skips the visit counter and picks two made-up games: one already live (Texas in the red zone, clock running), and one that's upcoming when the page opens and goes live 10 seconds later, so you can watch its card move from Upcoming to Live. |
 | Loading spinner | Add `?loading` to the URL. The page never fetches games, so both loading spinners stay up. It also skips the visit counter. |
 | Test | `npm install` once, then `npm test`. Playwright runs headless in your installed Google Chrome. |
 | Deploy | Push to `main`. GitHub Pages serves the repo root as-is; there is no build step. |
@@ -32,7 +32,7 @@ css/
 js/
   main.js             entry point: wires modules together and polls ESPN every 10s
   config.js           API URLs, timings, ?demo and ?loading flags
-  demo.js             the ?demo page's made-up game, which kicks off 10 seconds after the page opens
+  demo.js             the ?demo page's made-up games: one already live, one that kicks off 10 seconds after the page opens
   store.js            localStorage wrapper that never throws
   state.js            state shared by picker and board (games, picks, tab, filters, …)
   espn.js             fetches ESPN's scoreboard and normalizes each game

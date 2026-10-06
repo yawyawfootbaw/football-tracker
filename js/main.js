@@ -11,7 +11,7 @@ import { initSettings } from "./settings.js";
 import { initTheme } from "./theme.js";
 import { countVisit } from "./counter.js";
 import { initLogo } from "./logo.js";
-import { DEMO_KEY, demoGame } from "./demo.js";
+import { DEMO_KEYS, demoGames } from "./demo.js";
 
 let lastUpdated = null;  // when data last arrived successfully; a failed poll leaves the old time showing
 
@@ -20,7 +20,7 @@ async function poll() {
   await Promise.all(Object.keys(state.games).map(async (league) => {
     try {
       state.games[league] = await fetchGames(league);
-      if (DEMO && league === "cfb") state.games.cfb.push(demoGame());
+      if (DEMO && league === "cfb") state.games.cfb.push(...demoGames());
       lastUpdated = Date.now();
     } catch (err) {
       console.error(league, err);
@@ -40,7 +40,7 @@ function renderUpdated() {
     "Games updated at " + new Date(lastUpdated).toLocaleTimeString([], { hour: "numeric", minute: "2-digit", second: "2-digit" });
 }
 
-if (DEMO) state.selected.add(DEMO_KEY);  // not saved, so it's gone once you leave ?demo
+if (DEMO) DEMO_KEYS.forEach((k) => state.selected.add(k));  // not saved, so it's gone once you leave ?demo
 if (!DEMO && !LOADING) countVisit();
 
 initPicker({
