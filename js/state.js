@@ -1,7 +1,7 @@
 // State shared by the picker and the board. Viewer preferences are restored from localStorage.
 
 import { store } from "./store.js";
-import { LEAGUE_PARAM } from "./config.js";
+import { LEAGUE_PARAM, LINKED_GAMES } from "./config.js";
 
 export const state = {
   games: { nfl: [], cfb: [] },                             // latest parsed games per league
@@ -16,6 +16,16 @@ export const state = {
 if (LEAGUE_PARAM) {
   state.tab = LEAGUE_PARAM;
   store.set("tab", LEAGUE_PARAM);
+}
+
+// A ?game= link adds its games to the viewer's own picks rather than replacing them. The param then comes out of
+// the address bar, so a refresh or bookmark doesn't bring back a game the viewer has since removed.
+if (LINKED_GAMES.length) {
+  LINKED_GAMES.forEach((k) => state.selected.add(k));
+  saveSelected();
+  const url = new URL(location.href);
+  url.searchParams.delete("game");
+  history.replaceState(null, "", url);
 }
 
 // Saved filters have had two older shapes: college-only { conf, top25 }, then per league with a single conf.

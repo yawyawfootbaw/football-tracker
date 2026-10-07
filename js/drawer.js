@@ -3,6 +3,7 @@
 
 import { store } from "./store.js";
 import { state } from "./state.js";
+import { LINKED_GAMES } from "./config.js";
 
 const $ = (id) => document.getElementById(id);
 let pickerOpen;      // phone drawer
@@ -37,7 +38,8 @@ export function initDrawer({ animateLayout }) {
   });
   renderPanel();
 
-  pickerOpen = store.get("pickerOpen", state.selected.size === 0);  // start open if nothing is picked yet
+  // Start open if nothing is picked yet, and closed when arriving from a shared game link, so its card is in view.
+  pickerOpen = LINKED_GAMES.length ? false : store.get("pickerOpen", state.selected.size === 0);
   $("picker-toggle").addEventListener("click", () => setPicker(!pickerOpen));
   $("picker-close").addEventListener("click", () => setPicker(false));
   $("picker-done").addEventListener("click", () => setPicker(false));

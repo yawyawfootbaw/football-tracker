@@ -12,6 +12,11 @@ const redZoneShown = new Set();  // game keys currently drawn in the red zone
 const glowStart = new Map();     // game key -> when its one-time glow began
 let flash = null;                // { key, at }: the card most recently highlighted from the picker
 let openPlay = null;             // game key whose full last-play text is showing; survives board refreshes
+let copied = null;               // { key, at }: the card whose share link was just copied, shown as a ✓ for a moment
+const COPIED_MS = 1500;
+// Box with an arrow out of it, the usual share glyph.
+const SHARE_ICON = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2"
+  stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3M7 8l5-5 5 5M5 12v8h14v-8"/></svg>`;
 
 const SECTIONS = [["in", "Live"], ["post", "Final"], ["pre", "Upcoming"]];
 
@@ -85,10 +90,40 @@ function card(g) {
           ? `<div class="last"><a class="recap" href="${escapeAttr(recap)}" target="_blank" rel="noopener">Recap ↗</a></div>`
           : `<div class="last">&nbsp;</div>`}
       ${g.network ? `<span class="net" title="Broadcast on ${escapeAttr(g.network)}">${g.network}</span>` : ""}
+      ${shareButton(g)}
       <button class="remove" data-remove="${g.key}" aria-label="Remove game" title="Remove game">✕</button>
     </div>
     ${live && g.lastPlay && openPlay === g.key ? `<div class="last-full" data-play="${g.key}">${g.lastPlay}</div>` : ""}
   </div>`;
+}
+
+function shareButton(g) {
+  const done = copied?.key === g.key && Date.now() - copied.at < COPIED_MS;
+  const label = done ? "Link copied" : "Share this game";
+  return `<button class="share ${done ? "done" : ""}" data-share="${g.key}" aria-label="${label}" title="${label}">${done ? "✓" : SHARE_ICON}</button>`;
+}
+
+/** A link to the site that picks this game on arrival (see LINKED_GAMES in js/config.js). */
+function gameLink(key) {
+  return `${location.origin}${location.pathname}?game=${key}`;
+}
+
+// Touch screens open the phone's share sheet; with a mouse, or where there's no share sheet, the link is copied.
+async function share(g) {
+  const url = gameLink(g.key), title = `${g.away.abbr} @ ${g.home.abbr}`;
+  if (navigator.share && matchMedia("(hover: none)").matches) {
+    try { await navigator.share({ title, url }); } catch {}  // closing the sheet without sharing throws; nothing to do
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(url);
+  } catch {
+    prompt("Copy this link:", url);  // no clipboard access (e.g. not https)
+    return;
+  }
+  copied = { key: g.key, at: Date.now() };
+  renderBoard();
+  setTimeout(renderBoard, COPIED_MS);
 }
 
 // One side of the scoreboard row. Every slot is always rendered (hidden when empty) so cards line up.
@@ -153,6 +188,9 @@ export function initBoard({ onSelectionChanged }) {
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && openPlay) { openPlay = null; renderBoard(); } });
 
   $("board").addEventListener("click", (e) => {
+    const shareKey = e.target.closest("[data-share]")?.dataset.share;
+    const game = shareKey && allGames().find((g) => g.key === shareKey);
+    if (game) return share(game);
     const key = e.target.closest("[data-remove]")?.dataset.remove;
     if (!key) return;
     state.selected.delete(key);

@@ -21,3 +21,8 @@ export const DEMO = params.has("demo");  // ?demo skips the visit counter and ad
 // ?league=nfl or ?league=college picks the starting league, for links shared with one audience.
 // null when absent or unrecognized.
 export const LEAGUE_PARAM = { nfl: "nfl", college: "cfb", cfb: "cfb", ncaa: "cfb" }[params.get("league")?.toLowerCase()] ?? null;
+
+// ?game=cfb:401234567 picks that game on arrival (repeat it, or comma-separate keys, for several), for links shared
+// from a card's share button. Keys are js/espn.js's "league:eventId".
+export const LINKED_GAMES = params.getAll("game").flatMap((v) => v.split(",")).map((k) => k.trim())
+  .filter((k) => /^(cfb|nfl):[\w-]+$/.test(k));

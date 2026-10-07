@@ -156,6 +156,39 @@ test.describe("?league= links", () => {
   });
 });
 
+test.describe("?game= links and the share button", () => {
+  test("?game= adds the game to the viewer's own picks, highlights it, and leaves the address bar", async ({ page }) => {
+    await open(page, { query: "?game=cfb:2", storage: { selected: ["cfb:1"] } });
+    await expect(card(page, "cfb:2")).toHaveClass(/flash/);
+    await expect(card(page, "cfb:1")).toBeAttached();
+    expect(new URL(page.url()).search).toBe("");
+    await card(page, "cfb:2").hover();
+    await card(page, "cfb:2").locator(".remove").click();
+    await page.reload();
+    await expect(card(page, "cfb:1")).toBeAttached();
+    await expect(card(page, "cfb:2")).toHaveCount(0);  // a refresh doesn't bring back a removed linked game
+  });
+
+  test("several games, repeated or comma-separated; junk keys are ignored", async ({ page }) => {
+    await open(page, { query: "?game=cfb:1,nfl:101&game=cfb:3&game=hockey:9" });
+    await expect(page.locator("#board .card")).toHaveCount(3);
+    expect(await page.evaluate(() => JSON.parse(localStorage.getItem("selected")).sort())).toEqual(["cfb:1", "cfb:3", "nfl:101"]);
+  });
+
+  test("with a mouse, the share button copies the game's link and shows a ✓", async ({ page, context }) => {
+    await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+    await open(page, { storage: { selected: ["cfb:1"] } });
+    const share = card(page, "cfb:1").locator(".share");
+    expect(await style(share, "opacity")).toBe("0");  // shows on hover, like ✕
+    await card(page, "cfb:1").hover();
+    await share.click();
+    await expect(share).toHaveText("✓");
+    await expect(share).toHaveAttribute("title", "Link copied");
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toBe("http://localhost:4173/index.html?game=cfb:1");
+    await expect(share).not.toHaveText("✓");
+  });
+});
+
 test.describe("game picker", () => {
   test("groups games into Live, Upcoming and Final with counts", async ({ page }) => {
     await open(page);
@@ -1045,6 +1078,23 @@ test.describe("mobile", () => {
     expect(await style(plus, "opacity")).toBe("1");
     await row(page, "cfb:5").locator(".bug").click();
     expect(await style(plus, "backgroundColor")).toBe("rgb(76, 141, 255)");  // solid ✓ once picked
+  });
+
+  test("arriving from a game link keeps the drawer shut so the card is in view", async ({ page }) => {
+    await open(page, { query: "?game=cfb:1", storage: { pickerOpen: true } });
+    await expect(page.locator("aside")).toHaveClass(/collapsed/);
+    await expect(card(page, "cfb:1")).toBeInViewport();
+  });
+
+  test("the share button opens the phone's share sheet with the game and its link", async ({ page }) => {
+    await page.addInitScript(() => { navigator.share = async (data) => { window.shared = data; }; });
+    await open(page, { storage: { selected: ["cfb:1"], pickerOpen: false } });
+    test.skip(await page.evaluate(() => matchMedia("(hover: hover)").matches), "emulated device reports hover");
+    expect(await style(card(page, "cfb:1").locator(".share"), "opacity")).toBe("1");
+    await card(page, "cfb:1").locator(".share").click();
+    const shared = await page.evaluate(() => window.shared);
+    expect(shared.url).toBe("http://localhost:4173/index.html?game=cfb:1");
+    expect(shared.title).toMatch(/^\w+ @ \w+$/);
   });
 
   test("✕ on cards is always visible on touch screens", async ({ page }) => {

@@ -1,6 +1,6 @@
 // Entry point: wires the modules together and polls ESPN.
 
-import { DEMO, LOADING, MOBILE_QUERY, POLL_MS } from "./config.js";
+import { DEMO, LINKED_GAMES, LOADING, MOBILE_QUERY, POLL_MS } from "./config.js";
 import { state, allGames } from "./state.js";
 import { fetchGames } from "./espn.js";
 import { checkRecaps } from "./recap.js";
@@ -13,7 +13,8 @@ import { countVisit } from "./counter.js";
 import { initLogo } from "./logo.js";
 import { DEMO_KEYS, demoGames } from "./demo.js";
 
-let lastUpdated = null;  // when data last arrived successfully; a failed poll leaves the old time showing
+let lastUpdated = null;
+let linkPending = LINKED_GAMES.length > 0;  // a shared game link's card still needs its highlight once it first shows  // when data last arrived successfully; a failed poll leaves the old time showing
 
 async function poll() {
   if (LOADING) return;
@@ -30,6 +31,8 @@ async function poll() {
   // First load renders right away; after that the list waits out LIST_REFRESH_MS so it doesn't shift under your finger.
   if (listIsStale()) renderList();
   renderBoard();
+  const linked = linkPending && LINKED_GAMES.find((k) => document.querySelector(`.card[data-key="${k}"]`));
+  if (linked) { linkPending = false; highlightCard(linked); }
   if (await checkRecaps(allGames().filter((g) => state.selected.has(g.key)))) renderBoard();
 }
 
