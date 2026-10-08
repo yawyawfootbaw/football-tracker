@@ -175,8 +175,14 @@ test.describe("?game= links and the share button", () => {
     expect(await page.evaluate(() => JSON.parse(localStorage.getItem("selected")).sort())).toEqual(["cfb:1", "cfb:3", "nfl:101"]);
   });
 
-  test("only live cards can be shared", async ({ page }) => {
+  test("without ?admin, no card has a share button", async ({ page }) => {
     await open(page, { storage: { selected: ALL_CFB } });
+    await expect(page.locator("#board .live .card").first()).toBeAttached();
+    await expect(page.locator("#board .share")).toHaveCount(0);
+  });
+
+  test("with ?admin, only live cards can be shared", async ({ page }) => {
+    await open(page, { query: "?admin", storage: { selected: ALL_CFB } });
     await expect(page.locator("#board .live .card").first()).toBeAttached();
     expect(await page.locator("#board .live .card .share").count()).toBe(await page.locator("#board .live .card").count());
     await expect(page.locator("#board .compact .card").first()).toBeAttached();
@@ -185,7 +191,7 @@ test.describe("?game= links and the share button", () => {
 
   test("with a mouse, the share button copies the game's link and shows a ✓", async ({ page, context }) => {
     await context.grantPermissions(["clipboard-read", "clipboard-write"]);
-    await open(page, { storage: { selected: ["cfb:1"] } });
+    await open(page, { query: "?admin", storage: { selected: ["cfb:1"] } });
     const share = card(page, "cfb:1").locator(".share");
     expect(await style(share, "opacity")).toBe("0");  // shows on hover, like ✕
     await card(page, "cfb:1").hover();
@@ -194,6 +200,31 @@ test.describe("?game= links and the share button", () => {
     await expect(share).toHaveAttribute("title", "Link copied");
     expect(await page.evaluate(() => navigator.clipboard.readText())).toBe("http://localhost:4173/index.html?game=cfb:1");
     await expect(share).not.toHaveText("✓");
+  });
+});
+
+test.describe("upcoming-games image", () => {
+  test("only ?admin gets Save as image, and only on the Upcoming section", async ({ page }) => {
+    await open(page, { storage: { selected: ALL_CFB } });
+    await expect(page.locator('.board-group[data-section="pre"]')).toBeAttached();
+    await expect(page.locator("#board .poster")).toHaveCount(0);
+    await page.goto("/index.html?admin");
+    await expect(page.locator('.board-group[data-section="pre"] .poster')).toHaveCount(1);
+    await expect(page.locator("#board .poster")).toHaveCount(1);
+  });
+
+  test("Save as image downloads a PNG of the picked upcoming games, one row per game plus a day heading", async ({ page }) => {
+    await open(page, { query: "?admin", storage: { selected: [...ALL_CFB, "nfl:102"] } });
+    const [download] = await Promise.all([page.waitForEvent("download"), page.locator("#board .poster").click()]);
+    expect(download.suggestedFilename()).toBe("upcoming-games.png");
+    const png = require("fs").readFileSync(await download.path());
+    expect(png.subarray(1, 4).toString()).toBe("PNG");
+    // Drawn at 2x: 640 wide, and its height grows by one 44px row per game and 34px per day.
+    const width = png.readUInt32BE(16), height = png.readUInt32BE(20);
+    expect(width).toBe(1280);
+    const days = await page.evaluate(() => new Set(["2026-10-03T23:30Z", "2026-10-04T00:00Z", "2026-10-04T20:25Z"]
+      .map((d) => new Date(d).toDateString())).size);
+    expect(height).toBe(2 * (24 + 52 + days * 34 + 3 * 44 + 34 + 12));
   });
 });
 
@@ -776,8 +807,8 @@ test.describe("demo mode and counter", () => {
     expect(parseFloat(grow.keyframes[0].width)).toBeLessThan(parseFloat(grow.keyframes[1].width));
   });
 
-  test("?skip shows the normal page but skips the hit counter", async ({ page }) => {
-    const state = await open(page, { query: "?skip" });
+  test("?admin shows the normal page but skips the hit counter", async ({ page }) => {
+    const state = await open(page, { query: "?admin" });
     await expect(page.locator("#list label.game")).toHaveCount(8);  // just the fixtures, no demo games
     await page.waitForTimeout(500);
     expect(state.hits).toBe(0);
@@ -1103,7 +1134,7 @@ test.describe("mobile", () => {
 
   test("the share button opens the phone's share sheet with the game and its link", async ({ page }) => {
     await page.addInitScript(() => { navigator.share = async (data) => { window.shared = data; }; });
-    await open(page, { storage: { selected: ["cfb:1"], pickerOpen: false } });
+    await open(page, { query: "?admin", storage: { selected: ["cfb:1"], pickerOpen: false } });
     test.skip(await page.evaluate(() => matchMedia("(hover: hover)").matches), "emulated device reports hover");
     expect(await style(card(page, "cfb:1").locator(".share"), "opacity")).toBe("1");
     await card(page, "cfb:1").locator(".share").click();

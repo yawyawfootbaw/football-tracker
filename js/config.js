@@ -17,7 +17,7 @@ const params = new URLSearchParams(location.search);
 
 export const LOADING = params.has("loading");  // ?loading never fetches games, so the loading spinners stay up
 export const DEMO = params.has("demo");  // ?demo skips the visit counter and adds demo games (js/demo.js), for your own testing
-export const SKIP = params.has("skip");  // ?skip is the normal page minus the visit counter, so your own visits don't count
+export const ADMIN = params.has("admin");  // ?admin skips the visit counter and adds share buttons and the upcoming-games image
 
 // ?league=nfl or ?league=college picks the starting league, for links shared with one audience.
 // null when absent or unrecognized.

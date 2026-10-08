@@ -1,10 +1,11 @@
 // The board: one card per picked game, college and NFL together.
 
-import { GLOW_MS, FLASH_MS } from "./config.js";
+import { ADMIN, GLOW_MS, FLASH_MS } from "./config.js";
 import { state, saveSelected, allGames } from "./state.js";
 import { logoImg, rankBadge, statusLines, escapeAttr } from "./format.js";
 import { field } from "./field.js";
 import { recapUrl } from "./recap.js";
+import { savePoster } from "./poster.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -20,8 +21,11 @@ const SHARE_ICON = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" 
 
 const SECTIONS = [["in", "Live"], ["post", "Final"], ["pre", "Upcoming"]];
 
+// Picked games in kickoff order, optionally only those in one state ("pre", "in", "post").
+const pickedGames = (st) => allGames().filter((g) => state.selected.has(g.key) && (!st || g.state === st)).sort((a, b) => a.date - b.date);
+
 export function renderBoard() {
-  const picked = allGames().filter((g) => state.selected.has(g.key)).sort((a, b) => a.date - b.date);
+  const picked = pickedGames();
   $("picker-count").textContent = picked.length ? `${picked.length} selected` : "";
   if (!picked.length) {
     // The picker sits on the left on desktop but hides behind the "☰ Games" bar on phones; CSS shows the matching hint.
@@ -35,7 +39,7 @@ export function renderBoard() {
   $("board").innerHTML = SECTIONS.map(([st, label]) => {
     const games = picked.filter((g) => g.state === st);
     return games.length ? `<section class="board-group ${st === "in" ? "live" : "compact"}" data-section="${st}">
-      <h2 class="board-section">${label}</h2><div class="cards">${games.map(card).join("")}</div></section>` : "";
+      <h2 class="board-section">${label}${st === "pre" && ADMIN ? posterButton() : ""}</h2><div class="cards">${games.map(card).join("")}</div></section>` : "";
   }).join("");
   animateSectionChanges(before);
 }
@@ -90,7 +94,7 @@ function card(g) {
           ? `<div class="last"><a class="recap" href="${escapeAttr(recap)}" target="_blank" rel="noopener">Recap ↗</a></div>`
           : `<div class="last">&nbsp;</div>`}
       ${g.network ? `<span class="net" title="Broadcast on ${escapeAttr(g.network)}">${g.network}</span>` : ""}
-      ${live ? shareButton(g) : ""}
+      ${live && ADMIN ? shareButton(g) : ""}
       <button class="remove" data-remove="${g.key}" aria-label="Remove game" title="Remove game">✕</button>
     </div>
     ${live && g.lastPlay && openPlay === g.key ? `<div class="last-full" data-play="${g.key}">${g.lastPlay}</div>` : ""}
@@ -101,6 +105,11 @@ function shareButton(g) {
   const done = copied?.key === g.key && Date.now() - copied.at < COPIED_MS;
   const label = done ? "Link copied" : "Share this game";
   return `<button class="share ${done ? "done" : ""}" data-share="${g.key}" aria-label="${label}" title="${label}">${done ? "✓" : SHARE_ICON}</button>`;
+}
+
+// Admin only: saves the upcoming picks as an image for posting on a forum (js/poster.js).
+function posterButton() {
+  return `<button class="poster" data-poster title="Save these games as an image">Save as image</button>`;
 }
 
 /** A link to the site that picks this game on arrival (see LINKED_GAMES in js/config.js). */
@@ -191,6 +200,7 @@ export function initBoard({ onSelectionChanged }) {
     const shareKey = e.target.closest("[data-share]")?.dataset.share;
     const game = shareKey && allGames().find((g) => g.key === shareKey);
     if (game) return share(game);
+    if (e.target.closest("[data-poster]")) return savePoster(pickedGames("pre"));
     const key = e.target.closest("[data-remove]")?.dataset.remove;
     if (!key) return;
     state.selected.delete(key);

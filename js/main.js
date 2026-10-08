@@ -1,6 +1,6 @@
 // Entry point: wires the modules together and polls ESPN.
 
-import { DEMO, LINKED_GAMES, LOADING, MOBILE_QUERY, POLL_MS, SKIP } from "./config.js";
+import { DEMO, LINKED_GAMES, LOADING, MOBILE_QUERY, POLL_MS, ADMIN } from "./config.js";
 import { state, allGames } from "./state.js";
 import { fetchGames } from "./espn.js";
 import { checkRecaps } from "./recap.js";
@@ -44,7 +44,7 @@ function renderUpdated() {
 }
 
 if (DEMO) DEMO_KEYS.forEach((k) => state.selected.add(k));  // not saved, so it's gone once you leave ?demo
-if (!DEMO && !LOADING && !SKIP) countVisit();
+if (!DEMO && !LOADING && !ADMIN) countVisit();
 
 initPicker({
   onSelectionChanged: renderBoard,  // the picker already re-rendered (and animated) its own list
