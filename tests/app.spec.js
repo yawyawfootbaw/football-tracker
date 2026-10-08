@@ -776,6 +776,13 @@ test.describe("demo mode and counter", () => {
     expect(parseFloat(grow.keyframes[0].width)).toBeLessThan(parseFloat(grow.keyframes[1].width));
   });
 
+  test("?skip shows the normal page but skips the hit counter", async ({ page }) => {
+    const state = await open(page, { query: "?skip" });
+    await expect(page.locator("#list label.game")).toHaveCount(8);  // just the fixtures, no demo games
+    await page.waitForTimeout(500);
+    expect(state.hits).toBe(0);
+  });
+
   test("without ?demo, the hidden hit counter is requested once and isn't on the page", async ({ page }) => {
     const state = await open(page);
     await expect.poll(() => state.hits).toBe(1);
