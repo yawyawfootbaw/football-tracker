@@ -11,7 +11,7 @@ Live: https://yawyawfootbaw.github.io/football-tracker/
 |---|---|
 | Run locally | `npm start`, then open http://localhost:4173. The app uses ES modules, which browsers won't load from `file://`, so open it through the server. |
 | Demo | Add `?demo` to the URL. It skips the visit counter and picks two made-up games: one already live (Texas in the red zone, clock running), and one that's upcoming when the page opens and goes live 10 seconds later, so you can watch its card move from Upcoming to Live. |
-| Game links | Each card's share button opens the phone's share sheet, or copies the link with a mouse. The link is `?game=cfb:401234567` (the game's `league:eventId`; repeat it or comma-separate keys for several). Opening it adds the game to the viewer's own picks and flashes its card, then drops the parameter from the address bar. |
+| Game links | Each live card's share button opens the phone's share sheet, or copies the link with a mouse. The link is `?game=cfb:401234567` (the game's `league:eventId`; repeat it or comma-separate keys for several). Opening it adds the game to the viewer's own picks and flashes its card, then drops the parameter from the address bar. |
 | Loading spinner | Add `?loading` to the URL. The page never fetches games, so both loading spinners stay up. It also skips the visit counter. |
 | Test | `npm install` once, then `npm test`. Playwright runs headless in your installed Google Chrome. |
 | Deploy | Push to `main`. GitHub Pages serves the repo root as-is; there is no build step. |

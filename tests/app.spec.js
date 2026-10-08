@@ -175,6 +175,14 @@ test.describe("?game= links and the share button", () => {
     expect(await page.evaluate(() => JSON.parse(localStorage.getItem("selected")).sort())).toEqual(["cfb:1", "cfb:3", "nfl:101"]);
   });
 
+  test("only live cards can be shared", async ({ page }) => {
+    await open(page, { storage: { selected: ALL_CFB } });
+    await expect(page.locator("#board .live .card").first()).toBeAttached();
+    expect(await page.locator("#board .live .card .share").count()).toBe(await page.locator("#board .live .card").count());
+    await expect(page.locator("#board .compact .card").first()).toBeAttached();
+    await expect(page.locator("#board .compact .share")).toHaveCount(0);
+  });
+
   test("with a mouse, the share button copies the game's link and shows a ✓", async ({ page, context }) => {
     await context.grantPermissions(["clipboard-read", "clipboard-write"]);
     await open(page, { storage: { selected: ["cfb:1"] } });

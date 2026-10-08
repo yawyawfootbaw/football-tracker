@@ -90,7 +90,7 @@ function card(g) {
           ? `<div class="last"><a class="recap" href="${escapeAttr(recap)}" target="_blank" rel="noopener">Recap ↗</a></div>`
           : `<div class="last">&nbsp;</div>`}
       ${g.network ? `<span class="net" title="Broadcast on ${escapeAttr(g.network)}">${g.network}</span>` : ""}
-      ${shareButton(g)}
+      ${live ? shareButton(g) : ""}
       <button class="remove" data-remove="${g.key}" aria-label="Remove game" title="Remove game">✕</button>
     </div>
     ${live && g.lastPlay && openPlay === g.key ? `<div class="last-full" data-play="${g.key}">${g.lastPlay}</div>` : ""}
