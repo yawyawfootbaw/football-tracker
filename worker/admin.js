@@ -1,14 +1,76 @@
-// Admin only (?admin): draws the picked upcoming games as a PNG for posting on a forum. Games are grouped by day,
-// one row each: kickoff time, away @ home with logos, ranks and records, and the network. Drawn in the current theme.
+// The admin's extra controls, served only to a logged-in admin by the Worker (worker/index.js) and loaded by
+// js/admin.js. It runs from a blob: URL, so it can't import the app's modules; install() is handed what it needs.
+//
+// - A share button on live cards, which links to ?game=league:id (js/config.js's LINKED_GAMES).
+// - "Save as image" beside the Upcoming heading: the picked upcoming games as a PNG for posting on a forum, grouped by
+//   day, one row each (kickoff time, away @ home with logos, ranks and records, network), in the current theme.
 
-import { currentTheme } from "./theme.js";
+let app;  // { renderBoard, allGames, currentTheme } from js/admin.js
+
+/** Returns the hooks for js/board.js's setAdmin. */
+export function install(appApi) {
+  app = appApi;
+  return {
+    cardExtras: (g) => (g.state === "in" ? shareButton(g) : ""),
+    sectionExtras: (st) => (st === "pre" ? posterButton() : ""),
+    onBoardClick(e) {
+      const shareKey = e.target.closest("[data-share]")?.dataset.share;
+      const game = shareKey && app.allGames().find((g) => g.key === shareKey);
+      if (game) { share(game); return true; }
+      const section = e.target.closest("[data-poster]")?.closest(".board-group");
+      if (!section) return false;
+      const keys = [...section.querySelectorAll(".card")].map((c) => c.dataset.key);
+      savePoster(keys.map((k) => app.allGames().find((g) => g.key === k)).filter(Boolean));
+      return true;
+    },
+  };
+}
+
+let copied = null;  // { key, at }: the card whose share link was just copied, shown as a ✓ for a moment
+const COPIED_MS = 1500;
+// Box with an arrow out of it, the usual share glyph.
+const SHARE_ICON = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2"
+  stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3M7 8l5-5 5 5M5 12v8h14v-8"/></svg>`;
+
+function shareButton(g) {
+  const done = copied?.key === g.key && Date.now() - copied.at < COPIED_MS;
+  const label = done ? "Link copied" : "Share this game";
+  return `<button class="share ${done ? "done" : ""}" data-share="${g.key}" aria-label="${label}" title="${label}">${done ? "✓" : SHARE_ICON}</button>`;
+}
+
+/** A link to the site that picks this game on arrival. */
+function gameLink(key) {
+  return `${location.origin}${location.pathname}?game=${key}`;
+}
+
+// Touch screens open the phone's share sheet; with a mouse, or where there's no share sheet, the link is copied.
+async function share(g) {
+  const url = gameLink(g.key), title = `${g.away.abbr} @ ${g.home.abbr}`;
+  if (navigator.share && matchMedia("(hover: none)").matches) {
+    try { await navigator.share({ title, url }); } catch {}  // closing the sheet without sharing throws; nothing to do
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(url);
+  } catch {
+    prompt("Copy this link:", url);  // no clipboard access (e.g. not https)
+    return;
+  }
+  copied = { key: g.key, at: Date.now() };
+  app.renderBoard();
+  setTimeout(app.renderBoard, COPIED_MS);
+}
+
+function posterButton() {
+  return `<button class="poster" data-poster title="Save these games as an image">Save as image</button>`;
+}
 
 const W = 640, PAD = 24, ROW = 44, DAY_HEAD = 34, TITLE = 52, FOOT = 34, SCALE = 2;
 const TIME_W = 78, NET_W = 120, LOGO = 24;
 const FONT = `-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
 
 /** Draw the games and hand the image over: the share sheet on touch screens, a download otherwise. */
-export async function savePoster(games) {
+async function savePoster(games) {
   if (!games.length) return;
   const blob = await drawPoster(games);
   const file = new File([blob], "upcoming-games.png", { type: "image/png" });
@@ -23,7 +85,7 @@ export async function savePoster(games) {
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
 
-export async function drawPoster(games) {
+async function drawPoster(games) {
   const days = groupByDay(games);
   const height = PAD + TITLE + days.reduce((h, d) => h + DAY_HEAD + d.games.length * ROW, 0) + FOOT + PAD / 2;
   const canvas = document.createElement("canvas");
@@ -176,7 +238,7 @@ function zoneName(date) {
 // A logo that won't load is left out rather than holding up the image.
 async function loadLogos(games) {
   const urls = [...new Set(games.flatMap((g) => [g.away.logo, g.home.logo]).filter(Boolean))];
-  const dark = currentTheme() !== "light";
+  const dark = app.currentTheme() !== "light";
   const entries = await Promise.all(urls.map(async (url) =>
     [url, (dark && await loadImage(url.replace("/500/", "/500-dark/"))) || await loadImage(url)]));
   return new Map(entries);

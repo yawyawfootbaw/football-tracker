@@ -1,6 +1,6 @@
 // Entry point: wires the modules together and polls ESPN.
 
-import { DEMO, LINKED_GAMES, LOADING, MOBILE_QUERY, POLL_MS, ADMIN } from "./config.js";
+import { DEMO, LINKED_GAMES, LOADING, MOBILE_QUERY, POLL_MS } from "./config.js";
 import { state, allGames } from "./state.js";
 import { fetchGames } from "./espn.js";
 import { checkRecaps } from "./recap.js";
@@ -10,6 +10,7 @@ import { setPicker, initDrawer } from "./drawer.js";
 import { initSettings } from "./settings.js";
 import { initTheme } from "./theme.js";
 import { countVisit } from "./counter.js";
+import { loadAdmin } from "./admin.js";
 import { initLogo } from "./logo.js";
 import { DEMO_KEYS, demoGames } from "./demo.js";
 
@@ -44,7 +45,6 @@ function renderUpdated() {
 }
 
 if (DEMO) DEMO_KEYS.forEach((k) => state.selected.add(k));  // not saved, so it's gone once you leave ?demo
-if (!DEMO && !LOADING && !ADMIN) countVisit();
 
 initPicker({
   onSelectionChanged: renderBoard,  // the picker already re-rendered (and animated) its own list
@@ -60,6 +60,10 @@ initDrawer({ animateLayout: animateBoardLayout });
 initSettings();
 initLogo();
 initTheme({ onChange: () => { renderList(); renderBoard(); } });  // logos differ per theme
+
+// Admin features have to be in place before the first render; for everyone else this returns at once.
+const isAdmin = await loadAdmin();
+if (!DEMO && !LOADING && !isAdmin) countVisit();
 
 // Poll now and every POLL_MS after. Background tabs get their timers slowed down by the browser, so coming
 // back to the tab fetches right away and restarts the timer from there.

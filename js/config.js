@@ -17,7 +17,10 @@ const params = new URLSearchParams(location.search);
 
 export const LOADING = params.has("loading");  // ?loading never fetches games, so the loading spinners stay up
 export const DEMO = params.has("demo");  // ?demo skips the visit counter and adds demo games (js/demo.js), for your own testing
-export const ADMIN = params.has("admin");  // ?admin skips the visit counter and adds share buttons and the upcoming-games image
+// ?admin asks for the admin password and remembers it; ?admin=off forgets it (js/admin.js). null when absent.
+export const ADMIN_PARAM = params.get("admin");
+// The Worker that hands the admin code (worker/admin.js) to the right password.
+export const ADMIN_URL = "https://football-tracker-admin.WORKERS_SUBDOMAIN.workers.dev/admin.js";
 
 // ?league=nfl or ?league=college picks the starting league, for links shared with one audience.
 // null when absent or unrecognized.

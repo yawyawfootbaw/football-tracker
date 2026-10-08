@@ -3,6 +3,10 @@ const { test, expect } = require("@playwright/test");
 const { LONG_PLAY, cfbGames, nflGames, scoreboard, summary, PNG } = require("./fixtures");
 
 const CORS = { "access-control-allow-origin": "*" };
+// The admin Worker (worker/), stubbed: it serves worker/admin.js to ADMIN_KEY and 401s anything else.
+const ADMIN_KEY = "test-password";
+const ADMIN_JS = require("fs").readFileSync(require("path").join(__dirname, "..", "worker", "admin.js"), "utf8");
+const admin = { adminKey: ADMIN_KEY };  // spread into opts.storage to be logged in as the admin
 
 /**
  * Stub every outside service, optionally seed localStorage, and open the app.
@@ -10,7 +14,7 @@ const CORS = { "access-control-allow-origin": "*" };
  */
 async function open(page, opts = {}) {
   // recaps: event ids whose summary has a written recap. summaryRequests counts summary fetches per event id.
-  const state = { cfb: opts.cfb ?? cfbGames(), nfl: opts.nfl ?? nflGames(), hits: 0, espnRequests: 0, gate: opts.gate,
+  const state = { cfb: opts.cfb ?? cfbGames(), nfl: opts.nfl ?? nflGames(), hits: 0, espnRequests: 0, adminRequests: 0, gate: opts.gate,
     recaps: new Set(opts.recaps ?? ["7", "8"]), summaryRequests: {} };
   await page.route("https://site.api.espn.com/**", async (route) => {
     const id = route.request().url().match(/summary\?event=(\w+)/)?.[1];
@@ -27,6 +31,14 @@ async function open(page, opts = {}) {
     opts.missingLogo && route.request().url().includes(opts.missingLogo)
       ? route.fulfill({ status: 404, headers: CORS })
       : route.fulfill({ body: PNG, contentType: "image/png", headers: CORS }));
+  await page.route(/^https:\/\/football-tracker-admin\./, (route) => {
+    const req = route.request(), headers = { ...CORS, "access-control-allow-headers": "Authorization" };
+    state.adminRequests++;
+    if (req.method() === "OPTIONS") return route.fulfill({ status: 204, headers });
+    return req.headers().authorization === `Bearer ${ADMIN_KEY}`
+      ? route.fulfill({ body: ADMIN_JS, contentType: "text/javascript", headers })
+      : route.fulfill({ status: 401, body: "Wrong password", headers });
+  });
   await page.route("https://hits.sh/**", (route) => {
     state.hits++;
     return route.fulfill({ body: "<svg xmlns='http://www.w3.org/2000/svg'/>", contentType: "image/svg+xml" });
@@ -175,14 +187,14 @@ test.describe("?game= links and the share button", () => {
     expect(await page.evaluate(() => JSON.parse(localStorage.getItem("selected")).sort())).toEqual(["cfb:1", "cfb:3", "nfl:101"]);
   });
 
-  test("without ?admin, no card has a share button", async ({ page }) => {
+  test("without the admin login, no card has a share button", async ({ page }) => {
     await open(page, { storage: { selected: ALL_CFB } });
     await expect(page.locator("#board .live .card").first()).toBeAttached();
     await expect(page.locator("#board .share")).toHaveCount(0);
   });
 
-  test("with ?admin, only live cards can be shared", async ({ page }) => {
-    await open(page, { query: "?admin", storage: { selected: ALL_CFB } });
+  test("for the admin, only live cards can be shared", async ({ page }) => {
+    await open(page, { storage: { ...admin, selected: ALL_CFB } });
     await expect(page.locator("#board .live .card").first()).toBeAttached();
     expect(await page.locator("#board .live .card .share").count()).toBe(await page.locator("#board .live .card").count());
     await expect(page.locator("#board .compact .card").first()).toBeAttached();
@@ -191,7 +203,7 @@ test.describe("?game= links and the share button", () => {
 
   test("with a mouse, the share button copies the game's link and shows a ✓", async ({ page, context }) => {
     await context.grantPermissions(["clipboard-read", "clipboard-write"]);
-    await open(page, { query: "?admin", storage: { selected: ["cfb:1"] } });
+    await open(page, { storage: { ...admin, selected: ["cfb:1"] } });
     const share = card(page, "cfb:1").locator(".share");
     expect(await style(share, "opacity")).toBe("0");  // shows on hover, like ✕
     await card(page, "cfb:1").hover();
@@ -204,17 +216,18 @@ test.describe("?game= links and the share button", () => {
 });
 
 test.describe("upcoming-games image", () => {
-  test("only ?admin gets Save as image, and only on the Upcoming section", async ({ page }) => {
+  test("only the admin gets Save as image, and only on the Upcoming section", async ({ page }) => {
     await open(page, { storage: { selected: ALL_CFB } });
     await expect(page.locator('.board-group[data-section="pre"]')).toBeAttached();
     await expect(page.locator("#board .poster")).toHaveCount(0);
-    await page.goto("/index.html?admin");
+    await page.evaluate((key) => localStorage.setItem("adminKey", JSON.stringify(key)), ADMIN_KEY);
+    await page.reload();
     await expect(page.locator('.board-group[data-section="pre"] .poster')).toHaveCount(1);
     await expect(page.locator("#board .poster")).toHaveCount(1);
   });
 
   test("Save as image downloads a PNG of the picked upcoming games, one row per game plus a day heading", async ({ page }) => {
-    await open(page, { query: "?admin", storage: { selected: [...ALL_CFB, "nfl:102"] } });
+    await open(page, { storage: { ...admin, selected: [...ALL_CFB, "nfl:102"] } });
     const [download] = await Promise.all([page.waitForEvent("download"), page.locator("#board .poster").click()]);
     expect(download.suggestedFilename()).toBe("upcoming-games.png");
     const png = require("fs").readFileSync(await download.path());
@@ -225,6 +238,52 @@ test.describe("upcoming-games image", () => {
     const days = await page.evaluate(() => new Set(["2026-10-03T23:30Z", "2026-10-04T00:00Z", "2026-10-04T20:25Z"]
       .map((d) => new Date(d).toDateString())).size);
     expect(height).toBe(2 * (24 + 52 + days * 34 + 3 * 44 + 34 + 12));
+  });
+});
+
+test.describe("admin login", () => {
+  test("regular visitors never ask the admin Worker for anything", async ({ page }) => {
+    const state = await open(page, { storage: { selected: ["cfb:1"] } });
+    await expect(card(page, "cfb:1")).toBeAttached();
+    expect(state.adminRequests).toBe(0);
+    await expect.poll(() => state.hits).toBe(1);
+  });
+
+  test("?admin asks for the password, remembers it, and leaves the address bar", async ({ page }) => {
+    page.on("dialog", (d) => d.accept(ADMIN_KEY));
+    const state = await open(page, { query: "?admin", storage: { selected: ["cfb:1"] } });
+    await expect(card(page, "cfb:1").locator(".share")).toBeAttached();
+    expect(new URL(page.url()).search).toBe("");
+    await page.reload();  // no ?admin needed from now on
+    await expect(card(page, "cfb:1").locator(".share")).toBeAttached();
+    await page.waitForTimeout(500);
+    expect(state.hits).toBe(0);
+  });
+
+  test("a wrong password is forgotten and the page stays a regular one, counted", async ({ page }) => {
+    const dialogs = [];
+    page.on("dialog", (d) => { dialogs.push(d.message()); d.type() === "prompt" ? d.accept("guess") : d.accept(); });
+    const state = await open(page, { query: "?admin", storage: { selected: ["cfb:1"] } });
+    await expect(card(page, "cfb:1")).toBeAttached();
+    await expect.poll(() => dialogs).toEqual(["Admin password:", "Wrong admin password."]);
+    await expect(page.locator("#board .share")).toHaveCount(0);
+    expect(await page.evaluate(() => localStorage.getItem("adminKey"))).toBe("null");
+    await expect.poll(() => state.hits).toBe(1);
+  });
+
+  test("?admin=off logs out", async ({ page }) => {
+    await open(page, { query: "?admin=off", storage: { ...admin, selected: ["cfb:1"] } });
+    await expect(card(page, "cfb:1")).toBeAttached();
+    await expect(page.locator("#board .share")).toHaveCount(0);
+    expect(new URL(page.url()).search).toBe("");
+  });
+
+  test("the public code has no admin features in it", async ({ page }) => {
+    await open(page);
+    const sources = await page.evaluate(async () => Promise.all(performance.getEntriesByType("resource")
+      .filter((r) => r.name.endsWith(".js")).map(async (r) => (await fetch(r.name)).text())));
+    expect(sources.length).toBeGreaterThan(5);
+    for (const src of sources) expect(src).not.toMatch(/data-share|data-poster|toBlob/);
   });
 });
 
@@ -807,12 +866,13 @@ test.describe("demo mode and counter", () => {
     expect(parseFloat(grow.keyframes[0].width)).toBeLessThan(parseFloat(grow.keyframes[1].width));
   });
 
-  test("?admin shows the normal page but skips the hit counter", async ({ page }) => {
-    const state = await open(page, { query: "?admin" });
+  test("the admin isn't counted", async ({ page }) => {
+    const state = await open(page, { storage: admin });
     await expect(page.locator("#list label.game")).toHaveCount(8);  // just the fixtures, no demo games
     await page.waitForTimeout(500);
     expect(state.hits).toBe(0);
   });
+
 
   test("without ?demo, the hidden hit counter is requested once and isn't on the page", async ({ page }) => {
     const state = await open(page);
@@ -1134,7 +1194,7 @@ test.describe("mobile", () => {
 
   test("the share button opens the phone's share sheet with the game and its link", async ({ page }) => {
     await page.addInitScript(() => { navigator.share = async (data) => { window.shared = data; }; });
-    await open(page, { query: "?admin", storage: { selected: ["cfb:1"], pickerOpen: false } });
+    await open(page, { storage: { ...admin, selected: ["cfb:1"], pickerOpen: false } });
     test.skip(await page.evaluate(() => matchMedia("(hover: hover)").matches), "emulated device reports hover");
     expect(await style(card(page, "cfb:1").locator(".share"), "opacity")).toBe("1");
     await card(page, "cfb:1").locator(".share").click();

@@ -1,11 +1,10 @@
 // The board: one card per picked game, college and NFL together.
 
-import { ADMIN, GLOW_MS, FLASH_MS } from "./config.js";
+import { GLOW_MS, FLASH_MS } from "./config.js";
 import { state, saveSelected, allGames } from "./state.js";
 import { logoImg, rankBadge, statusLines, escapeAttr } from "./format.js";
 import { field } from "./field.js";
 import { recapUrl } from "./recap.js";
-import { savePoster } from "./poster.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -13,19 +12,18 @@ const redZoneShown = new Set();  // game keys currently drawn in the red zone
 const glowStart = new Map();     // game key -> when its one-time glow began
 let flash = null;                // { key, at }: the card most recently highlighted from the picker
 let openPlay = null;             // game key whose full last-play text is showing; survives board refreshes
-let copied = null;               // { key, at }: the card whose share link was just copied, shown as a ✓ for a moment
-const COPIED_MS = 1500;
-// Box with an arrow out of it, the usual share glyph.
-const SHARE_ICON = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2"
-  stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3M7 8l5-5 5 5M5 12v8h14v-8"/></svg>`;
+// Extra controls for a logged-in admin (js/admin.js). Regular visitors never load that code, so these stay empty.
+let admin = { cardExtras: () => "", sectionExtras: () => "", onBoardClick: () => false };
+
+/** @param {{ cardExtras?: (g) => string, sectionExtras?: (st: string, games) => string, onBoardClick?: (e) => boolean }} hooks */
+export function setAdmin(hooks) {
+  admin = { ...admin, ...hooks };
+}
 
 const SECTIONS = [["in", "Live"], ["post", "Final"], ["pre", "Upcoming"]];
 
-// Picked games in kickoff order, optionally only those in one state ("pre", "in", "post").
-const pickedGames = (st) => allGames().filter((g) => state.selected.has(g.key) && (!st || g.state === st)).sort((a, b) => a.date - b.date);
-
 export function renderBoard() {
-  const picked = pickedGames();
+  const picked = allGames().filter((g) => state.selected.has(g.key)).sort((a, b) => a.date - b.date);
   $("picker-count").textContent = picked.length ? `${picked.length} selected` : "";
   if (!picked.length) {
     // The picker sits on the left on desktop but hides behind the "☰ Games" bar on phones; CSS shows the matching hint.
@@ -39,7 +37,7 @@ export function renderBoard() {
   $("board").innerHTML = SECTIONS.map(([st, label]) => {
     const games = picked.filter((g) => g.state === st);
     return games.length ? `<section class="board-group ${st === "in" ? "live" : "compact"}" data-section="${st}">
-      <h2 class="board-section">${label}${st === "pre" && ADMIN ? posterButton() : ""}</h2><div class="cards">${games.map(card).join("")}</div></section>` : "";
+      <h2 class="board-section">${label}${admin.sectionExtras(st, games)}</h2><div class="cards">${games.map(card).join("")}</div></section>` : "";
   }).join("");
   animateSectionChanges(before);
 }
@@ -94,45 +92,11 @@ function card(g) {
           ? `<div class="last"><a class="recap" href="${escapeAttr(recap)}" target="_blank" rel="noopener">Recap ↗</a></div>`
           : `<div class="last">&nbsp;</div>`}
       ${g.network ? `<span class="net" title="Broadcast on ${escapeAttr(g.network)}">${g.network}</span>` : ""}
-      ${live && ADMIN ? shareButton(g) : ""}
+      ${admin.cardExtras(g)}
       <button class="remove" data-remove="${g.key}" aria-label="Remove game" title="Remove game">✕</button>
     </div>
     ${live && g.lastPlay && openPlay === g.key ? `<div class="last-full" data-play="${g.key}">${g.lastPlay}</div>` : ""}
   </div>`;
-}
-
-function shareButton(g) {
-  const done = copied?.key === g.key && Date.now() - copied.at < COPIED_MS;
-  const label = done ? "Link copied" : "Share this game";
-  return `<button class="share ${done ? "done" : ""}" data-share="${g.key}" aria-label="${label}" title="${label}">${done ? "✓" : SHARE_ICON}</button>`;
-}
-
-// Admin only: saves the upcoming picks as an image for posting on a forum (js/poster.js).
-function posterButton() {
-  return `<button class="poster" data-poster title="Save these games as an image">Save as image</button>`;
-}
-
-/** A link to the site that picks this game on arrival (see LINKED_GAMES in js/config.js). */
-function gameLink(key) {
-  return `${location.origin}${location.pathname}?game=${key}`;
-}
-
-// Touch screens open the phone's share sheet; with a mouse, or where there's no share sheet, the link is copied.
-async function share(g) {
-  const url = gameLink(g.key), title = `${g.away.abbr} @ ${g.home.abbr}`;
-  if (navigator.share && matchMedia("(hover: none)").matches) {
-    try { await navigator.share({ title, url }); } catch {}  // closing the sheet without sharing throws; nothing to do
-    return;
-  }
-  try {
-    await navigator.clipboard.writeText(url);
-  } catch {
-    prompt("Copy this link:", url);  // no clipboard access (e.g. not https)
-    return;
-  }
-  copied = { key: g.key, at: Date.now() };
-  renderBoard();
-  setTimeout(renderBoard, COPIED_MS);
 }
 
 // One side of the scoreboard row. Every slot is always rendered (hidden when empty) so cards line up.
@@ -197,10 +161,7 @@ export function initBoard({ onSelectionChanged }) {
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && openPlay) { openPlay = null; renderBoard(); } });
 
   $("board").addEventListener("click", (e) => {
-    const shareKey = e.target.closest("[data-share]")?.dataset.share;
-    const game = shareKey && allGames().find((g) => g.key === shareKey);
-    if (game) return share(game);
-    if (e.target.closest("[data-poster]")) return savePoster(pickedGames("pre"));
+    if (admin.onBoardClick(e)) return;
     const key = e.target.closest("[data-remove]")?.dataset.remove;
     if (!key) return;
     state.selected.delete(key);

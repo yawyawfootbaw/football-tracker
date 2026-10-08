@@ -1,0 +1,2 @@
+# GitHub Pages: keep the admin code (served only by the Worker, worker/) off the public site.
+exclude: [worker]
