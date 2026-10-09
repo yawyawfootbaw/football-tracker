@@ -13,6 +13,14 @@ const CHEVRON = `<svg class="chev" viewBox="0 0 10 6" aria-hidden="true"><path d
 
 let lastListRender = -Infinity;
 
+// Extra controls for a logged-in admin (js/admin.js). Regular visitors never load that code, so these stay empty.
+let admin = { groupExtras: () => "", onListClick: () => false };
+
+/** @param {{ groupExtras?: (group: string, games: object[], view: object[]) => string, onListClick?: (e) => boolean }} hooks */
+export function setPickerAdmin(hooks) {
+  admin = { ...admin, ...hooks };
+}
+
 /** True once the list has gone LIST_REFRESH_MS without a render (polls refresh it no more often than that). */
 export const listIsStale = () => Date.now() - lastListRender >= LIST_REFRESH_MS;
 
@@ -42,7 +50,7 @@ export function renderList() {
       if (lastGroup) html += `</div></div>`;
       const open = !state.collapsedGroups.has(group);
       html += `<button class="group-label ${group.toLowerCase()}" data-group="${group}" aria-expanded="${open}">${group}<span class="n">${counts[group]}</span>${CHEVRON}</button>
-        <div class="group-body ${open ? "" : "collapsed"}"><div class="group-clip">`;
+        <div class="group-body ${open ? "" : "collapsed"}"><div class="group-clip">${admin.groupExtras(group, ordered.filter((o) => groupOf(o) === group), list)}`;
     }
     lastGroup = group;
     html += row(g);
@@ -157,6 +165,8 @@ export function initPicker({ onSelectionChanged, onHighlight }) {
     setConfMenu(false);
     renderList();
   });
+
+  $("list").addEventListener("click", (e) => { if (admin.onListClick(e)) e.stopImmediatePropagation(); });
 
   // Section headers minimize their section. Toggle the existing element (no re-render) so the slide animates.
   $("list").addEventListener("click", (e) => {

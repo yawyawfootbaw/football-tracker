@@ -289,6 +289,38 @@ test.describe("board image", () => {
   });
 });
 
+test.describe("bulk select in the game list", () => {
+  const actions = (page, group) => page.locator(`#list .group-label[data-group="${group}"] + .group-body .group-actions`);
+  const picked = (page) => page.evaluate(() => JSON.parse(localStorage.getItem("selected")).sort());
+
+  test("regular visitors don't get the bulk buttons", async ({ page }) => {
+    await open(page, { storage: { selected: ["cfb:1"] } });
+    await expect(page.locator("#list .group-label").first()).toBeAttached();
+    await expect(page.locator("#list .group-actions")).toHaveCount(0);
+  });
+
+  test("Select all picks every game a section shows, and Remove all takes that state's picks back off", async ({ page }) => {
+    await open(page, { storage: { ...admin, selected: ["cfb:5"], pickerOpen: true } });
+    await expect(actions(page, "Live").getByRole("button")).toHaveText(["Select all"]);  // no live games picked yet
+    await actions(page, "Live").getByRole("button", { name: "Select all" }).click();
+    expect(await picked(page)).toEqual(["cfb:1", "cfb:2", "cfb:3", "cfb:4", "cfb:5"]);
+    await expect(page.locator('#list .group-label[data-group="Live"]')).toHaveCount(0);  // every live game is now under Selected
+    await expect(page.locator("#board .live .card")).toHaveCount(4);
+    // Upcoming still lists cfb:6, and since cfb:5 is picked it offers to remove it.
+    await actions(page, "Upcoming").getByRole("button", { name: "Remove all" }).click();
+    expect(await picked(page)).toEqual(["cfb:1", "cfb:2", "cfb:3", "cfb:4"]);
+  });
+
+  test("Selected's Remove all clears only the picks in the current view", async ({ page }) => {
+    await open(page, { storage: { ...admin, selected: ["cfb:1", "cfb:7", "nfl:101"], pickerOpen: true } });
+    await expect(actions(page, "Selected").getByRole("button")).toHaveText(["Remove all"]);
+    await actions(page, "Selected").getByRole("button", { name: "Remove all" }).click();
+    expect(await picked(page)).toEqual(["nfl:101"]);  // the NFL tab isn't in view
+    await expect(page.locator('#list .group-label[data-group="Selected"]')).toHaveCount(0);
+    await expect(page.locator("#board .card")).toHaveCount(1);
+  });
+});
+
 test.describe("admin login", () => {
   test("regular visitors never ask the admin Worker for anything", async ({ page }) => {
     const state = await open(page, { storage: { selected: ["cfb:1"] } });
@@ -297,7 +329,7 @@ test.describe("admin login", () => {
     await expect.poll(() => state.hits).toBe(1);
   });
 
-  test("?admin asks for the password in a masked field, keeps only a token, and leaves the address bar", async ({ page }) => {
+  test("?admin asks for the password in a masked field and keeps only a token", async ({ page }) => {
     const state = await open(page, { query: "?admin", storage: { selected: ["cfb:1"] } });
     const field = page.locator("#admin-login input#admin-password");
     await expect(field).toHaveAttribute("type", "password");
@@ -305,11 +337,11 @@ test.describe("admin login", () => {
     await field.press("Enter");
     await expect(page.locator("#admin-login")).toHaveCount(0);
     await expect(card(page, "cfb:1").locator(".share")).toBeAttached();
-    expect(new URL(page.url()).search).toBe("");
+    expect(new URL(page.url()).search).toBe("?admin");  // kept, so a refresh keeps the demo games
     const saved = await page.evaluate(() => JSON.stringify(localStorage));
     expect(saved).toContain(ADMIN_TOKEN);
     expect(saved).not.toContain(ADMIN_KEY);
-    await page.reload();  // no ?admin needed from now on
+    await page.goto("/index.html");  // no ?admin needed from now on
     await expect(card(page, "cfb:1").locator(".share")).toBeAttached();
     await page.waitForTimeout(500);
     expect(state.hits).toBe(0);
@@ -348,7 +380,6 @@ test.describe("admin login", () => {
     await open(page, { query: "?admin", storage: { ...admin, selected: ["cfb:1"] } });
     await expect(card(page, "cfb:1").locator(".share")).toBeAttached();
     await expect(page.locator("#admin-login")).toHaveCount(0);
-    expect(new URL(page.url()).search).toBe("");
   });
 
   test("?admin asks again once the saved login has expired", async ({ page }) => {
@@ -915,9 +946,9 @@ test.describe("?loading", () => {
   });
 });
 
-test.describe("demo mode and counter", () => {
-  test("?demo skips the hit counter and adds two picked demo games, one upcoming and one already live", async ({ page }) => {
-    const state = await open(page, { query: "?demo" });
+test.describe("demo games and counter", () => {
+  test("?admin adds two picked demo games, one upcoming and one already live, and skips the hit counter", async ({ page }) => {
+    const state = await open(page, { query: "?admin", storage: admin });
     await expect(page.locator("#list label.game")).toHaveCount(10);  // the fixtures plus the two demo games
     await expect(page.locator('.board-group[data-section="pre"] .card[data-key="cfb:demo"]')).toBeVisible();
     const live = page.locator('.board-group[data-section="in"] .card[data-key="cfb:demo-live"]');
@@ -939,7 +970,7 @@ test.describe("demo mode and counter", () => {
         return animate.call(this, keyframes, options);
       };
     });
-    await open(page, { query: "?demo" });
+    await open(page, { query: "?admin", storage: admin });
     const demo = card(page, "cfb:demo");
     await expect(page.locator('.board-group[data-section="pre"] .card[data-key="cfb:demo"]')).toBeVisible();
     await expect(demo.locator("svg.field")).toHaveCount(0);
@@ -961,7 +992,16 @@ test.describe("demo mode and counter", () => {
   });
 
 
-  test("without ?demo, the hidden hit counter is requested once and isn't on the page", async ({ page }) => {
+  test("regular visitors get the demo games neither from ?admin nor otherwise", async ({ page }) => {
+    page.on("dialog", (d) => d.dismiss());
+    await open(page, { query: "?admin" });
+    await page.getByRole("button", { name: "Cancel" }).click();
+    await expect(page.locator("#list label.game")).toHaveCount(8);
+    await expect(page.locator('.card[data-key^="cfb:demo"]')).toHaveCount(0);
+    expect(new URL(page.url()).search).toBe("");
+  });
+
+  test("without ?admin, the hidden hit counter is requested once and isn't on the page", async ({ page }) => {
     const state = await open(page);
     await expect.poll(() => state.hits).toBe(1);
     await expect(page.locator('img[src*="hits.sh"]')).toHaveCount(0);
@@ -1058,9 +1098,9 @@ test.describe("google me: Cignetti, or Pelini one time in ten", () => {
     ]);
   });
 
-  test("?demo doesn't change the odds", async ({ page }) => {
+  test("?admin doesn't change the odds", async ({ page }) => {
     await stubRandom(page, 0.5);
-    await open(page, { query: "?demo" });
+    await open(page, { query: "?admin", storage: admin });
     expect(await showCoach(page)).toBe("images/cignetti.png");
   });
 });

@@ -1,4 +1,4 @@
-// The ?demo page's made-up games, both picked automatically:
+// Made-up games for trying things out, both picked automatically when the admin opens the page with ?admin:
 // - a kickoff game, upcoming when the page opens, then live 10 seconds later, so you can watch its card grow from
 //   the Upcoming section into Live;
 // - a game that's already live (Texas in the red zone), so there's a live card to look at straight away.
@@ -8,7 +8,12 @@ export const DEMO_LIVE_KEY = "cfb:demo-live";
 export const DEMO_KEYS = [DEMO_KICKOFF_KEY, DEMO_LIVE_KEY];
 const KICKOFF_AFTER_MS = 10_000;
 const LIVE_CLOCK_S = 7 * 60 + 42;  // the live game's clock when the page opens; it runs down from there
-const opened = Date.now();
+let opened = Date.now();
+
+/** Start the clocks: the kickoff game goes live KICKOFF_AFTER_MS from now. */
+export function startDemo() {
+  opened = Date.now();
+}
 
 const team = (id, abbr, color, score, rank, record) => ({ id, abbr, color, score, rank, record, conf: "5",
   logo: `https://a.espncdn.com/i/teamlogos/ncaa/500/${id}.png` });

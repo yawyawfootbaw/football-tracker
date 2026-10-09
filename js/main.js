@@ -1,6 +1,6 @@
 // Entry point: wires the modules together and polls ESPN.
 
-import { DEMO, LINKED_GAMES, LOADING, MOBILE_QUERY, POLL_MS } from "./config.js";
+import { ADMIN_PARAM, LINKED_GAMES, LOADING, MOBILE_QUERY, POLL_MS } from "./config.js";
 import { state, allGames } from "./state.js";
 import { fetchGames } from "./espn.js";
 import { checkRecaps } from "./recap.js";
@@ -12,9 +12,10 @@ import { initTheme } from "./theme.js";
 import { countVisit } from "./counter.js";
 import { loadAdmin } from "./admin.js";
 import { initLogo } from "./logo.js";
-import { DEMO_KEYS, demoGames } from "./demo.js";
+import { DEMO_KEYS, demoGames, startDemo } from "./demo.js";
 
 let lastUpdated = null;
+let demo = false;  // the demo games (js/demo.js) are in, for an admin who opened the page with ?admin
 let linkPending = LINKED_GAMES.length > 0;  // a shared game link's card still needs its highlight once it first shows  // when data last arrived successfully; a failed poll leaves the old time showing
 
 async function poll() {
@@ -22,7 +23,7 @@ async function poll() {
   await Promise.all(Object.keys(state.games).map(async (league) => {
     try {
       state.games[league] = await fetchGames(league);
-      if (DEMO && league === "cfb") state.games.cfb.push(...demoGames());
+      if (demo && league === "cfb") state.games.cfb.push(...demoGames());
       lastUpdated = Date.now();
     } catch (err) {
       console.error(league, err);
@@ -44,7 +45,6 @@ function renderUpdated() {
     "Games updated at " + new Date(lastUpdated).toLocaleTimeString([], { hour: "numeric", minute: "2-digit", second: "2-digit" });
 }
 
-if (DEMO) DEMO_KEYS.forEach((k) => state.selected.add(k));  // not saved, so it's gone once you leave ?demo
 
 initPicker({
   onSelectionChanged: renderBoard,  // the picker already re-rendered (and animated) its own list
@@ -74,5 +74,11 @@ document.addEventListener("visibilitychange", () => { if (!document.hidden) poll
 
 // The page loads behind the admin login; once the admin's features arrive, redraw the cards with them.
 const isAdmin = await loadAdmin();
-if (isAdmin && lastUpdated !== null) renderBoard();
-if (!DEMO && !LOADING && !isAdmin) countVisit();
+if (isAdmin && ADMIN_PARAM !== null) {
+  demo = true;
+  startDemo();
+  DEMO_KEYS.forEach((k) => state.selected.add(k));  // not saved, so they're gone once you leave ?admin
+  await poll();  // fetch again now, with the demo games in
+  renderList();  // the list otherwise waits out LIST_REFRESH_MS before showing them
+} else if (isAdmin && lastUpdated !== null) { renderList(); renderBoard(); }
+if (!LOADING && !isAdmin) countVisit();

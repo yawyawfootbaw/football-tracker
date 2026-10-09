@@ -32,6 +32,10 @@
 .group-clip { overflow: hidden; min-height: 0; }
 .group-label .n { margin-left: auto; margin-right: 2px; padding: 1px 7px; border-radius: 10px; background: var(--chip); color: var(--muted); font-weight: 600; letter-spacing: 0; }
 .group-label.selected { color: var(--accent); }
+/* Admin-only Select all / Remove all row at the top of a section (worker/admin.js). */
+.group-actions { display: flex; justify-content: flex-end; gap: 6px; padding: 6px 12px; border-bottom: 1px solid var(--border); }
+.group-actions button { padding: 3px 9px; background: none; border: 1px solid var(--border); border-radius: 6px; color: var(--muted); font: inherit; font-size: 12px; cursor: pointer; }
+.group-actions button:hover, .group-actions button:focus-visible { color: var(--text); background: var(--row-hover); }
 /* Live section: red-tinted header, pulsing dot, red edge and bright clock on live rows. */
 .group-label.live { background: var(--live-section); border-color: var(--live-border); color: var(--live-text); }
 .group-label.live .n { background: var(--red); color: #fff; }

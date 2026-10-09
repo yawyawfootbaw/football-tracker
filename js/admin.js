@@ -1,21 +1,18 @@
 // Admin login. The admin's features (share buttons, the image exports) aren't in the public code: the Worker at
 // ADMIN_URL (worker/) hands them out only to a logged-in admin. ?admin asks for the password and trades it for a
 // token that lasts 30 days, kept in this browser's localStorage (adminToken) in place of the password. With a token
-// that still works, ?admin skips the password. ?admin=off logs out. Either way the parameter leaves the address bar.
+// that still works, ?admin skips the password. Opened with ?admin, the admin also gets the demo games (js/main.js).
+// ?admin=off logs out.
 
 import { ADMIN_PARAM, ADMIN_URL } from "./config.js";
 import { store } from "./store.js";
-import { allGames } from "./state.js";
+import { allGames, state, saveSelected } from "./state.js";
 import { renderBoard, setAdmin } from "./board.js";
+import { renderList, setPickerAdmin } from "./picker.js";
 import { currentTheme } from "./theme.js";
 
 /** Load the admin's features if this browser is logged in. Resolves true when they're on. */
 export async function loadAdmin() {
-  if (ADMIN_PARAM !== null) {
-    const url = new URL(location.href);
-    url.searchParams.delete("admin");
-    history.replaceState(null, "", url);
-  }
   // Older versions kept the password itself; swap it for a token once, then forget it.
   const oldPassword = store.get("adminKey");
   if (oldPassword) {
@@ -37,7 +34,15 @@ export async function loadAdmin() {
       break;
     }
   }
-  return install(code);
+  const on = await install(code);
+  // ?admin stays in the address bar while it's working, so a refresh keeps the demo games (js/main.js) without asking
+  // again; ?admin=off, a cancelled login, or an unreachable Worker drop it.
+  if (ADMIN_PARAM !== null && !on) {
+    const url = new URL(location.href);
+    url.searchParams.delete("admin");
+    history.replaceState(null, "", url);
+  }
+  return on;
 }
 
 // The admin module, using the saved token. Null when there's no token, it's refused, or the Worker can't be reached.
@@ -72,7 +77,9 @@ async function install(code) {
   const blob = URL.createObjectURL(new Blob([code], { type: "text/javascript" }));
   try {
     const { install } = await import(blob);
-    setAdmin(install({ renderBoard, allGames, currentTheme }));
+    const hooks = install({ renderBoard, renderList, allGames, state, saveSelected, currentTheme });
+    setAdmin(hooks);
+    setPickerAdmin(hooks);
     return true;
   } catch (err) {
     console.error("admin", err);

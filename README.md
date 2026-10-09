@@ -10,9 +10,8 @@ Live: https://yawyawfootbaw.github.io/football-tracker/
 | | |
 |---|---|
 | Run locally | `npm start`, then open http://localhost:4173. The app uses ES modules, which browsers won't load from `file://`, so open it through the server. |
-| Demo | Add `?demo` to the URL. It skips the visit counter and picks two made-up games: one already live (Texas in the red zone, clock running), and one that's upcoming when the page opens and goes live 10 seconds later, so you can watch its card move from Upcoming to Live. |
 | Game links | For the admin, each live card's share button opens the phone's share sheet, or copies the link with a mouse. The link is `?game=cfb:401234567` (the game's `league:eventId`; repeat it or comma-separate keys for several). Opening it adds the game to the viewer's own picks and flashes its card, then drops the parameter from the address bar. |
-| Admin | Open the site with `?admin` and enter the admin password. The Worker trades it for a login token that lasts 30 days; only the token is kept in the browser, never the password, and while it works `?admin` skips the password. `?admin=off` logs out, and changing the password (`npx wrangler secret put ADMIN_PASSWORD`) logs out every browser. The admin isn't counted by the visit counter and gets share buttons on live cards and **Save as image** beside each section heading. Live and Final save that section's cards as they look; Upcoming saves a list made for forums (grouped by day, kickoff times in your time zone, logos, ranks, records and networks). The gear menu also gets **Save board as image**, the whole board as it looks right now. Card buttons are left out, every image carries a small Game Tracker logo in the corner, and a phone opens the share sheet while a computer downloads the PNG. That code isn't in the public site: a Cloudflare Worker (`worker/`) hands it out only to the right password. |
+| Admin | Open the site with `?admin` and enter the admin password. Opened with `?admin`, the page also picks two made-up demo games (not saved): one already live (Texas in the red zone, clock running), and one that's upcoming and goes live 10 seconds later, so you can watch its card move from Upcoming to Live. `?admin` stays in the address bar, so a refresh keeps them. The Worker trades it for a login token that lasts 30 days; only the token is kept in the browser, never the password, and while it works `?admin` skips the password. `?admin=off` logs out, and changing the password (`npx wrangler secret put ADMIN_PASSWORD`) logs out every browser. The admin isn't counted by the visit counter and gets share buttons on live cards and **Save as image** beside each section heading. Live and Final save that section's cards as they look; Upcoming saves a list made for forums (grouped by day, kickoff times in your time zone, logos, ranks, records and networks). In the game list, each section gets **Select all** and **Remove all**, and Selected gets **Remove all** for every pick in the current tab and filters. The gear menu also gets **Save board as image**, the whole board as it looks right now. Card buttons are left out, every image carries a small Game Tracker logo in the corner, and a phone opens the share sheet while a computer downloads the PNG. That code isn't in the public site: a Cloudflare Worker (`worker/`) hands it out only to the right password. |
 | Loading spinner | Add `?loading` to the URL. The page never fetches games, so both loading spinners stay up. It also skips the visit counter. |
 | Test | `npm install` once, then `npm test`. Playwright runs headless in your installed Google Chrome. `npm run test:worker` tests the admin Worker. |
 | Deploy | Push to `main`. GitHub Pages serves the repo root as-is; there is no build step. |
@@ -34,8 +33,8 @@ css/
   mobile.css          phone layout (≤700px): slide-in picker drawer, tighter cards
 js/
   main.js             entry point: wires modules together and polls ESPN every 10s
-  config.js           API URLs, timings, ?admin (login), ADMIN_URL, ?demo, ?loading, ?league and ?game parameters
-  demo.js             the ?demo page's made-up games: one already live, one that kicks off 10 seconds after the page opens
+  config.js           API URLs, timings, ?admin (login), ADMIN_URL, ?loading, ?league and ?game parameters
+  demo.js             ?admin's made-up demo games: one already live, one that kicks off 10 seconds after the page opens
   store.js            localStorage wrapper that never throws
   state.js            state shared by picker and board (games, picks, tab, filters, …)
   espn.js             fetches ESPN's scoreboard and normalizes each game
@@ -55,7 +54,7 @@ images/               coach photos for "google me", favicon, link-preview image
 scripts/
   share-images.js     regenerates the link-preview image and touch icon
 worker/               Cloudflare Worker that logs the admin in and serves the admin code only to a valid token
-  admin.js            the admin's features: share buttons, "Save as image", "Save board as image" (never served to regular visitors)
+  admin.js            the admin's features: share buttons, image exports, bulk select (never served to regular visitors)
   handler.js          login, signed 30-day tokens and CORS; index.js is the Worker entry, wrangler.toml its config
   handler.test.js     Node tests for handler.js
 tests/
