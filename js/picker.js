@@ -4,7 +4,7 @@ import { LIST_REFRESH_MS } from "./config.js";
 import { store } from "./store.js";
 import { state, saveSelected } from "./state.js";
 import { confNames, NFL_DIVISIONS } from "./espn.js";
-import { bestRank, logoImg, rankBadge, statusLines } from "./format.js";
+import { logoImg, rankBadge, statusLines } from "./format.js";
 
 const $ = (id) => document.getElementById(id);
 const ORDER = { in: 0, pre: 1, post: 2 };
@@ -34,8 +34,7 @@ export function listView() {
   return games[tab]
     .filter((g) => !f.confs.length || inConf(g.away) || inConf(g.home))
     .filter((g) => !f.top25 || ranked(g.away) || ranked(g.home))
-    // Top 25 orders each section by the better ranked team in the game (#1 first), then by kickoff.
-    .sort((a, b) => ORDER[a.state] - ORDER[b.state] || (f.top25 && bestRank(a) - bestRank(b)) || a.date - b.date);
+    .sort((a, b) => ORDER[a.state] - ORDER[b.state] || a.date - b.date);
 }
 
 export function renderList() {
@@ -150,9 +149,8 @@ function renderListAnimated(movedKey) {
  * @param {object} hooks
  * @param {() => void} hooks.onSelectionChanged  a game was picked or unpicked
  * @param {(key: string) => void} hooks.onHighlight  an already-picked row was clicked
- * @param {() => void} hooks.onTop25Changed  Top 25 was switched on or off (the board orders by rank under it too)
  */
-export function initPicker({ onSelectionChanged, onHighlight, onTop25Changed }) {
+export function initPicker({ onSelectionChanged, onHighlight }) {
   const saveFiltersAndRender = () => { store.set("filters", state.filters); renderList(); };
 
   $("conf").addEventListener("click", () => setConfMenu($("conf-menu").hidden));
@@ -167,7 +165,6 @@ export function initPicker({ onSelectionChanged, onHighlight, onTop25Changed }) 
   $("top25").addEventListener("click", () => {
     state.filters.cfb.top25 = !state.filters.cfb.top25;
     saveFiltersAndRender();
-    onTop25Changed();
   });
 
   document.querySelector(".tabs").addEventListener("click", (e) => {

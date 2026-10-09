@@ -45,7 +45,6 @@ function renderUpdated() {
 
 initPicker({
   onSelectionChanged: renderBoard,  // the picker already re-rendered (and animated) its own list
-  onTop25Changed: renderBoard,
   onHighlight: (key) => {
     if (matchMedia(MOBILE_QUERY).matches) setPicker(false);  // close the drawer so the card is visible
     highlightCard(key);

@@ -10,8 +10,6 @@ export function logoImg(t) {
 }
 
 /** The better AP rank of a game's two teams, or 99 when neither is in the Top 25 (so unranked games sort last). */
-export const bestRank = (g) => Math.min(...[g.away, g.home].map((t) => (t.rank && t.rank <= 25 ? t.rank : 99)));
-
 export const rankBadge = (t) => (t.rank && t.rank <= 25 ? `<span class="rank">${t.rank}</span>` : "");
 
 // Kickoff times show in the viewer's own time zone. The admin's image exports switch this to Eastern for the moment

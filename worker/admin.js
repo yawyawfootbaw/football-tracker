@@ -377,7 +377,7 @@ function roundRect(ctx, x, y, w, h, r) {
   ctx.fill();
 }
 
-// Days in date order (Eastern). Within a day, games keep the board's order: by kickoff, or by rank under Top 25.
+// Days in date order (Eastern). Within a day, games keep the board's kickoff order.
 function groupByDay(games) {
   const dayOf = (g) => g.date.toLocaleDateString("en-CA", { timeZone: IMAGE_ZONE });  // "2026-10-03", sorts as text
   const days = [];

@@ -2,7 +2,7 @@
 
 import { GLOW_MS, FLASH_MS } from "./config.js";
 import { state, saveSelected, allGames } from "./state.js";
-import { bestRank, logoImg, rankBadge, statusLines, escapeAttr } from "./format.js";
+import { logoImg, rankBadge, statusLines, escapeAttr } from "./format.js";
 import { field } from "./field.js";
 import { recapUrl } from "./recap.js";
 
@@ -23,10 +23,7 @@ export function setAdmin(hooks) {
 const SECTIONS = [["in", "Live"], ["post", "Final"], ["pre", "Upcoming"]];
 
 export function renderBoard() {
-  // By kickoff; with the college Top 25 filter on, by best-ranked team first, like the game list.
-  const byRank = state.filters.cfb.top25;
-  const picked = allGames().filter((g) => state.selected.has(g.key))
-    .sort((a, b) => (byRank && bestRank(a) - bestRank(b)) || a.date - b.date);
+  const picked = allGames().filter((g) => state.selected.has(g.key)).sort((a, b) => a.date - b.date);
   $("picker-count").textContent = picked.length ? `${picked.length} selected` : "";
   if (!picked.length) {
     // The picker sits on the left on desktop but hides behind the "☰ Games" bar on phones; CSS shows the matching hint.

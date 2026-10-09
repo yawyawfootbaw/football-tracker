@@ -287,15 +287,14 @@ test.describe("images use Eastern time", () => {
     expect(png.readUInt32BE(20)).toBe(2 * (24 + 2 * 34 + 2 * 44 + 34 + 12));  // two day headings, not one
   });
 
-  test("under Top 25 the Upcoming list still goes day by day, ranked within each day", async ({ page }) => {
-    // Sunday's game has the best-ranked team, so Top 25 puts it first on the board; the image keeps Saturday first.
+  test("under Top 25 the board and the Upcoming list still go by kickoff, not rank", async ({ page }) => {
+    // Sunday's game has the best-ranked team, but Saturday's still comes first.
     const cfb = cfbGames().map((e) => (e.id === "6" ? { ...e, date: "2026-10-04T17:00Z",
       competitions: [{ ...e.competitions[0], competitors: e.competitions[0].competitors.map((c) => ({ ...c, curatedRank: { current: 1 } })) }] } : e));
     await open(page, { cfb, query: "?admin", storage: { ...admin, selected: ["cfb:5", "cfb:6", "nfl:102"], filters: { cfb: { confs: [], top25: true }, nfl: { confs: [] } } } });
     const board = page.locator('.board-group[data-section="pre"] .card');
     await expect(board).toHaveCount(3);
-    // #1 (Sunday), #2 (Saturday), then the unranked NFL game (Sunday): Sunday, Saturday, Sunday.
-    expect(await board.evaluateAll((cs) => cs.map((c) => c.dataset.key))).toEqual(["cfb:6", "cfb:5", "nfl:102"]);
+    expect(await board.evaluateAll((cs) => cs.map((c) => c.dataset.key))).toEqual(["cfb:5", "cfb:6", "nfl:102"]);
     const [download] = await Promise.all([page.waitForEvent("download"),
       page.locator('.board-group[data-section="pre"] .poster').click()]);
     const png = require("fs").readFileSync(await download.path());
@@ -750,23 +749,22 @@ test.describe("filters", () => {
     await expect(page.locator("#list label.game")).toHaveCount(5);
   });
 
-  test("Top 25 orders each section by its best-ranked team instead of by kickoff", async ({ page }) => {
+  test("Top 25 filters the list but keeps it in kickoff order", async ({ page }) => {
     await open(page);
     expect(await rowKeys(page, "Final")).toEqual(["cfb:7", "cfb:8"]);  // same kickoff; list order
     await page.locator("#top25").click();
-    expect(await rowKeys(page, "Final")).toEqual(["cfb:8", "cfb:7"]);  // #3 Notre Dame before #7 Alabama
-    expect(await rowKeys(page, "Live")).toEqual(["cfb:1", "cfb:4"]);   // #5 Ohio State before #10 BYU
+    await expect(page.locator("#list label.game")).toHaveCount(5);
+    expect(await rowKeys(page, "Final")).toEqual(["cfb:7", "cfb:8"]);  // #7 Alabama stays ahead of #3 Notre Dame
   });
 
-  test("the board's sections follow the same Top 25 order, and switching it off goes back to kickoff order", async ({ page }) => {
+  test("Top 25 doesn't reorder the board", async ({ page }) => {
     await open(page, { storage: { selected: ["cfb:5", "cfb:6", "cfb:7", "cfb:8", "nfl:102"] } });
     const keys = (st) => page.locator(`.board-group[data-section="${st}"] .card`).evaluateAll((cs) => cs.map((c) => c.dataset.key));
     expect(await keys("post")).toEqual(["cfb:7", "cfb:8"]);
     await page.locator("#top25").click();
-    await expect.poll(() => keys("post")).toEqual(["cfb:8", "cfb:7"]);  // #3 Notre Dame before #7 Alabama
-    expect(await keys("pre")).toEqual(["cfb:5", "cfb:6", "nfl:102"]);  // #2 Georgia's game, then the unranked ones by kickoff
-    await page.locator("#top25").click();
-    await expect.poll(() => keys("post")).toEqual(["cfb:7", "cfb:8"]);
+    await expect(page.locator("#list label.game")).toHaveCount(5);
+    expect(await keys("post")).toEqual(["cfb:7", "cfb:8"]);
+    expect(await keys("pre")).toEqual(["cfb:5", "cfb:6", "nfl:102"]);
   });
 });
 
