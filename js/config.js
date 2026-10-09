@@ -20,7 +20,7 @@ export const DEMO = params.has("demo");  // ?demo skips the visit counter and ad
 // ?admin asks for the admin password and remembers it; ?admin=off forgets it (js/admin.js). null when absent.
 export const ADMIN_PARAM = params.get("admin");
 // The Worker that hands the admin code (worker/admin.js) to the right password.
-export const ADMIN_URL = "https://football-tracker-admin.WORKERS_SUBDOMAIN.workers.dev/admin.js";
+export const ADMIN_URL = "https://football-tracker-admin.splomax.workers.dev/admin.js";
 
 // ?league=nfl or ?league=college picks the starting league, for links shared with one audience.
 // null when absent or unrecognized.
