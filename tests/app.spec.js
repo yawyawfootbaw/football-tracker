@@ -235,6 +235,14 @@ test.describe("section images", () => {
     for (const st of ["in", "post", "pre"]) await expect(page.locator(`.board-group[data-section="${st}"] .poster`)).toHaveCount(1);
   });
 
+  test("a team with no dark-mode logo doesn't break the image", async ({ page }) => {
+    // The image redraws the cards (for Eastern times), so New England's missing dark logo fails again mid-capture.
+    await open(page, { query: "?admin", missingLogo: "500-dark/17.png", storage: { ...admin, selected: ["nfl:101"] } });
+    const [download] = await Promise.all([page.waitForEvent("download"),
+      page.locator('.board-group[data-section="in"] .poster').click()]);
+    expect(require("fs").readFileSync(await download.path()).subarray(1, 4).toString()).toBe("PNG");
+  });
+
   test("Live and Final save their cards as they look, cut off after the last card, with 16px around and room for the logo", async ({ page }) => {
     await open(page, { query: "?admin", storage: { ...admin, selected: ALL_CFB } });
     for (const [st, name] of [["in", "live"], ["post", "final"]]) {

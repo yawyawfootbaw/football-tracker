@@ -53,6 +53,8 @@ fonts/                Barlow Condensed Bold for the wordmark (self-hosted, SIL O
 images/               coach photos for "google me", favicon, link-preview image
 scripts/
   share-images.js     regenerates the link-preview image and touch icon
+  preview-images.js   renders the admin's image exports from the test fixtures, to check their look by eye
+  check-local-admin.js  logs in against the Worker running locally (wrangler dev), to check the admin login path
 wrangler.toml         the Cloudflare Worker that serves the site and its admin API, on gametrackerlive.com
 .assetsignore         repo files the site doesn't serve (the Worker's source, tests, tooling)
 worker/               the Worker's code

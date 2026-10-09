@@ -169,12 +169,14 @@ async function snapshot(getNode, pad, foot, keepWidth = (node) => node.clientWid
   const bg = cssColor("--bg");
   try {
     node = getNode();
+    await logosSettled(node);
     width = keepWidth(node);
     height = node.scrollHeight;
     shot = await toCanvas(node, {
       width, height, pixelRatio: SCALE, backgroundColor: bg,
       style: { width: `${node.clientWidth}px`, height: `${height}px`, overflow: "visible", margin: "0" },
       filter: (el) => !LEFT_OUT.some((c) => el.classList?.contains(c)),
+      imagePlaceholder: BLANK,  // an image that still won't load is left blank rather than failing the whole picture
     });
   } finally {
     app.setTimeZone(undefined);
@@ -191,6 +193,21 @@ async function snapshot(getNode, pad, foot, keepWidth = (node) => node.clientWid
   ctx.scale(SCALE, SCALE);
   await drawMark(ctx, w - 16, h - 16);
   return new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
+}
+
+const BLANK = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+
+// The redraw above reloads every team logo, and some teams have no dark-mode logo: js/format.js then swaps in the
+// regular one when the first fails. Wait for each logo to finish, fallback included, before the capture copies them.
+function logosSettled(node, timeout = 3000) {
+  const settled = (img) => img.complete && (img.naturalWidth > 0 || !img.getAttribute("onerror"));
+  return Promise.all([...node.querySelectorAll("img")].map((img) => new Promise((resolve) => {
+    const check = () => (settled(img) ? resolve() : null);
+    img.addEventListener("load", check);
+    img.addEventListener("error", () => setTimeout(check));  // after the onerror swap has run
+    check();
+    setTimeout(resolve, timeout);
+  })));
 }
 
 // The logo on every image: the header's football, GAME TRACKER in its wordmark font, and the site's address, small
