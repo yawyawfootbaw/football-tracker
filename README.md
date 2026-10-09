@@ -16,7 +16,7 @@ Live: https://yawyawfootbaw.github.io/football-tracker/
 | Loading spinner | Add `?loading` to the URL. The page never fetches games, so both loading spinners stay up. It also skips the visit counter. |
 | Test | `npm install` once, then `npm test`. Playwright runs headless in your installed Google Chrome. `npm run test:worker` tests the admin Worker. |
 | Deploy | Push to `main`. GitHub Pages serves the repo root as-is; there is no build step. |
-| Deploy the admin Worker | Once: `cd worker && npx wrangler login && npx wrangler secret put ADMIN_PASSWORD` (a long random password), then put the Worker's URL in `ADMIN_URL` (js/config.js). After that, `cd worker && npx wrangler deploy` whenever `worker/admin.js` changes. |
+| Deploy the admin Worker | Once: `cd worker && npx wrangler login && npx wrangler secret put ADMIN_PASSWORD` (a long random password), then put the Worker's URL in `ADMIN_URL` (js/config.js). After that, pushing a change under `worker/` to `main` redeploys it (`.github/workflows/worker.yml`, using the repo secret `CLOUDFLARE_API_TOKEN`); `cd worker && npx wrangler deploy` still works by hand. |
 
 CI (`.github/workflows/test.yml`) runs the test suite on every push and pull request.
 

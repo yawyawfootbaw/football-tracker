@@ -1,0 +1,21 @@
+name: deploy admin worker
+# Redeploys the admin Worker (worker/) whenever it changes on main. Needs the repo secret CLOUDFLARE_API_TOKEN
+# (a Cloudflare API token from the "Edit Cloudflare Workers" template).
+on:
+  push:
+    branches: [main]
+    paths: ["worker/**"]
+  workflow_dispatch:
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node --test worker/handler.test.js
+      - uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          workingDirectory: worker

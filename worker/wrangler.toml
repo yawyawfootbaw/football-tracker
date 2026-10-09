@@ -1,5 +1,6 @@
 name = "football-tracker-admin"
 main = "index.js"
+account_id = "4aa7291ca4de2ea285201391ffa589bf"
 compatibility_date = "2025-06-01"
 
 # admin.js is the browser module this Worker hands out, so bundle it as a string.
