@@ -676,6 +676,14 @@ test.describe("filters", () => {
     await expect(page.locator("#top25")).toHaveAttribute("aria-pressed", "true");
     await expect(page.locator("#list label.game")).toHaveCount(5);
   });
+
+  test("Top 25 orders each section by its best-ranked team instead of by kickoff", async ({ page }) => {
+    await open(page);
+    expect(await rowKeys(page, "Final")).toEqual(["cfb:7", "cfb:8"]);  // same kickoff; list order
+    await page.locator("#top25").click();
+    expect(await rowKeys(page, "Final")).toEqual(["cfb:8", "cfb:7"]);  // #3 Notre Dame before #7 Alabama
+    expect(await rowKeys(page, "Live")).toEqual(["cfb:1", "cfb:4"]);   // #5 Ohio State before #10 BYU
+  });
 });
 
 test.describe("game cards", () => {

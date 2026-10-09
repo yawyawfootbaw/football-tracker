@@ -24,7 +24,7 @@ export function setPickerAdmin(hooks) {
 /** True once the list has gone LIST_REFRESH_MS without a render (polls refresh it no more often than that). */
 export const listIsStale = () => Date.now() - lastListRender >= LIST_REFRESH_MS;
 
-/** The current tab's games that pass its filters, as they stand now, Live then Upcoming then Final. */
+/** The current tab's games that pass its filters, as they stand now: Live, then Upcoming, then Final. */
 export function listView() {
   const { tab, filters, games } = state;
   const f = filters[tab];
@@ -34,8 +34,11 @@ export function listView() {
   return games[tab]
     .filter((g) => !f.confs.length || inConf(g.away) || inConf(g.home))
     .filter((g) => !f.top25 || ranked(g.away) || ranked(g.home))
-    .sort((a, b) => ORDER[a.state] - ORDER[b.state] || a.date - b.date);
+    // Top 25 orders each section by the better ranked team in the game (#1 first), then by kickoff.
+    .sort((a, b) => ORDER[a.state] - ORDER[b.state] || (f.top25 && bestRank(a) - bestRank(b)) || a.date - b.date);
 }
+
+const bestRank = (g) => Math.min(...[g.away, g.home].map((t) => (t.rank && t.rank <= 25 ? t.rank : 99)));
 
 export function renderList() {
   lastListRender = Date.now();
