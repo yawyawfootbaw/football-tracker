@@ -4,12 +4,14 @@
 // - A share button on live cards, which links to ?game=league:id (js/config.js's LINKED_GAMES).
 // - "Save as image" beside the Upcoming heading: the picked upcoming games as a PNG for posting on a forum, grouped by
 //   day, one row each (kickoff time, away @ home with logos, ranks and records, network), in the current theme.
+// - "Save board as image" in the gear menu: a PNG of the cards exactly as they look right now.
 
 let app;  // { renderBoard, allGames, currentTheme } from js/admin.js
 
 /** Returns the hooks for js/board.js's setAdmin. */
 export function install(appApi) {
   app = appApi;
+  addBoardShot();
   return {
     cardExtras: (g) => (g.state === "in" ? shareButton(g) : ""),
     sectionExtras: (st) => (st === "pre" ? posterButton() : ""),
@@ -69,11 +71,45 @@ const W = 640, PAD = 24, ROW = 44, DAY_HEAD = 34, TITLE = 52, FOOT = 34, SCALE =
 const TIME_W = 78, NET_W = 120, LOGO = 24;
 const FONT = `-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
 
-/** Draw the games and hand the image over: the share sheet on touch screens, a download otherwise. */
+// Gear menu item. Lined up with "google me", whose ✓ column it shares.
+function addBoardShot() {
+  const menu = document.getElementById("settings-menu");
+  if (!menu || document.getElementById("save-board")) return;
+  const button = document.createElement("button");
+  button.id = "save-board";
+  button.innerHTML = `<span class="check"></span>Save board as image`;
+  button.addEventListener("click", saveBoard);
+  menu.append(button);
+}
+
+// Turns DOM into an image by drawing a copy of it, styles, fonts and logos inlined; loaded only when first used.
+const HTML_TO_IMAGE = "https://cdn.jsdelivr.net/npm/html-to-image@1.11.13/+esm";
+// Card controls that would only clutter the picture.
+const LEFT_OUT = ["remove", "share", "poster", "last-full"];
+
+// The whole board, including any part scrolled out of view, on the page's background.
+async function saveBoard() {
+  const board = document.getElementById("board");
+  if (!board.querySelector(".card")) return;
+  const { toBlob } = await import(HTML_TO_IMAGE);
+  const width = board.clientWidth, height = board.scrollHeight;
+  const blob = await toBlob(board, {
+    width, height, pixelRatio: 2,
+    backgroundColor: getComputedStyle(document.body).backgroundColor,
+    style: { width: `${width}px`, height: `${height}px`, overflow: "visible" },
+    filter: (node) => !LEFT_OUT.some((c) => node.classList?.contains(c)),
+  });
+  await deliver(blob, "game-tracker.png");
+}
+
 async function savePoster(games) {
   if (!games.length) return;
-  const blob = await drawPoster(games);
-  const file = new File([blob], "upcoming-games.png", { type: "image/png" });
+  await deliver(await drawPoster(games), "upcoming-games.png");
+}
+
+// The share sheet on touch screens (so it can go to Photos or straight into a post), a download otherwise.
+async function deliver(blob, name) {
+  const file = new File([blob], name, { type: "image/png" });
   if (matchMedia("(hover: none)").matches && navigator.canShare?.({ files: [file] })) {
     try { await navigator.share({ files: [file] }); } catch {}  // closing the sheet without sharing throws
     return;

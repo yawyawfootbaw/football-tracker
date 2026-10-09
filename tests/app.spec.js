@@ -241,6 +241,32 @@ test.describe("upcoming-games image", () => {
   });
 });
 
+test.describe("board image", () => {
+  test("only the admin's gear menu has Save board as image", async ({ page }) => {
+    await open(page, { storage: { selected: ["cfb:1"] } });
+    await page.locator("#settings").click();
+    await expect(page.locator("#save-board")).toHaveCount(0);
+    await page.evaluate((key) => localStorage.setItem("adminKey", JSON.stringify(key)), ADMIN_KEY);
+    await page.reload();
+    await expect(card(page, "cfb:1")).toBeAttached();
+    await page.locator("#settings").click();
+    await expect(page.locator("#save-board")).toHaveText("Save board as image");
+  });
+
+  test("Save board as image downloads a PNG of the whole board at 2x", async ({ page }) => {
+    await open(page, { storage: { ...admin, selected: [...ALL_CFB, "nfl:101", "nfl:102"] } });
+    await expect(card(page, "nfl:102")).toBeAttached();
+    const board = await page.locator("#board").evaluate((b) => ({ width: b.clientWidth, height: b.scrollHeight }));
+    await page.locator("#settings").click();
+    const [download] = await Promise.all([page.waitForEvent("download"), page.locator("#save-board").click()]);
+    expect(download.suggestedFilename()).toBe("game-tracker.png");
+    const png = require("fs").readFileSync(await download.path());
+    expect(png.subarray(1, 4).toString()).toBe("PNG");
+    expect(png.readUInt32BE(16)).toBe(board.width * 2);
+    expect(png.readUInt32BE(20)).toBe(board.height * 2);
+  });
+});
+
 test.describe("admin login", () => {
   test("regular visitors never ask the admin Worker for anything", async ({ page }) => {
     const state = await open(page, { storage: { selected: ["cfb:1"] } });

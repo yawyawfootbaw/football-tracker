@@ -12,7 +12,7 @@ Live: https://yawyawfootbaw.github.io/football-tracker/
 | Run locally | `npm start`, then open http://localhost:4173. The app uses ES modules, which browsers won't load from `file://`, so open it through the server. |
 | Demo | Add `?demo` to the URL. It skips the visit counter and picks two made-up games: one already live (Texas in the red zone, clock running), and one that's upcoming when the page opens and goes live 10 seconds later, so you can watch its card move from Upcoming to Live. |
 | Game links | For the admin, each live card's share button opens the phone's share sheet, or copies the link with a mouse. The link is `?game=cfb:401234567` (the game's `league:eventId`; repeat it or comma-separate keys for several). Opening it adds the game to the viewer's own picks and flashes its card, then drops the parameter from the address bar. |
-| Admin | Open the site with `?admin` and enter the admin password. It's remembered in that browser, so later visits stay admin; `?admin=off` logs out. The admin isn't counted by the visit counter and gets share buttons on live cards and **Save as image** beside the Upcoming heading, which draws the picked upcoming games as a PNG to post on a forum (grouped by day, kickoff times in your time zone, logos, ranks, records and networks; a phone opens the share sheet, otherwise it downloads `upcoming-games.png`). That code isn't in the public site: a Cloudflare Worker (`worker/`) hands it out only to the right password. |
+| Admin | Open the site with `?admin` and enter the admin password. It's remembered in that browser, so later visits stay admin; `?admin=off` logs out. The admin isn't counted by the visit counter and gets share buttons on live cards and **Save as image** beside the Upcoming heading, which draws the picked upcoming games as a PNG to post on a forum (grouped by day, kickoff times in your time zone, logos, ranks, records and networks; a phone opens the share sheet, otherwise it downloads `upcoming-games.png`). The gear menu also gets **Save board as image**, a PNG of the whole board as it looks right now (card buttons left out). That code isn't in the public site: a Cloudflare Worker (`worker/`) hands it out only to the right password. |
 | Loading spinner | Add `?loading` to the URL. The page never fetches games, so both loading spinners stay up. It also skips the visit counter. |
 | Test | `npm install` once, then `npm test`. Playwright runs headless in your installed Google Chrome. `npm run test:worker` tests the admin Worker. |
 | Deploy | Push to `main`. GitHub Pages serves the repo root as-is; there is no build step. |
@@ -55,7 +55,7 @@ images/               coach photos for "google me", favicon, link-preview image
 scripts/
   share-images.js     regenerates the link-preview image and touch icon
 worker/               Cloudflare Worker that serves the admin code only to the admin password
-  admin.js            the admin's features: share buttons, "Save as image" (never served to regular visitors)
+  admin.js            the admin's features: share buttons, "Save as image", "Save board as image" (never served to regular visitors)
   handler.js          password check and CORS; index.js is the Worker entry, wrangler.toml its config
   handler.test.js     Node tests for handler.js
 tests/
