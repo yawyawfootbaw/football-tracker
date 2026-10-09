@@ -28,3 +28,6 @@ jobs:
       - uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          # The action's own default is older and ignores newer wrangler.toml settings (assets.run_worker_first,
+          # which the www. redirect depends on); keep this in step with the version used locally.
+          wranglerVersion: "4.149.0"
