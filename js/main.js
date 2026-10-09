@@ -61,10 +61,6 @@ initSettings();
 initLogo();
 initTheme({ onChange: () => { renderList(); renderBoard(); } });  // logos differ per theme
 
-// Admin features have to be in place before the first render; for everyone else this returns at once.
-const isAdmin = await loadAdmin();
-if (!DEMO && !LOADING && !isAdmin) countVisit();
-
 // Poll now and every POLL_MS after. Background tabs get their timers slowed down by the browser, so coming
 // back to the tab fetches right away and restarts the timer from there.
 let pollTimer;
@@ -75,3 +71,8 @@ function pollNow() {
 }
 pollNow();
 document.addEventListener("visibilitychange", () => { if (!document.hidden) pollNow(); });
+
+// The page loads behind the admin login; once the admin's features arrive, redraw the cards with them.
+const isAdmin = await loadAdmin();
+if (isAdmin && lastUpdated !== null) renderBoard();
+if (!DEMO && !LOADING && !isAdmin) countVisit();

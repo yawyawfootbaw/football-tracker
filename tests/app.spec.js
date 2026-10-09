@@ -249,9 +249,13 @@ test.describe("admin login", () => {
     await expect.poll(() => state.hits).toBe(1);
   });
 
-  test("?admin asks for the password, remembers it, and leaves the address bar", async ({ page }) => {
-    page.on("dialog", (d) => d.accept(ADMIN_KEY));
+  test("?admin asks for the password in a masked field, remembers it, and leaves the address bar", async ({ page }) => {
     const state = await open(page, { query: "?admin", storage: { selected: ["cfb:1"] } });
+    const field = page.locator("#admin-login input#admin-password");
+    await expect(field).toHaveAttribute("type", "password");
+    await field.fill(ADMIN_KEY);
+    await field.press("Enter");
+    await expect(page.locator("#admin-login")).toHaveCount(0);
     await expect(card(page, "cfb:1").locator(".share")).toBeAttached();
     expect(new URL(page.url()).search).toBe("");
     await page.reload();  // no ?admin needed from now on
@@ -260,13 +264,23 @@ test.describe("admin login", () => {
     expect(state.hits).toBe(0);
   });
 
-  test("a wrong password is forgotten and the page stays a regular one, counted", async ({ page }) => {
-    const dialogs = [];
-    page.on("dialog", (d) => { dialogs.push(d.message()); d.type() === "prompt" ? d.accept("guess") : d.accept(); });
+  test("a wrong password says so and asks again; cancelling leaves a regular page, counted", async ({ page }) => {
     const state = await open(page, { query: "?admin", storage: { selected: ["cfb:1"] } });
+    await page.locator("#admin-password").fill("guess");
+    await page.getByRole("button", { name: "Log in" }).click();
+    await expect(page.locator("#admin-login .error")).toHaveText("Wrong password");
+    await page.getByRole("button", { name: "Cancel" }).click();
     await expect(card(page, "cfb:1")).toBeAttached();
-    await expect.poll(() => dialogs).toEqual(["Admin password:", "Wrong admin password."]);
     await expect(page.locator("#board .share")).toHaveCount(0);
+    expect(await page.evaluate(() => localStorage.getItem("adminKey"))).toBeNull();
+    await expect.poll(() => state.hits).toBe(1);
+  });
+
+  test("a saved password that no longer works is forgotten without a fuss", async ({ page }) => {
+    const state = await open(page, { storage: { adminKey: "old-password", selected: ["cfb:1"] } });
+    await expect(card(page, "cfb:1")).toBeAttached();
+    await expect(page.locator("#board .share")).toHaveCount(0);
+    await expect(page.locator("#admin-login")).toHaveCount(0);
     expect(await page.evaluate(() => localStorage.getItem("adminKey"))).toBe("null");
     await expect.poll(() => state.hits).toBe(1);
   });
