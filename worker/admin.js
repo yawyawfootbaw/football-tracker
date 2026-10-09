@@ -2,9 +2,11 @@
 // js/admin.js. It runs from a blob: URL, so it can't import the app's modules; install() is handed what it needs.
 //
 // - A share button on live cards, which links to ?game=league:id (js/config.js's LINKED_GAMES).
-// - "Save as image" beside the Upcoming heading: the picked upcoming games as a PNG for posting on a forum, grouped by
-//   day, one row each (kickoff time, away @ home with logos, ranks and records, network), in the current theme.
-// - "Save board as image" in the gear menu: a PNG of the cards exactly as they look right now.
+// - "Save as image" beside each section heading. Live and Final save the section's cards as they look right now.
+//   Upcoming saves a list made for posting on a forum: grouped by day, one row per game (kickoff time, away @ home
+//   with logos, ranks and records, network).
+// - "Save board as image" in the gear menu: the whole board as it looks right now.
+// Every image is in the current theme and carries a small, muted Game Tracker logo in the bottom-right corner.
 
 let app;  // { renderBoard, allGames, currentTheme } from js/admin.js
 
@@ -14,13 +16,14 @@ export function install(appApi) {
   addBoardShot();
   return {
     cardExtras: (g) => (g.state === "in" ? shareButton(g) : ""),
-    sectionExtras: (st) => (st === "pre" ? posterButton() : ""),
+    sectionExtras: () => posterButton(),
     onBoardClick(e) {
       const shareKey = e.target.closest("[data-share]")?.dataset.share;
       const game = shareKey && app.allGames().find((g) => g.key === shareKey);
       if (game) { share(game); return true; }
       const section = e.target.closest("[data-poster]")?.closest(".board-group");
       if (!section) return false;
+      if (section.dataset.section !== "pre") { saveSection(section); return true; }
       const keys = [...section.querySelectorAll(".card")].map((c) => c.dataset.key);
       savePoster(keys.map((k) => app.allGames().find((g) => g.key === k)).filter(Boolean));
       return true;
@@ -67,7 +70,7 @@ function posterButton() {
   return `<button class="poster" data-poster title="Save these games as an image">Save as image</button>`;
 }
 
-const W = 640, PAD = 24, ROW = 44, DAY_HEAD = 34, TITLE = 52, FOOT = 34, SCALE = 2;
+const W = 640, PAD = 24, ROW = 44, DAY_HEAD = 34, FOOT = 34, SCALE = 2;
 const TIME_W = 78, NET_W = 120, LOGO = 24;
 const FONT = `-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
 
@@ -87,19 +90,65 @@ const HTML_TO_IMAGE = "https://cdn.jsdelivr.net/npm/html-to-image@1.11.13/+esm";
 // Card controls that would only clutter the picture.
 const LEFT_OUT = ["remove", "share", "poster", "last-full"];
 
-// The whole board, including any part scrolled out of view, on the page's background.
+const cssColor = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+
+// The board already has room around its cards (css/board.css: 16px, and 32px below, where the logo goes).
 async function saveBoard() {
   const board = document.getElementById("board");
   if (!board.querySelector(".card")) return;
-  const { toBlob } = await import(HTML_TO_IMAGE);
-  const width = board.clientWidth, height = board.scrollHeight;
-  const blob = await toBlob(board, {
-    width, height, pixelRatio: 2,
-    backgroundColor: getComputedStyle(document.body).backgroundColor,
-    style: { width: `${width}px`, height: `${height}px`, overflow: "visible" },
-    filter: (node) => !LEFT_OUT.some((c) => node.classList?.contains(c)),
+  await deliver(await snapshot(board, 0, 0), "game-tracker.png");
+}
+
+// A section has no padding of its own, so give it the board's: 16px around, plus 16px more below for the logo.
+// It's cut off after its last card, so a lone card doesn't sit beside a wide empty space.
+async function saveSection(section) {
+  const left = section.getBoundingClientRect().left;
+  const right = Math.max(...[...section.querySelectorAll(".card")].map((c) => c.getBoundingClientRect().right));
+  const name = `game-tracker-${section.dataset.section === "in" ? "live" : "final"}.png`;
+  await deliver(await snapshot(section, 16, 16, Math.ceil(right - left)), name);
+}
+
+/**
+ * Part of the page as it looks right now, including anything scrolled out of view, on the page's background.
+ * @param pad  space added on every side; @param foot  extra space added below. The logo sits 16px from the bottom.
+ * @param width  how much of the node's width to keep, from its left edge; the node itself keeps its layout.
+ */
+async function snapshot(node, pad, foot, width = node.clientWidth) {
+  const { toCanvas } = await import(HTML_TO_IMAGE);
+  const height = node.scrollHeight, bg = cssColor("--bg");
+  const shot = await toCanvas(node, {
+    width, height, pixelRatio: SCALE, backgroundColor: bg,
+    style: { width: `${node.clientWidth}px`, height: `${height}px`, overflow: "visible", margin: "0" },
+    filter: (el) => !LEFT_OUT.some((c) => el.classList?.contains(c)),
   });
-  await deliver(blob, "game-tracker.png");
+  const w = width + 2 * pad, h = height + 2 * pad + foot;
+  const canvas = document.createElement("canvas");
+  canvas.width = w * SCALE;
+  canvas.height = h * SCALE;
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(shot, pad * SCALE, pad * SCALE);
+  ctx.scale(SCALE, SCALE);
+  await drawMark(ctx, w - 16, h - 16);
+  return new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
+}
+
+// The logo on every image: the header's football and GAME TRACKER in its wordmark font, small and muted,
+// right-aligned on (right, mid).
+async function drawMark(ctx, right, mid) {
+  const [ball] = await Promise.all([loadImage("images/favicon.svg"), document.fonts.load(`700 13px "Barlow Condensed"`)]);
+  ctx.save();
+  ctx.globalAlpha = 0.75;
+  ctx.fillStyle = cssColor("--muted");
+  ctx.font = `700 13px "Barlow Condensed", "Arial Narrow", sans-serif`;
+  ctx.letterSpacing = "1.5px";
+  ctx.textAlign = "right";
+  ctx.textBaseline = "middle";
+  ctx.fillText("GAME TRACKER", right, mid + 1);
+  const text = ctx.measureText("GAME TRACKER").width;
+  if (ball) ctx.drawImage(ball, right - text - 20, mid - 8, 16, 16);
+  ctx.restore();
 }
 
 async function savePoster(games) {
@@ -123,29 +172,21 @@ async function deliver(blob, name) {
 
 async function drawPoster(games) {
   const days = groupByDay(games);
-  const height = PAD + TITLE + days.reduce((h, d) => h + DAY_HEAD + d.games.length * ROW, 0) + FOOT + PAD / 2;
+  const height = PAD + days.reduce((h, d) => h + DAY_HEAD + d.games.length * ROW, 0) + FOOT + PAD / 2;
   const canvas = document.createElement("canvas");
   canvas.width = W * SCALE;
   canvas.height = height * SCALE;
   const ctx = canvas.getContext("2d");
   ctx.scale(SCALE, SCALE);
 
-  const css = getComputedStyle(document.documentElement);
-  const color = (name) => css.getPropertyValue(name).trim();
-  const [logos] = await Promise.all([loadLogos(games), document.fonts.load(`700 28px "Barlow Condensed"`)]);
+  const color = cssColor;
+  const logos = await loadLogos(games);
 
   ctx.fillStyle = color("--bg");
   ctx.fillRect(0, 0, W, height);
   ctx.textBaseline = "middle";
 
-  // Title, in the header's wordmark font, over yard-line hash marks.
   let y = PAD;
-  ctx.fillStyle = color("--text");
-  ctx.font = `700 28px "Barlow Condensed", "Arial Narrow", sans-serif`;
-  ctx.fillText("UPCOMING GAMES", PAD, y + 14);
-  ctx.fillStyle = color("--muted");
-  for (let x = PAD; x < W - PAD; x += 6) ctx.fillRect(x, y + 32, 1, 4);
-  y += TITLE;
 
   for (const day of days) {
     ctx.fillStyle = color("--muted");
@@ -163,8 +204,7 @@ async function drawPoster(games) {
   ctx.fillStyle = color("--muted");
   ctx.font = `12px ${FONT}`;
   ctx.fillText(`All times ${zoneName(games[0].date)}`, PAD, y + FOOT / 2);
-  ctx.textAlign = "right";
-  ctx.fillText(`${location.host}${location.pathname.replace(/index\.html$/, "")}`, W - PAD, y + FOOT / 2);
+  await drawMark(ctx, W - PAD, y + FOOT / 2);
 
   return new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
 }

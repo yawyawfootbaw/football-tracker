@@ -1,7 +1,7 @@
 // Admin login. The admin's features (share buttons, the image exports) aren't in the public code: the Worker at
 // ADMIN_URL (worker/) hands them out only to a logged-in admin. ?admin asks for the password and trades it for a
-// token that lasts 30 days; only the token is kept in this browser. ?admin=off logs out. Either way the parameter
-// then leaves the address bar.
+// token that lasts 30 days, kept in this browser's localStorage (adminToken) in place of the password. With a token
+// that still works, ?admin skips the password. ?admin=off logs out. Either way the parameter leaves the address bar.
 
 import { ADMIN_PARAM, ADMIN_URL } from "./config.js";
 import { store } from "./store.js";
@@ -24,21 +24,29 @@ export async function loadAdmin() {
     if (typeof token === "string") store.set("adminToken", token);
   }
   if (ADMIN_PARAM === "off") store.set("adminToken", null);
-  else if (ADMIN_PARAM !== null) {
+  let code = await adminCode();
+  // ?admin asks for the password only when this browser isn't already logged in.
+  if (!code && ADMIN_PARAM !== null && ADMIN_PARAM !== "off") {
     for (let error = ""; ;) {
       const password = await askPassword(error);
-      if (!password) break;  // cancelled: carry on with whatever login was saved before
+      if (!password) break;  // cancelled: stay a regular visitor
       const token = await logIn(password);
       if (token === 401) { error = "Wrong password"; continue; }
       if (token) store.set("adminToken", token);
+      code = await adminCode();
       break;
     }
   }
+  return install(code);
+}
+
+// The admin module, using the saved token. Null when there's no token, it's refused, or the Worker can't be reached.
+async function adminCode() {
   const token = store.get("adminToken");
-  if (!token) return false;
+  if (!token) return null;
   const code = await workerText(`${ADMIN_URL}/admin.js`, { headers: { Authorization: `Bearer ${token}` } });
   if (code === 401) store.set("adminToken", null);  // expired, or the password changed: log in again with ?admin
-  return install(code);
+  return typeof code === "string" ? code : null;
 }
 
 // Trade the password for a token (the browser keeps only the token). 401 for a wrong password, null if unreachable.

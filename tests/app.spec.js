@@ -222,20 +222,35 @@ test.describe("?game= links and the share button", () => {
   });
 });
 
-test.describe("upcoming-games image", () => {
-  test("only the admin gets Save as image, and only on the Upcoming section", async ({ page }) => {
+test.describe("section images", () => {
+  test("only the admin gets Save as image, on every section", async ({ page }) => {
     await open(page, { storage: { selected: ALL_CFB } });
     await expect(page.locator('.board-group[data-section="pre"]')).toBeAttached();
     await expect(page.locator("#board .poster")).toHaveCount(0);
     await page.evaluate((token) => localStorage.setItem("adminToken", JSON.stringify(token)), ADMIN_TOKEN);
     await page.reload();
-    await expect(page.locator('.board-group[data-section="pre"] .poster')).toHaveCount(1);
-    await expect(page.locator("#board .poster")).toHaveCount(1);
+    for (const st of ["in", "post", "pre"]) await expect(page.locator(`.board-group[data-section="${st}"] .poster`)).toHaveCount(1);
+  });
+
+  test("Live and Final save their cards as they look, cut off after the last card, with 16px around and room for the logo", async ({ page }) => {
+    await open(page, { storage: { ...admin, selected: ALL_CFB } });
+    for (const [st, name] of [["in", "live"], ["post", "final"]]) {
+      const section = page.locator(`.board-group[data-section="${st}"]`);
+      // Cut off after the last card.
+      const size = await section.evaluate((s) => ({ height: s.scrollHeight, width: Math.ceil(Math.max(...[...s.querySelectorAll(".card")]
+        .map((c) => c.getBoundingClientRect().right)) - s.getBoundingClientRect().left) }));
+      const [download] = await Promise.all([page.waitForEvent("download"), section.locator(".poster").click()]);
+      expect(download.suggestedFilename()).toBe(`game-tracker-${name}.png`);
+      const png = require("fs").readFileSync(await download.path());
+      expect(png.readUInt32BE(16)).toBe((size.width + 32) * 2);
+      expect(png.readUInt32BE(20)).toBe((size.height + 48) * 2);
+    }
   });
 
   test("Save as image downloads a PNG of the picked upcoming games, one row per game plus a day heading", async ({ page }) => {
     await open(page, { storage: { ...admin, selected: [...ALL_CFB, "nfl:102"] } });
-    const [download] = await Promise.all([page.waitForEvent("download"), page.locator("#board .poster").click()]);
+    const upcoming = page.locator('.board-group[data-section="pre"] .poster');
+    const [download] = await Promise.all([page.waitForEvent("download"), upcoming.click()]);
     expect(download.suggestedFilename()).toBe("upcoming-games.png");
     const png = require("fs").readFileSync(await download.path());
     expect(png.subarray(1, 4).toString()).toBe("PNG");
@@ -244,7 +259,7 @@ test.describe("upcoming-games image", () => {
     expect(width).toBe(1280);
     const days = await page.evaluate(() => new Set(["2026-10-03T23:30Z", "2026-10-04T00:00Z", "2026-10-04T20:25Z"]
       .map((d) => new Date(d).toDateString())).size);
-    expect(height).toBe(2 * (24 + 52 + days * 34 + 3 * 44 + 34 + 12));
+    expect(height).toBe(2 * (24 + days * 34 + 3 * 44 + 34 + 12));
   });
 });
 
@@ -327,6 +342,20 @@ test.describe("admin login", () => {
     const saved = await page.evaluate(() => JSON.stringify(localStorage));
     expect(saved).toContain(ADMIN_TOKEN);
     expect(saved).not.toContain(ADMIN_KEY);
+  });
+
+  test("?admin doesn't ask for the password when this browser is already logged in", async ({ page }) => {
+    await open(page, { query: "?admin", storage: { ...admin, selected: ["cfb:1"] } });
+    await expect(card(page, "cfb:1").locator(".share")).toBeAttached();
+    await expect(page.locator("#admin-login")).toHaveCount(0);
+    expect(new URL(page.url()).search).toBe("");
+  });
+
+  test("?admin asks again once the saved login has expired", async ({ page }) => {
+    await open(page, { query: "?admin", storage: { adminToken: "1.expired", selected: ["cfb:1"] } });
+    await page.locator("#admin-password").fill(ADMIN_KEY);
+    await page.locator("#admin-password").press("Enter");
+    await expect(card(page, "cfb:1").locator(".share")).toBeAttached();
   });
 
   test("?admin=off logs out", async ({ page }) => {
