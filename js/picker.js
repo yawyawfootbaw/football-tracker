@@ -24,19 +24,26 @@ export function setPickerAdmin(hooks) {
 /** True once the list has gone LIST_REFRESH_MS without a render (polls refresh it no more often than that). */
 export const listIsStale = () => Date.now() - lastListRender >= LIST_REFRESH_MS;
 
-export function renderList() {
-  lastListRender = Date.now();
-  const { tab, filters, selected, games } = state;
-  document.querySelectorAll(".tabs button").forEach((b) => b.classList.toggle("on", b.dataset.league === tab));
-  renderFilters();
+/** The current tab's games that pass its filters, as they stand now, Live then Upcoming then Final. */
+export function listView() {
+  const { tab, filters, games } = state;
   const f = filters[tab];
   const ranked = (t) => t.rank && t.rank <= 25;
   // NFL choices can be a whole conference ("AFC") or a division ("AFC East").
   const inConf = (t) => f.confs.some((c) => t.conf === c || (tab === "nfl" && t.conf?.startsWith(c + " ")));
-  const list = games[tab]
+  return games[tab]
     .filter((g) => !f.confs.length || inConf(g.away) || inConf(g.home))
     .filter((g) => !f.top25 || ranked(g.away) || ranked(g.home))
     .sort((a, b) => ORDER[a.state] - ORDER[b.state] || a.date - b.date);
+}
+
+export function renderList() {
+  lastListRender = Date.now();
+  const { tab, filters, selected } = state;
+  document.querySelectorAll(".tabs button").forEach((b) => b.classList.toggle("on", b.dataset.league === tab));
+  renderFilters();
+  const f = filters[tab];
+  const list = listView();
   // Selected games go first under their own heading, keeping the same order as the full list.
   const ordered = [...list.filter((g) => selected.has(g.key)), ...list.filter((g) => !selected.has(g.key))];
   const groupOf = (g) => (selected.has(g.key) ? "Selected" : GROUPS[g.state]);

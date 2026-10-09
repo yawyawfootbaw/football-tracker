@@ -8,7 +8,7 @@ import { ADMIN_PARAM, ADMIN_URL } from "./config.js";
 import { store } from "./store.js";
 import { allGames, state, saveSelected } from "./state.js";
 import { renderBoard, setAdmin } from "./board.js";
-import { renderList, setPickerAdmin } from "./picker.js";
+import { listView, renderList, setPickerAdmin } from "./picker.js";
 import { currentTheme } from "./theme.js";
 
 /** Load the admin's features if this browser is logged in. Resolves true when they're on. */
@@ -77,7 +77,7 @@ async function install(code) {
   const blob = URL.createObjectURL(new Blob([code], { type: "text/javascript" }));
   try {
     const { install } = await import(blob);
-    const hooks = install({ renderBoard, renderList, allGames, state, saveSelected, currentTheme });
+    const hooks = install({ renderBoard, renderList, listView, allGames, state, saveSelected, currentTheme });
     setAdmin(hooks);
     setPickerAdmin(hooks);
     return true;

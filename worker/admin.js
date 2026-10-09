@@ -11,7 +11,7 @@
 //   "Remove all" (every picked game in the current tab and filters).
 // Every image is in the current theme and carries a small, muted Game Tracker logo in the bottom-right corner.
 
-let app;  // { renderBoard, renderList, allGames, state, saveSelected, currentTheme } from js/admin.js
+let app;  // { renderBoard, renderList, listView, allGames, state, saveSelected, currentTheme } from js/admin.js
 
 /** Returns the hooks for js/board.js's setAdmin. */
 export function install(appApi) {
@@ -22,8 +22,8 @@ export function install(appApi) {
     onListClick(e) {
       const button = e.target.closest("[data-bulk]");
       if (!button) return false;
-      const keys = button.dataset.keys.split(",");
-      keys.forEach((k) => (button.dataset.bulk === "add" ? app.state.selected.add(k) : app.state.selected.delete(k)));
+      const add = button.dataset.bulk === "add";
+      bulkGames(button.dataset.group, add).forEach((g) => (add ? app.state.selected.add(g.key) : app.state.selected.delete(g.key)));
       app.saveSelected();
       app.renderList();
       app.renderBoard();
@@ -47,14 +47,19 @@ export function install(appApi) {
 
 const STATE_OF = { Live: "in", Upcoming: "pre", Final: "post" };
 
-// The bulk buttons atop one game-list section. games: the section's rows; view: every game in the current tab and
-// filters, so a state's "Remove all" can find its picked games under Selected.
-function groupExtras(group, games, view) {
-  const button = (action, label, list) =>
-    `<button type="button" data-bulk="${action}" data-keys="${list.map((g) => g.key).join(",")}">${label}</button>`;
-  if (group === "Selected") return `<div class="group-actions">${button("remove", "Remove all", games)}</div>`;
-  const picked = view.filter((g) => g.state === STATE_OF[group] && app.state.selected.has(g.key));
-  return `<div class="group-actions">${button("add", "Select all", games)}${picked.length ? button("remove", "Remove all", picked) : ""}</div>`;
+// The bulk buttons atop one game-list section. A state's "Remove all" only shows while some of its games are picked
+// (they sit under Selected).
+function groupExtras(group) {
+  const button = (action, label) => `<button type="button" data-bulk="${action}" data-group="${group}">${label}</button>`;
+  if (group === "Selected") return `<div class="group-actions">${button("remove", "Remove all")}</div>`;
+  return `<div class="group-actions">${button("add", "Select all")}${bulkGames(group, false).length ? button("remove", "Remove all") : ""}</div>`;
+}
+
+// The games a bulk button acts on, worked out from the games as they are now rather than when the list was drawn
+// (it redraws only every LIST_REFRESH_MS, and a game can kick off or end in between). Within the current tab and
+// filters: unpicked games of the section's state to add, picked ones to remove; Selected removes every picked game.
+function bulkGames(group, add) {
+  return app.listView().filter((g) => (group === "Selected" || g.state === STATE_OF[group]) && app.state.selected.has(g.key) !== add);
 }
 
 let copied = null;  // { key, at }: the card whose share link was just copied, shown as a ✓ for a moment

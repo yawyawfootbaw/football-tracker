@@ -290,6 +290,19 @@ test.describe("board image", () => {
 });
 
 test.describe("bulk select in the game list", () => {
+  test("Remove all also catches a game that ended after the list was last drawn", async ({ page }) => {
+    await page.clock.install({ time: new Date("2026-10-03T20:00:00Z") });
+    const state = await open(page, { storage: { ...admin, selected: ["cfb:1", "cfb:7"], pickerOpen: true } });
+    await expect(page.locator(".group-actions").first()).toBeAttached();
+    // cfb:1 ends. The next poll moves its card to Final, but the list waits out LIST_REFRESH_MS before redrawing.
+    state.cfb = cfbGames().map((e) => e.id !== "1" ? e : { ...e,
+      status: { ...e.status, type: { ...e.status.type, state: "post", name: "STATUS_FINAL", shortDetail: "Final" } } });
+    await page.clock.runFor(10_000);
+    await expect(page.locator('.board-group[data-section="post"] .card[data-key="cfb:1"]')).toBeAttached();
+    await page.locator('#list .group-label[data-group="Final"] + .group-body [data-bulk="remove"]').click();
+    await expect(page.locator("#board .card")).toHaveCount(0);
+  });
+
   const actions = (page, group) => page.locator(`#list .group-label[data-group="${group}"] + .group-body .group-actions`);
   const picked = (page) => page.evaluate(() => JSON.parse(localStorage.getItem("selected")).sort());
 
@@ -998,7 +1011,7 @@ test.describe("demo games and counter", () => {
     await page.getByRole("button", { name: "Cancel" }).click();
     await expect(page.locator("#list label.game")).toHaveCount(8);
     await expect(page.locator('.card[data-key^="cfb:demo"]')).toHaveCount(0);
-    expect(new URL(page.url()).search).toBe("");
+    await expect.poll(() => new URL(page.url()).search).toBe("");  // dropped once the cancelled login finishes
   });
 
   test("without ?admin, the hidden hit counter is requested once and isn't on the page", async ({ page }) => {
