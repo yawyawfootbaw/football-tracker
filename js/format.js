@@ -9,6 +9,9 @@ export function logoImg(t) {
   return `<img src="${t.logo?.replace("/500/", "/500-dark/")}" alt="" onerror="this.onerror=null; this.src='${t.logo}'">`;
 }
 
+/** The better AP rank of a game's two teams, or 99 when neither is in the Top 25 (so unranked games sort last). */
+export const bestRank = (g) => Math.min(...[g.away, g.home].map((t) => (t.rank && t.rank <= 25 ? t.rank : 99)));
+
 export const rankBadge = (t) => (t.rank && t.rank <= 25 ? `<span class="rank">${t.rank}</span>` : "");
 
 // Always two lines so the status block is the same height in every state.

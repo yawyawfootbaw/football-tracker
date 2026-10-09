@@ -4,7 +4,7 @@ import { LIST_REFRESH_MS } from "./config.js";
 import { store } from "./store.js";
 import { state, saveSelected } from "./state.js";
 import { confNames, NFL_DIVISIONS } from "./espn.js";
-import { logoImg, rankBadge, statusLines } from "./format.js";
+import { bestRank, logoImg, rankBadge, statusLines } from "./format.js";
 
 const $ = (id) => document.getElementById(id);
 const ORDER = { in: 0, pre: 1, post: 2 };
@@ -16,7 +16,7 @@ let lastListRender = -Infinity;
 // Extra controls for a logged-in admin (js/admin.js). Regular visitors never load that code, so these stay empty.
 let admin = { groupExtras: () => "", onListClick: () => false };
 
-/** @param {{ groupExtras?: (group: string, games: object[], view: object[]) => string, onListClick?: (e) => boolean }} hooks */
+/** @param {{ groupExtras?: (group: string) => string, onListClick?: (e) => boolean }} hooks */
 export function setPickerAdmin(hooks) {
   admin = { ...admin, ...hooks };
 }
@@ -38,8 +38,6 @@ export function listView() {
     .sort((a, b) => ORDER[a.state] - ORDER[b.state] || (f.top25 && bestRank(a) - bestRank(b)) || a.date - b.date);
 }
 
-const bestRank = (g) => Math.min(...[g.away, g.home].map((t) => (t.rank && t.rank <= 25 ? t.rank : 99)));
-
 export function renderList() {
   lastListRender = Date.now();
   const { tab, filters, selected } = state;
@@ -60,7 +58,7 @@ export function renderList() {
       if (lastGroup) html += `</div></div>`;
       const open = !state.collapsedGroups.has(group);
       html += `<button class="group-label ${group.toLowerCase()}" data-group="${group}" aria-expanded="${open}">${group}<span class="n">${counts[group]}</span>${CHEVRON}</button>
-        <div class="group-body ${open ? "" : "collapsed"}"><div class="group-clip">${admin.groupExtras(group, ordered.filter((o) => groupOf(o) === group), list)}`;
+        <div class="group-body ${open ? "" : "collapsed"}"><div class="group-clip">${admin.groupExtras(group)}`;
     }
     lastGroup = group;
     html += row(g);
@@ -152,8 +150,9 @@ function renderListAnimated(movedKey) {
  * @param {object} hooks
  * @param {() => void} hooks.onSelectionChanged  a game was picked or unpicked
  * @param {(key: string) => void} hooks.onHighlight  an already-picked row was clicked
+ * @param {() => void} hooks.onTop25Changed  Top 25 was switched on or off (the board orders by rank under it too)
  */
-export function initPicker({ onSelectionChanged, onHighlight }) {
+export function initPicker({ onSelectionChanged, onHighlight, onTop25Changed }) {
   const saveFiltersAndRender = () => { store.set("filters", state.filters); renderList(); };
 
   $("conf").addEventListener("click", () => setConfMenu($("conf-menu").hidden));
@@ -165,7 +164,11 @@ export function initPicker({ onSelectionChanged, onHighlight }) {
   // Close the checklist on a click anywhere outside it, or Escape.
   document.addEventListener("click", (e) => { if (!e.target.closest(".conf-wrap")) setConfMenu(false); });
   document.addEventListener("keydown", (e) => { if (e.key === "Escape") setConfMenu(false); });
-  $("top25").addEventListener("click", () => { state.filters.cfb.top25 = !state.filters.cfb.top25; saveFiltersAndRender(); });
+  $("top25").addEventListener("click", () => {
+    state.filters.cfb.top25 = !state.filters.cfb.top25;
+    saveFiltersAndRender();
+    onTop25Changed();
+  });
 
   document.querySelector(".tabs").addEventListener("click", (e) => {
     const league = e.target.dataset?.league;

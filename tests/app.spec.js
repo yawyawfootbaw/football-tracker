@@ -684,6 +684,17 @@ test.describe("filters", () => {
     expect(await rowKeys(page, "Final")).toEqual(["cfb:8", "cfb:7"]);  // #3 Notre Dame before #7 Alabama
     expect(await rowKeys(page, "Live")).toEqual(["cfb:1", "cfb:4"]);   // #5 Ohio State before #10 BYU
   });
+
+  test("the board's sections follow the same Top 25 order, and switching it off goes back to kickoff order", async ({ page }) => {
+    await open(page, { storage: { selected: ["cfb:5", "cfb:6", "cfb:7", "cfb:8", "nfl:102"] } });
+    const keys = (st) => page.locator(`.board-group[data-section="${st}"] .card`).evaluateAll((cs) => cs.map((c) => c.dataset.key));
+    expect(await keys("post")).toEqual(["cfb:7", "cfb:8"]);
+    await page.locator("#top25").click();
+    await expect.poll(() => keys("post")).toEqual(["cfb:8", "cfb:7"]);  // #3 Notre Dame before #7 Alabama
+    expect(await keys("pre")).toEqual(["cfb:5", "cfb:6", "nfl:102"]);  // #2 Georgia's game, then the unranked ones by kickoff
+    await page.locator("#top25").click();
+    await expect.poll(() => keys("post")).toEqual(["cfb:7", "cfb:8"]);
+  });
 });
 
 test.describe("game cards", () => {
