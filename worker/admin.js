@@ -10,10 +10,8 @@
 //   the section shows) and "Remove all" (that state's picked games, which sit under Selected); Selected gets
 //   "Remove all" (every picked game in the current tab and filters).
 // Every image is in the current theme and carries a small, muted Game Tracker logo in the bottom-right corner.
-// Each "Save as image" has an "Upload to Imgur" beside it: the same image goes up anonymously through the Worker
-// (POST /imgur) and its link is copied, ready to paste.
 
-let app;  // { renderBoard, renderList, listView, allGames, state, saveSelected, currentTheme, adminFetch } from js/admin.js
+let app;  // { renderBoard, renderList, listView, allGames, state, saveSelected, currentTheme } from js/admin.js
 
 /** Returns the hooks for js/board.js's setAdmin. */
 export function install(appApi) {
@@ -32,7 +30,7 @@ export function install(appApi) {
       return true;
     },
     cardExtras: (g) => (g.state === "in" ? shareButton(g) : ""),
-    sectionExtras: (st) => imageButtons(st),
+    sectionExtras: () => posterButton(),
     onBoardClick(e) {
       const shareKey = e.target.closest("[data-share]")?.dataset.share;
       const game = shareKey && app.allGames().find((g) => g.key === shareKey);
@@ -40,8 +38,7 @@ export function install(appApi) {
       const button = e.target.closest("[data-poster]");
       if (!button) return false;
       const st = button.closest(".board-group").dataset.section;
-      const image = st === "pre" ? posterImage() : sectionImage(st);
-      button.dataset.poster === "imgur" ? upload(image, st) : image.then(deliver);
+      (st === "pre" ? posterImage() : sectionImage(st)).then(deliver);
       return true;
     },
   };
@@ -99,28 +96,23 @@ async function share(g) {
   setTimeout(app.renderBoard, COPIED_MS);
 }
 
-function imageButtons(st) {
-  return `<button class="poster" data-poster="save" title="Save these games as an image">Save as image</button>
-    <button class="poster" data-poster="imgur" title="Upload these games to Imgur and copy the link">${uploadLabel(st, "Upload to Imgur")}</button>`;
+function posterButton() {
+  return `<button class="poster" data-poster title="Save these games as an image">Save as image</button>`;
 }
 
 const W = 640, PAD = 24, ROW = 44, DAY_HEAD = 34, FOOT = 34, SCALE = 2;
 const TIME_W = 78, NET_W = 120, LOGO = 24;
 const FONT = `-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
 
-// Gear menu items. Lined up with "google me", whose ✓ column they share.
+// Gear menu item. Lined up with "google me", whose ✓ column it shares.
 function addBoardShot() {
   const menu = document.getElementById("settings-menu");
   if (!menu || document.getElementById("save-board")) return;
-  const item = (id, label, onClick) => {
-    const button = document.createElement("button");
-    button.id = id;
-    button.innerHTML = `<span class="check"></span><span class="label">${label}</span>`;
-    button.addEventListener("click", onClick);
-    menu.append(button);
-  };
-  item("save-board", "Save board as image", async () => { const image = await boardImage(); if (image) deliver(image); });
-  item("imgur-board", "Upload board to Imgur", () => upload(boardImage(), "board"));
+  const button = document.createElement("button");
+  button.id = "save-board";
+  button.innerHTML = `<span class="check"></span>Save board as image`;
+  button.addEventListener("click", async () => { const image = await boardImage(); if (image) deliver(image); });
+  menu.append(button);
 }
 
 // Turns DOM into an image by drawing a copy of it, styles, fonts and logos inlined; loaded only when first used.
@@ -157,50 +149,6 @@ async function sectionImage(st) {
 async function posterImage() {
   const games = [...sectionEl("pre").querySelectorAll(".card")].map((c) => app.allGames().find((g) => g.key === c.dataset.key)).filter(Boolean);
   return { blob: await drawPoster(games), name: "upcoming-games.png" };
-}
-
-// What an "Upload to Imgur" button says while an upload it started is under way or just finished, by section
-// ("in", "post", "pre", or "board" for the gear menu). Kept here because the board redraws every poll.
-const uploads = {};
-const uploadLabel = (where, idle) => (uploads[where] && Date.now() < uploads[where].until ? uploads[where].text : idle);
-const uploading = (where) => uploads[where]?.text === "Uploading…" && Date.now() < uploads[where].until;
-
-// Relabels the button in place rather than redrawing the board, which would pull a section out from under an image
-// being drawn from it.
-function setUpload(where, text, ms) {
-  uploads[where] = { text, until: Date.now() + ms };
-  const button = where === "board" ? document.querySelector("#imgur-board .label") : sectionEl(where)?.querySelector('[data-poster="imgur"]');
-  if (button) button.textContent = uploadLabel(where, where === "board" ? "Upload board to Imgur" : "Upload to Imgur");
-  if (ms > 0 && ms < Infinity) setTimeout(() => setUpload(where, "", 0), ms);
-}
-
-// Upload through the Worker (it holds the Imgur key), then copy the link. Every upload's link and delete code are
-// kept in localStorage (imgurUploads): anonymous images can only be deleted with that code.
-async function upload(imagePromise, where) {
-  if (uploading(where)) return;  // one at a time
-  setUpload(where, "Uploading…", Infinity);
-  try {
-    const image = await imagePromise;
-    if (!image) return setUpload(where, "", 0);
-    const res = await app.adminFetch("/imgur", { method: "POST", headers: { "Content-Type": "image/png" }, body: image.blob });
-    const body = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(body.error ?? `upload failed (${res.status})`);
-    try {
-      const saved = JSON.parse(localStorage.getItem("imgurUploads") ?? "[]");
-      localStorage.setItem("imgurUploads", JSON.stringify([...saved, { ...body, at: new Date().toISOString() }]));
-    } catch {}
-    try {
-      await navigator.clipboard.writeText(body.link);
-      setUpload(where, "Link copied ✓", 2500);
-    } catch {
-      setUpload(where, "", 0);
-      prompt("Uploaded. Copy the Imgur link:", body.link);  // no clipboard access
-    }
-  } catch (err) {
-    console.error("imgur", err);
-    setUpload(where, "Upload failed", 3000);
-    alert(`Imgur upload failed: ${err.message}`);
-  }
 }
 
 /**

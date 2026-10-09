@@ -3,8 +3,6 @@
 //
 //   POST /login     Authorization: Bearer <password>  ->  { token }, good for TOKEN_DAYS
 //   GET  /admin.js  Authorization: Bearer <token>     ->  the admin module
-//   POST /imgur     Authorization: Bearer <token>, a PNG body  ->  { link, deletehash }, uploaded to Imgur
-//                   anonymously with the IMGUR_CLIENT_ID secret
 //
 // Tokens are signed with the password, so changing the password (wrangler secret put ADMIN_PASSWORD) signs everyone
 // out at once.
@@ -14,15 +12,14 @@ export const TOKEN_DAYS = 30;
 
 /**
  * @param {Request} request
- * @param {{ ADMIN_PASSWORD?: string, IMGUR_CLIENT_ID?: string }} env  Worker secrets
+ * @param {{ ADMIN_PASSWORD?: string }} env  the password is a Worker secret
  * @param {string} code  admin.js's source
  * @param {number} [now]  for tests
- * @param {typeof fetch} [fetchImpl]  for tests: stands in for Imgur
  */
-export async function handle(request, env, code, now = Date.now(), fetchImpl = fetch) {
+export async function handle(request, env, code, now = Date.now()) {
   const origin = request.headers.get("Origin");
   const cors = ORIGINS.includes(origin)
-    ? { "Access-Control-Allow-Origin": origin, "Access-Control-Allow-Headers": "Authorization, Content-Type", "Access-Control-Allow-Methods": "GET, POST", Vary: "Origin" }
+    ? { "Access-Control-Allow-Origin": origin, "Access-Control-Allow-Headers": "Authorization", "Access-Control-Allow-Methods": "GET, POST", Vary: "Origin" }
     : {};
   const reply = (body, status, headers = {}) => new Response(body, { status, headers: { ...cors, ...headers } });
   if (request.method === "OPTIONS") return reply(null, 204);
@@ -40,24 +37,8 @@ export async function handle(request, env, code, now = Date.now(), fetchImpl = f
     if (!(await validToken(given, env.ADMIN_PASSWORD, now))) return reply("Log in again", 401);
     return reply(code, 200, { "Content-Type": "text/javascript", "Cache-Control": "no-store" });
   }
-  if (route === "POST /imgur") {
-    if (!(await validToken(given, env.ADMIN_PASSWORD, now))) return reply("Log in again", 401);
-    if (!env.IMGUR_CLIENT_ID) return reply(JSON.stringify({ error: "Imgur isn't set up (IMGUR_CLIENT_ID)" }), 503, JSON_TYPE);
-    const png = await request.arrayBuffer();
-    if (!png.byteLength || png.byteLength > IMGUR_MAX_BYTES) return reply(JSON.stringify({ error: "Image is empty or over 10 MB" }), 413, JSON_TYPE);
-    const form = new FormData();
-    form.append("image", new Blob([png], { type: "image/png" }), "game-tracker.png");
-    form.append("type", "file");
-    const res = await fetchImpl("https://api.imgur.com/3/image", { method: "POST", headers: { Authorization: `Client-ID ${env.IMGUR_CLIENT_ID}` }, body: form });
-    const json = await res.json().catch(() => ({}));
-    if (!res.ok || !json.success) return reply(JSON.stringify({ error: json.data?.error ?? `Imgur answered ${res.status}` }), 502, JSON_TYPE);
-    return reply(JSON.stringify({ link: json.data.link, deletehash: json.data.deletehash }), 200, JSON_TYPE);
-  }
   return reply("Not found", 404);
 }
-
-const JSON_TYPE = { "Content-Type": "application/json" };
-const IMGUR_MAX_BYTES = 10 * 1024 * 1024;  // Imgur's limit for an image
 
 const encode = (s) => new TextEncoder().encode(s);
 const hmacKey = (password) =>

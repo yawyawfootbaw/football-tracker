@@ -16,7 +16,7 @@ const admin = { adminToken: ADMIN_TOKEN };  // spread into opts.storage to be lo
  */
 async function open(page, opts = {}) {
   // recaps: event ids whose summary has a written recap. summaryRequests counts summary fetches per event id.
-  const state = { cfb: opts.cfb ?? cfbGames(), nfl: opts.nfl ?? nflGames(), hits: 0, espnRequests: 0, adminRequests: 0, imgurUploads: [], gate: opts.gate,
+  const state = { cfb: opts.cfb ?? cfbGames(), nfl: opts.nfl ?? nflGames(), hits: 0, espnRequests: 0, adminRequests: 0, gate: opts.gate,
     recaps: new Set(opts.recaps ?? ["7", "8"]), summaryRequests: {} };
   await page.route("https://site.api.espn.com/**", async (route) => {
     const id = route.request().url().match(/summary\?event=(\w+)/)?.[1];
@@ -43,12 +43,6 @@ async function open(page, opts = {}) {
     }
     if (req.url().endsWith("/admin.js") && auth === `Bearer ${ADMIN_TOKEN}`) {
       return route.fulfill({ body: ADMIN_JS, contentType: "text/javascript", headers });
-    }
-    if (req.url().endsWith("/imgur") && req.method() === "POST" && auth === `Bearer ${ADMIN_TOKEN}`) {
-      const png = req.postDataBuffer();
-      state.imgurUploads.push({ type: req.headers()["content-type"], bytes: png?.length ?? 0, png: png?.subarray(1, 4).toString() });
-      const n = state.imgurUploads.length;
-      return route.fulfill({ json: { link: `https://i.imgur.com/test${n}.png`, deletehash: `del${n}` }, headers });
     }
     return route.fulfill({ status: 401, body: "Nope", headers });
   });
@@ -235,9 +229,7 @@ test.describe("section images", () => {
     await expect(page.locator("#board .poster")).toHaveCount(0);
     await page.evaluate((token) => localStorage.setItem("adminToken", JSON.stringify(token)), ADMIN_TOKEN);
     await page.reload();
-    for (const st of ["in", "post", "pre"]) {
-      await expect(page.locator(`.board-group[data-section="${st}"] .poster`)).toHaveText(["Save as image", "Upload to Imgur"]);
-    }
+    for (const st of ["in", "post", "pre"]) await expect(page.locator(`.board-group[data-section="${st}"] .poster`)).toHaveCount(1);
   });
 
   test("Live and Final save their cards as they look, cut off after the last card, with 16px around and room for the logo", async ({ page }) => {
@@ -247,7 +239,7 @@ test.describe("section images", () => {
       // Cut off after the last card.
       const size = await section.evaluate((s) => ({ height: s.scrollHeight, width: Math.ceil(Math.max(...[...s.querySelectorAll(".card")]
         .map((c) => c.getBoundingClientRect().right)) - s.getBoundingClientRect().left) }));
-      const [download] = await Promise.all([page.waitForEvent("download"), section.locator('[data-poster="save"]').click()]);
+      const [download] = await Promise.all([page.waitForEvent("download"), section.locator(".poster").click()]);
       expect(download.suggestedFilename()).toBe(`game-tracker-${name}.png`);
       const png = require("fs").readFileSync(await download.path());
       expect(png.readUInt32BE(16)).toBe((size.width + 32) * 2);
@@ -257,7 +249,7 @@ test.describe("section images", () => {
 
   test("Save as image downloads a PNG of the picked upcoming games, one row per game plus a day heading", async ({ page }) => {
     await open(page, { storage: { ...admin, selected: [...ALL_CFB, "nfl:102"] } });
-    const upcoming = page.locator('.board-group[data-section="pre"] [data-poster="save"]');
+    const upcoming = page.locator('.board-group[data-section="pre"] .poster');
     const [download] = await Promise.all([page.waitForEvent("download"), upcoming.click()]);
     expect(download.suggestedFilename()).toBe("upcoming-games.png");
     const png = require("fs").readFileSync(await download.path());
@@ -268,43 +260,6 @@ test.describe("section images", () => {
     const days = await page.evaluate(() => new Set(["2026-10-03T23:30Z", "2026-10-04T00:00Z", "2026-10-04T20:25Z"]
       .map((d) => new Date(d).toDateString())).size);
     expect(height).toBe(2 * (24 + days * 34 + 3 * 44 + 34 + 12));
-  });
-});
-
-test.describe("Imgur upload", () => {
-  test("Upload to Imgur sends the section's PNG through the Worker, copies the link, and keeps the delete code", async ({ page, context }) => {
-    await context.grantPermissions(["clipboard-read", "clipboard-write"]);
-    const state = await open(page, { storage: { ...admin, selected: ALL_CFB } });
-    const button = page.locator('.board-group[data-section="post"] [data-poster="imgur"]');
-    await button.click();
-    await expect(button).toHaveText("Link copied ✓");
-    expect(state.imgurUploads).toEqual([expect.objectContaining({ type: "image/png", png: "PNG" })]);
-    expect(await page.evaluate(() => navigator.clipboard.readText())).toBe("https://i.imgur.com/test1.png");
-    const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("imgurUploads")));
-    expect(saved).toEqual([expect.objectContaining({ link: "https://i.imgur.com/test1.png", deletehash: "del1" })]);
-    await expect(button).toHaveText("Upload to Imgur");  // back after a moment
-  });
-
-  test("the gear menu uploads the whole board, and Upcoming uploads the forum list", async ({ page, context }) => {
-    await context.grantPermissions(["clipboard-read", "clipboard-write"]);
-    const state = await open(page, { storage: { ...admin, selected: ALL_CFB } });
-    await page.locator("#settings").click();
-    await page.locator("#imgur-board").click();
-    await expect(page.locator("#imgur-board")).toHaveText("Link copied ✓");
-    await page.locator('.board-group[data-section="pre"] [data-poster="imgur"]').click();
-    await expect.poll(() => state.imgurUploads.length).toBe(2);
-    expect(await page.evaluate(() => navigator.clipboard.readText())).toBe("https://i.imgur.com/test2.png");
-  });
-
-  test("a failed upload says so", async ({ page }) => {
-    await open(page, { storage: { ...admin, selected: ALL_CFB } });
-    await page.route(/football-tracker-admin\..*\/imgur$/, (route) => route.fulfill({ status: 503, json: { error: "Imgur isn't set up (IMGUR_CLIENT_ID)" }, headers: CORS }));
-    const alerts = [];
-    page.on("dialog", (d) => { alerts.push(d.message()); d.accept(); });
-    const button = page.locator('.board-group[data-section="post"] [data-poster="imgur"]');
-    await button.click();
-    await expect.poll(() => alerts).toEqual(["Imgur upload failed: Imgur isn't set up (IMGUR_CLIENT_ID)"]);
-    await expect(button).toHaveText("Upload failed");
   });
 });
 
