@@ -352,9 +352,11 @@ function roundRect(ctx, x, y, w, h, r) {
   ctx.fill();
 }
 
+// Days in date order (Eastern). Within a day, games keep the board's order: by kickoff, or by rank under Top 25.
 function groupByDay(games) {
+  const dayOf = (g) => g.date.toLocaleDateString("en-CA", { timeZone: IMAGE_ZONE });  // "2026-10-03", sorts as text
   const days = [];
-  for (const g of games) {
+  for (const g of games.toSorted((a, b) => dayOf(a).localeCompare(dayOf(b)))) {
     const label = g.date.toLocaleDateString([], { weekday: "long", month: "short", day: "numeric", timeZone: IMAGE_ZONE });
     if (days.at(-1)?.label !== label) days.push({ label, games: [] });
     days.at(-1).games.push(g);

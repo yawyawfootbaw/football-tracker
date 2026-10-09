@@ -276,6 +276,21 @@ test.describe("images use Eastern time", () => {
     expect(png.readUInt32BE(20)).toBe(2 * (24 + 2 * 34 + 2 * 44 + 34 + 12));  // two day headings, not one
   });
 
+  test("under Top 25 the Upcoming list still goes day by day, ranked within each day", async ({ page }) => {
+    // Sunday's game has the best-ranked team, so Top 25 puts it first on the board; the image keeps Saturday first.
+    const cfb = cfbGames().map((e) => (e.id === "6" ? { ...e, date: "2026-10-04T17:00Z",
+      competitions: [{ ...e.competitions[0], competitors: e.competitions[0].competitors.map((c) => ({ ...c, curatedRank: { current: 1 } })) }] } : e));
+    await open(page, { cfb, storage: { ...admin, selected: ["cfb:5", "cfb:6", "nfl:102"], filters: { cfb: { confs: [], top25: true }, nfl: { confs: [] } } } });
+    const board = page.locator('.board-group[data-section="pre"] .card');
+    await expect(board).toHaveCount(3);
+    // #1 (Sunday), #2 (Saturday), then the unranked NFL game (Sunday): Sunday, Saturday, Sunday.
+    expect(await board.evaluateAll((cs) => cs.map((c) => c.dataset.key))).toEqual(["cfb:6", "cfb:5", "nfl:102"]);
+    const [download] = await Promise.all([page.waitForEvent("download"),
+      page.locator('.board-group[data-section="pre"] .poster').click()]);
+    const png = require("fs").readFileSync(await download.path());
+    expect(png.readUInt32BE(20)).toBe(2 * (24 + 2 * 34 + 3 * 44 + 34 + 12));  // Saturday, Sunday: two headings, not three
+  });
+
   test("board and section images show Eastern kickoff times, and the page goes back to local time after", async ({ page }) => {
     // Stand in for the image library: note the times on the cards being captured.
     await page.route("https://cdn.jsdelivr.net/npm/html-to-image@*/+esm", (route) => route.fulfill({ contentType: "text/javascript", body: `
