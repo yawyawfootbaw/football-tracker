@@ -5,5 +5,5 @@ compatibility_date = "2025-06-01"
 # admin.js is the browser module this Worker hands out, so bundle it as a string.
 [[rules]]
 type = "Text"
-globs = ["admin.js"]
+globs = ["**/admin.js"]
 fallthrough = false
