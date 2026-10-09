@@ -1,8 +1,8 @@
 // Admin login. The admin's features (share buttons, the image exports) aren't in the public code: the Worker at
 // ADMIN_URL (worker/) hands them out only to a logged-in admin. ?admin asks for the password and trades it for a
 // token that lasts 30 days, kept in this browser's localStorage (adminToken) in place of the password. With a token
-// that still works, ?admin skips the password. Opened with ?admin, the admin also gets the demo games (js/main.js).
-// ?admin=off logs out.
+// that still works, ?admin skips the password. ?admin=off logs out. Either way the parameter then leaves the address
+// bar.
 
 import { ADMIN_PARAM, ADMIN_URL } from "./config.js";
 import { store } from "./store.js";
@@ -34,15 +34,12 @@ export async function loadAdmin() {
       break;
     }
   }
-  const on = await install(code);
-  // ?admin stays in the address bar while it's working, so a refresh keeps the demo games (js/main.js) without asking
-  // again; ?admin=off, a cancelled login, or an unreachable Worker drop it.
-  if (ADMIN_PARAM !== null && !on) {
+  if (ADMIN_PARAM !== null) {
     const url = new URL(location.href);
     url.searchParams.delete("admin");
     history.replaceState(null, "", url);
   }
-  return on;
+  return install(code);
 }
 
 // The admin module, using the saved token. Null when there's no token, it's refused, or the Worker can't be reached.

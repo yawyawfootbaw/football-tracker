@@ -350,7 +350,7 @@ test.describe("admin login", () => {
     await field.press("Enter");
     await expect(page.locator("#admin-login")).toHaveCount(0);
     await expect(card(page, "cfb:1").locator(".share")).toBeAttached();
-    expect(new URL(page.url()).search).toBe("?admin");  // kept, so a refresh keeps the demo games
+    expect(new URL(page.url()).search).toBe("");
     const saved = await page.evaluate(() => JSON.stringify(localStorage));
     expect(saved).toContain(ADMIN_TOKEN);
     expect(saved).not.toContain(ADMIN_KEY);
@@ -978,20 +978,8 @@ test.describe("?loading", () => {
   });
 });
 
-test.describe("demo games and counter", () => {
-  test("?admin adds two picked demo games, one upcoming and one already live, and skips the hit counter", async ({ page }) => {
-    const state = await open(page, { query: "?admin", storage: admin });
-    await expect(page.locator("#list label.game")).toHaveCount(10);  // the fixtures plus the two demo games
-    await expect(page.locator('.board-group[data-section="pre"] .card[data-key="cfb:demo"]')).toBeVisible();
-    const live = page.locator('.board-group[data-section="in"] .card[data-key="cfb:demo-live"]');
-    await expect(live).toBeVisible();
-    await expect(live.locator(".dd")).toHaveText("2nd & 7 at MICH 12");
-    await expect(live.locator("svg.field")).toHaveCount(1);
-    await page.waitForTimeout(500);
-    expect(state.hits).toBe(0);
-  });
-
-  test("the demo game kicks off after 10 seconds and its card grows from Upcoming into Live", async ({ page }) => {
+test.describe("counter, and a game that kicks off", () => {
+  test("a picked game that kicks off grows from Upcoming into Live", async ({ page }) => {
     await page.clock.install({ time: new Date("2026-10-03T20:00:00Z") });
     // Record card animations as they start; they're too quick to catch reliably by polling getAnimations().
     await page.addInitScript(() => {
@@ -1002,36 +990,32 @@ test.describe("demo games and counter", () => {
         return animate.call(this, keyframes, options);
       };
     });
-    await open(page, { query: "?admin", storage: admin });
-    const demo = card(page, "cfb:demo");
-    await expect(page.locator('.board-group[data-section="pre"] .card[data-key="cfb:demo"]')).toBeVisible();
-    await expect(demo.locator("svg.field")).toHaveCount(0);
-    expect(await page.evaluate(() => window.cardAnimations.length)).toBe(0);  // nothing moves on ordinary refreshes
+    const state = await open(page, { storage: { selected: ["cfb:1", "cfb:5"] } });
+    const kickoff = card(page, "cfb:5");
+    await expect(page.locator('.board-group[data-section="pre"] .card[data-key="cfb:5"]')).toBeVisible();
+    await expect(kickoff.locator("svg.field")).toHaveCount(0);
     await page.clock.runFor(10_000);
-    await expect(page.locator('.board-group[data-section="in"] .card[data-key="cfb:demo"]')).toBeVisible();
-    await expect(demo.locator(".dd")).toHaveText("1st & 10 at OSU 25");
-    await expect(demo.locator("svg.field")).toHaveCount(1);
-    const grow = (await page.evaluate(() => window.cardAnimations)).find((a) => a.key === "cfb:demo");
+    expect(await page.evaluate(() => window.cardAnimations.length)).toBe(0);  // nothing moves on ordinary refreshes
+    // Vanderbilt at Georgia kicks off: Vanderbilt ball at its own 25.
+    state.cfb = cfbGames().map((e) => e.id !== "5" ? e : { ...e,
+      status: { ...e.status, displayClock: "15:00", type: { ...e.status.type, state: "in", name: "STATUS_IN_PROGRESS", shortDetail: "15:00 - 1st" } },
+      competitions: [{ ...e.competitions[0], situation: { possession: "238", yardLine: 75, downDistanceText: "1st & 10 at VAN 25", distance: 10 } }] });
+    await page.clock.runFor(10_000);
+    await expect(page.locator('.board-group[data-section="in"] .card[data-key="cfb:5"]')).toBeVisible();
+    await expect(kickoff.locator(".dd")).toHaveText("1st & 10 at VAN 25");
+    await expect(kickoff.locator("svg.field")).toHaveCount(1);
+    const grow = (await page.evaluate(() => window.cardAnimations)).find((a) => a.key === "cfb:5");
     expect(parseFloat(grow.keyframes[0].height)).toBeLessThan(parseFloat(grow.keyframes[1].height));
     expect(parseFloat(grow.keyframes[0].width)).toBeLessThan(parseFloat(grow.keyframes[1].width));
   });
 
   test("the admin isn't counted", async ({ page }) => {
     const state = await open(page, { storage: admin });
-    await expect(page.locator("#list label.game")).toHaveCount(8);  // just the fixtures, no demo games
+    await expect(page.locator("#list label.game")).toHaveCount(8);
     await page.waitForTimeout(500);
     expect(state.hits).toBe(0);
   });
 
-
-  test("regular visitors get the demo games neither from ?admin nor otherwise", async ({ page }) => {
-    page.on("dialog", (d) => d.dismiss());
-    await open(page, { query: "?admin" });
-    await page.getByRole("button", { name: "Cancel" }).click();
-    await expect(page.locator("#list label.game")).toHaveCount(8);
-    await expect(page.locator('.card[data-key^="cfb:demo"]')).toHaveCount(0);
-    await expect.poll(() => new URL(page.url()).search).toBe("");  // dropped once the cancelled login finishes
-  });
 
   test("without ?admin, the hidden hit counter is requested once and isn't on the page", async ({ page }) => {
     const state = await open(page);
@@ -1130,9 +1114,9 @@ test.describe("google me: Cignetti, or Pelini one time in ten", () => {
     ]);
   });
 
-  test("?admin doesn't change the odds", async ({ page }) => {
+  test("being the admin doesn't change the odds", async ({ page }) => {
     await stubRandom(page, 0.5);
-    await open(page, { query: "?admin", storage: admin });
+    await open(page, { storage: admin });
     expect(await showCoach(page)).toBe("images/cignetti.png");
   });
 });
