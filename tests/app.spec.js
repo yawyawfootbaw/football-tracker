@@ -129,7 +129,7 @@ test.describe("loading and layout", () => {
     expect(await attr('meta[property="og:title"]', "content")).toBe("Game Tracker");
     expect(await attr('meta[property="og:description"]', "content")).toBeTruthy();
     expect(await attr('meta[name="twitter:card"]', "content")).toBe("summary_large_image");
-    const live = "https://SITE_DOMAIN/";
+    const live = "https://gametrackerlive.com/";
     const og = await attr('meta[property="og:image"]', "content");
     expect(og.startsWith(live)).toBe(true);  // previews need absolute URLs
     for (const path of [og.slice(live.length), await attr('link[rel="icon"]', "href"), await attr('link[rel="apple-touch-icon"]', "href")]) {

@@ -3,7 +3,7 @@
 Live college football and NFL games at a glance: pick the games you care about and each gets a card with the
 score, clock, down and distance, a mini field showing the ball and line to gain, the last play, and the network.
 
-Live: https://SITE_DOMAIN/
+Live: https://gametrackerlive.com/
 
 ## Run, test, deploy
 
@@ -14,7 +14,7 @@ Live: https://SITE_DOMAIN/
 | Admin | Open the site with `?admin` and enter the admin password. The Worker trades it for a login token that lasts 30 days; only the token is kept in the browser, never the password, and while it works `?admin` skips the password. The admin features only show with `?admin` in the address bar, and it stays there while they're on. Without it a logged-in browser looks like anyone else's, but its visits still aren't counted. `?admin=off` logs out, and changing the password (`npx wrangler secret put ADMIN_PASSWORD`) logs out every browser. The admin isn't counted by the visit counter and gets share buttons on live cards and **Save as image** beside each section heading. Live and Final save that section's cards as they look; Upcoming saves a list made for forums (grouped by day, kickoff times in Eastern time, logos, ranks, records and networks). In the game list, each section gets **Select all** and **Remove all**, and Selected gets **Remove all** for every pick in the current tab and filters. The gear menu also gets **Save board as image**, the whole board as it looks right now. Card buttons are left out, every image carries a small Game Tracker logo in the corner, and a phone opens the share sheet while a computer downloads the PNG. That code isn't in the public site: the site's Worker (`worker/`) hands it out only to a logged-in admin. |
 | Loading spinner | Add `?loading` to the URL. The page never fetches games, so both loading spinners stay up. It also skips the visit counter. |
 | Test | `npm install` once, then `npm test`. Playwright runs headless in your installed Google Chrome. `npm run test:worker` tests the Worker. |
-| Deploy | Push to `main`. CI (`.github/workflows/ci.yml`) runs the tests and, if they pass, deploys with `wrangler deploy`: one Cloudflare Worker (`wrangler.toml`) serves the repo's files (minus `.assetsignore`) on SITE_DOMAIN, plus the admin API under `/api/`. There is no build step. CI needs the repo secret `CLOUDFLARE_API_TOKEN` (an "Edit Cloudflare Workers" token covering the domain); `npx wrangler deploy` also works by hand. |
+| Deploy | Push to `main`. CI (`.github/workflows/ci.yml`) runs the tests and, if they pass, deploys with `wrangler deploy`: one Cloudflare Worker (`wrangler.toml`) serves the repo's files (minus `.assetsignore`) on gametrackerlive.com, plus the admin API under `/api/`. There is no build step. CI needs the repo secret `CLOUDFLARE_API_TOKEN` (an "Edit Cloudflare Workers" token covering the domain); `npx wrangler deploy` also works by hand. |
 | Admin password | `npx wrangler secret put ADMIN_PASSWORD` (a long random password). Changing it logs out every browser. |
 
 CI runs the tests on every push and pull request too.
@@ -53,7 +53,7 @@ fonts/                Barlow Condensed Bold for the wordmark (self-hosted, SIL O
 images/               coach photos for "google me", favicon, link-preview image
 scripts/
   share-images.js     regenerates the link-preview image and touch icon
-wrangler.toml         the Cloudflare Worker that serves the site and its admin API, on SITE_DOMAIN
+wrangler.toml         the Cloudflare Worker that serves the site and its admin API, on gametrackerlive.com
 .assetsignore         repo files the site doesn't serve (the Worker's source, tests, tooling)
 worker/               the Worker's code
   admin.js            the admin's features: share buttons, image exports, bulk select (served only by /api/admin.js)

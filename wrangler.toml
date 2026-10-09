@@ -9,8 +9,8 @@ compatibility_date = "2025-06-01"
 # to be on this same Cloudflare account. workers.dev stays off: one public address, not two.
 workers_dev = false
 routes = [
-  { pattern = "SITE_DOMAIN", custom_domain = true },
-  { pattern = "www.SITE_DOMAIN", custom_domain = true },
+  { pattern = "gametrackerlive.com", custom_domain = true },
+  { pattern = "www.gametrackerlive.com", custom_domain = true },
 ]
 
 # The repo root is the site, minus what .assetsignore leaves out (the Worker's own source, tests, tooling).

@@ -193,22 +193,30 @@ async function snapshot(getNode, pad, foot, keepWidth = (node) => node.clientWid
   return new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
 }
 
-// The logo on every image: the header's football and GAME TRACKER in its wordmark font, small and muted,
-// right-aligned on (right, mid).
+// The logo on every image: the header's football, GAME TRACKER in its wordmark font, and the site's address, small
+// and muted, right-aligned on (right, mid).
 async function drawMark(ctx, right, mid) {
   const [ball] = await Promise.all([loadImage("images/favicon.svg"), document.fonts.load(`700 13px "Barlow Condensed"`)]);
   ctx.save();
   ctx.globalAlpha = 0.75;
   ctx.fillStyle = cssColor("--muted");
-  ctx.font = `700 13px "Barlow Condensed", "Arial Narrow", sans-serif`;
-  ctx.letterSpacing = "1.5px";
   ctx.textAlign = "right";
   ctx.textBaseline = "middle";
-  ctx.fillText("GAME TRACKER", right, mid + 1);
-  const text = ctx.measureText("GAME TRACKER").width;
-  if (ball) ctx.drawImage(ball, right - text - 20, mid - 8, 16, 16);
+  // Right to left: the site's address, a dot, the wordmark, the football.
+  ctx.font = `12px ${FONT}`;
+  ctx.fillText(SITE, right, mid);
+  let x = right - ctx.measureText(SITE).width - 8;
+  ctx.fillText("·", x, mid);
+  x -= ctx.measureText("·").width + 8;
+  ctx.font = `700 13px "Barlow Condensed", "Arial Narrow", sans-serif`;
+  ctx.letterSpacing = "1.5px";
+  ctx.fillText("GAME TRACKER", x, mid + 1);
+  x -= ctx.measureText("GAME TRACKER").width;
+  if (ball) ctx.drawImage(ball, x - 20, mid - 8, 16, 16);
   ctx.restore();
 }
+
+const SITE = "gametrackerlive.com";
 
 // The share sheet on touch screens (so it can go to Photos or straight into a post), a download otherwise.
 async function deliver({ blob, name }) {
