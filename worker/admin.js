@@ -9,9 +9,12 @@
 // - In the game list, a row of bulk buttons atop each section: Live, Upcoming and Final get "Select all" (every game
 //   the section shows) and "Remove all" (that state's picked games, which sit under Selected); Selected gets
 //   "Remove all" (every picked game in the current tab and filters).
-// Every image is in the current theme and carries a small, muted Game Tracker logo in the bottom-right corner.
+// Every image is in the current theme, gives kickoff times in Eastern time whatever the admin's own time zone, and
+// carries a small, muted Game Tracker logo in the bottom-right corner.
 
-let app;  // { renderBoard, renderList, listView, allGames, state, saveSelected, currentTheme } from js/admin.js
+let app;  // { renderBoard, renderList, listView, allGames, state, saveSelected, currentTheme, setTimeZone } from js/admin.js
+
+const IMAGE_ZONE = "America/New_York";  // the time zone of every kickoff time in an image
 
 /** Returns the hooks for js/board.js's setAdmin. */
 export function install(appApi) {
@@ -159,13 +162,24 @@ async function posterImage() {
  */
 async function snapshot(getNode, pad, foot, keepWidth = (node) => node.clientWidth) {
   const { toCanvas } = await import(HTML_TO_IMAGE);
-  const node = getNode();
-  const width = keepWidth(node), height = node.scrollHeight, bg = cssColor("--bg");
-  const shot = await toCanvas(node, {
-    width, height, pixelRatio: SCALE, backgroundColor: bg,
-    style: { width: `${node.clientWidth}px`, height: `${height}px`, overflow: "visible", margin: "0" },
-    filter: (el) => !LEFT_OUT.some((c) => el.classList?.contains(c)),
-  });
+  // Redraw the cards with Eastern kickoff times for the capture, then put the viewer's own back.
+  app.setTimeZone(IMAGE_ZONE);
+  app.renderBoard();
+  let node, width, height, shot;
+  const bg = cssColor("--bg");
+  try {
+    node = getNode();
+    width = keepWidth(node);
+    height = node.scrollHeight;
+    shot = await toCanvas(node, {
+      width, height, pixelRatio: SCALE, backgroundColor: bg,
+      style: { width: `${node.clientWidth}px`, height: `${height}px`, overflow: "visible", margin: "0" },
+      filter: (el) => !LEFT_OUT.some((c) => el.classList?.contains(c)),
+    });
+  } finally {
+    app.setTimeZone(undefined);
+    app.renderBoard();
+  }
   const w = width + 2 * pad, h = height + 2 * pad + foot;
   const canvas = document.createElement("canvas");
   canvas.width = w * SCALE;
@@ -253,7 +267,7 @@ function drawRow(ctx, g, mid, logos, color) {
   ctx.textAlign = "left";
   ctx.fillStyle = color("--text");
   ctx.font = `600 13px ${FONT}`;
-  ctx.fillText(g.date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }), PAD, mid);
+  ctx.fillText(g.date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit", timeZone: IMAGE_ZONE }), PAD, mid);
 
   if (g.network) {
     ctx.textAlign = "right";
@@ -341,16 +355,17 @@ function roundRect(ctx, x, y, w, h, r) {
 function groupByDay(games) {
   const days = [];
   for (const g of games) {
-    const label = g.date.toLocaleDateString([], { weekday: "long", month: "short", day: "numeric" });
+    const label = g.date.toLocaleDateString([], { weekday: "long", month: "short", day: "numeric", timeZone: IMAGE_ZONE });
     if (days.at(-1)?.label !== label) days.push({ label, games: [] });
     days.at(-1).games.push(g);
   }
   return days;
 }
 
-// The viewer's time zone as a short name, e.g. "EDT", for the footer. Kickoff times are drawn in that zone.
+// IMAGE_ZONE's short name on that date, "EDT" or "EST", for the footer.
 function zoneName(date) {
-  return new Intl.DateTimeFormat([], { timeZoneName: "short" }).formatToParts(date).find((p) => p.type === "timeZoneName")?.value ?? "local time";
+  return new Intl.DateTimeFormat("en-US", { timeZone: IMAGE_ZONE, timeZoneName: "short" }).formatToParts(date)
+    .find((p) => p.type === "timeZoneName")?.value ?? "ET";
 }
 
 // Logos have to come from ESPN with CORS, or the canvas can't be exported. Same dark-variant rule as js/format.js.

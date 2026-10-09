@@ -1,8 +1,7 @@
 // Admin login. The admin's features (share buttons, the image exports) aren't in the public code: the Worker at
 // ADMIN_URL (worker/) hands them out only to a logged-in admin. ?admin asks for the password and trades it for a
 // token that lasts 30 days, kept in this browser's localStorage (adminToken) in place of the password. With a token
-// that still works, ?admin skips the password. ?admin=off logs out. Either way the parameter then leaves the address
-// bar.
+// that still works, ?admin skips the password. ?admin=off logs out.
 
 import { ADMIN_PARAM, ADMIN_URL } from "./config.js";
 import { store } from "./store.js";
@@ -10,6 +9,7 @@ import { allGames, state, saveSelected } from "./state.js";
 import { renderBoard, setAdmin } from "./board.js";
 import { listView, renderList, setPickerAdmin } from "./picker.js";
 import { currentTheme } from "./theme.js";
+import { setTimeZone } from "./format.js";
 
 /** Load the admin's features if this browser is logged in. Resolves true when they're on. */
 export async function loadAdmin() {
@@ -34,12 +34,16 @@ export async function loadAdmin() {
       break;
     }
   }
-  if (ADMIN_PARAM !== null) {
+  const on = await install(code);
+  // ?admin stays in the address bar while the admin is logged in, so it's plain the page is in admin mode;
+  // ?admin=off, a cancelled login, or an unreachable Worker drop it. (Being logged in, not the flag, is what keeps
+  // the admin's visits out of the counter.)
+  if (ADMIN_PARAM !== null && !on) {
     const url = new URL(location.href);
     url.searchParams.delete("admin");
     history.replaceState(null, "", url);
   }
-  return install(code);
+  return on;
 }
 
 // The admin module, using the saved token. Null when there's no token, it's refused, or the Worker can't be reached.
@@ -74,7 +78,7 @@ async function install(code) {
   const blob = URL.createObjectURL(new Blob([code], { type: "text/javascript" }));
   try {
     const { install } = await import(blob);
-    const hooks = install({ renderBoard, renderList, listView, allGames, state, saveSelected, currentTheme });
+    const hooks = install({ renderBoard, renderList, listView, allGames, state, saveSelected, currentTheme, setTimeZone });
     setAdmin(hooks);
     setPickerAdmin(hooks);
     return true;

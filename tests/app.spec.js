@@ -263,6 +263,38 @@ test.describe("section images", () => {
   });
 });
 
+test.describe("images use Eastern time", () => {
+  test.use({ timezoneId: "Asia/Tokyo" });  // far from Eastern, so local and Eastern times differ (and so do days)
+
+  test("the Upcoming list gives kickoff times and days in Eastern time", async ({ page }) => {
+    // 23:30Z Oct 3 is Saturday 7:30 PM Eastern; 14:00Z Oct 4 is Sunday 10:00 AM. In Tokyo both fall on Sunday.
+    const cfb = cfbGames().map((e) => (e.id === "6" ? { ...e, date: "2026-10-04T14:00Z" } : e));
+    await open(page, { cfb, storage: { ...admin, selected: ["cfb:5", "cfb:6"] } });
+    const [download] = await Promise.all([page.waitForEvent("download"),
+      page.locator('.board-group[data-section="pre"] .poster').click()]);
+    const png = require("fs").readFileSync(await download.path());
+    expect(png.readUInt32BE(20)).toBe(2 * (24 + 2 * 34 + 2 * 44 + 34 + 12));  // two day headings, not one
+  });
+
+  test("board and section images show Eastern kickoff times, and the page goes back to local time after", async ({ page }) => {
+    // Stand in for the image library: note the times on the cards being captured.
+    await page.route("https://cdn.jsdelivr.net/npm/html-to-image@*/+esm", (route) => route.fulfill({ contentType: "text/javascript", body: `
+      export async function toCanvas(node) {
+        window.captured = node.innerText;
+        const canvas = document.createElement("canvas");
+        canvas.width = canvas.height = 10;
+        return canvas;
+      }` }));
+    await open(page, { storage: { ...admin, selected: ["cfb:5", "cfb:7"] } });
+    const kickoff = card(page, "cfb:5").locator(".clock");
+    await expect(kickoff).toContainText("8:30 AM");  // 23:30Z in Tokyo
+    await page.locator("#settings").click();
+    await Promise.all([page.waitForEvent("download"), page.locator("#save-board").click()]);
+    expect(await page.evaluate(() => window.captured)).toContain("7:30 PM");  // Eastern
+    await expect(kickoff).toContainText("8:30 AM");  // back to local
+  });
+});
+
 test.describe("board image", () => {
   test("only the admin's gear menu has Save board as image", async ({ page }) => {
     await open(page, { storage: { selected: ["cfb:1"] } });
@@ -350,7 +382,7 @@ test.describe("admin login", () => {
     await field.press("Enter");
     await expect(page.locator("#admin-login")).toHaveCount(0);
     await expect(card(page, "cfb:1").locator(".share")).toBeAttached();
-    expect(new URL(page.url()).search).toBe("");
+    expect(new URL(page.url()).search).toBe("?admin");  // kept while logged in
     const saved = await page.evaluate(() => JSON.stringify(localStorage));
     expect(saved).toContain(ADMIN_TOKEN);
     expect(saved).not.toContain(ADMIN_KEY);
@@ -369,6 +401,7 @@ test.describe("admin login", () => {
     await expect(card(page, "cfb:1")).toBeAttached();
     await expect(page.locator("#board .share")).toHaveCount(0);
     expect(await page.evaluate(() => localStorage.getItem("adminToken"))).toBeNull();
+    await expect.poll(() => new URL(page.url()).search).toBe("");  // not logged in, so ?admin goes
     await expect.poll(() => state.hits).toBe(1);
   });
 
@@ -393,6 +426,7 @@ test.describe("admin login", () => {
     await open(page, { query: "?admin", storage: { ...admin, selected: ["cfb:1"] } });
     await expect(card(page, "cfb:1").locator(".share")).toBeAttached();
     await expect(page.locator("#admin-login")).toHaveCount(0);
+    expect(new URL(page.url()).search).toBe("?admin");
   });
 
   test("?admin asks again once the saved login has expired", async ({ page }) => {
