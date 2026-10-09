@@ -59,9 +59,41 @@ test("no password configured means nobody gets in", async () => {
 test("preflight allows the Authorization header for the site and localhost only", async () => {
   const ok = await call("OPTIONS", "/login", null, { origin: "http://localhost:4173" });
   assert.equal(ok.status, 204);
-  assert.equal(ok.headers.get("Access-Control-Allow-Headers"), "Authorization");
+  assert.equal(ok.headers.get("Access-Control-Allow-Headers"), "Authorization, Content-Type");
   const other = await call("OPTIONS", "/login", null, { origin: "https://evil.example" });
   assert.equal(other.headers.get("Access-Control-Allow-Origin"), null);
+});
+
+const imgurEnv = { ...env, IMGUR_CLIENT_ID: "client-123" };
+const upload = async (token, { envOverride = imgurEnv, imgur, body = new Uint8Array([137, 80, 78, 71]) } = {}) => {
+  const sent = [];
+  const fakeImgur = async (url, init) => {
+    sent.push({ url, init });
+    return imgur ?? Response.json({ success: true, data: { link: "https://i.imgur.com/abc.png", deletehash: "xyz" } });
+  };
+  const req = new Request("https://admin.example/imgur", { method: "POST", body, headers: { Authorization: `Bearer ${token}`, Origin: SITE } });
+  return { res: await handle(req, envOverride, "", NOW, fakeImgur), sent };
+};
+
+test("Imgur: a logged-in admin's PNG goes up anonymously with the Client-ID, and the link comes back", async () => {
+  const { res, sent } = await upload(await tokenFor());
+  assert.equal(res.status, 200);
+  assert.deepEqual(await res.json(), { link: "https://i.imgur.com/abc.png", deletehash: "xyz" });
+  assert.equal(sent[0].url, "https://api.imgur.com/3/image");
+  assert.equal(sent[0].init.headers.Authorization, "Client-ID client-123");
+  const image = sent[0].init.body.get("image");
+  assert.deepEqual(new Uint8Array(await image.arrayBuffer()), new Uint8Array([137, 80, 78, 71]));
+});
+
+test("Imgur: no token, no Client-ID, an empty body, or an Imgur error never reach a link", async () => {
+  assert.equal((await upload(env.ADMIN_PASSWORD)).res.status, 401);  // the password isn't a token
+  const noId = await upload(await tokenFor(), { envOverride: env });
+  assert.equal(noId.res.status, 503);
+  assert.equal(noId.sent.length, 0);
+  assert.equal((await upload(await tokenFor(), { body: new Uint8Array() })).res.status, 413);
+  const refused = await upload(await tokenFor(), { imgur: Response.json({ success: false, data: { error: "Rate limited" } }, { status: 429 }) });
+  assert.equal(refused.res.status, 502);
+  assert.deepEqual(await refused.res.json(), { error: "Rate limited" });
 });
 
 test("other paths and methods are 404", async () => {

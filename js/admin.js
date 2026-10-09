@@ -77,7 +77,10 @@ async function install(code) {
   const blob = URL.createObjectURL(new Blob([code], { type: "text/javascript" }));
   try {
     const { install } = await import(blob);
-    const hooks = install({ renderBoard, renderList, listView, allGames, state, saveSelected, currentTheme });
+    // The admin's calls back to the Worker (the Imgur upload), signed in with the saved token.
+    const adminFetch = (path, options = {}) =>
+      fetch(`${ADMIN_URL}${path}`, { ...options, headers: { ...options.headers, Authorization: `Bearer ${store.get("adminToken")}` } });
+    const hooks = install({ renderBoard, renderList, listView, allGames, state, saveSelected, currentTheme, adminFetch });
     setAdmin(hooks);
     setPickerAdmin(hooks);
     return true;

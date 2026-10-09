@@ -10,8 +10,10 @@
 //   the section shows) and "Remove all" (that state's picked games, which sit under Selected); Selected gets
 //   "Remove all" (every picked game in the current tab and filters).
 // Every image is in the current theme and carries a small, muted Game Tracker logo in the bottom-right corner.
+// Each "Save as image" has an "Upload to Imgur" beside it: the same image goes up anonymously through the Worker
+// (POST /imgur) and its link is copied, ready to paste.
 
-let app;  // { renderBoard, renderList, listView, allGames, state, saveSelected, currentTheme } from js/admin.js
+let app;  // { renderBoard, renderList, listView, allGames, state, saveSelected, currentTheme, adminFetch } from js/admin.js
 
 /** Returns the hooks for js/board.js's setAdmin. */
 export function install(appApi) {
@@ -30,16 +32,16 @@ export function install(appApi) {
       return true;
     },
     cardExtras: (g) => (g.state === "in" ? shareButton(g) : ""),
-    sectionExtras: () => posterButton(),
+    sectionExtras: (st) => imageButtons(st),
     onBoardClick(e) {
       const shareKey = e.target.closest("[data-share]")?.dataset.share;
       const game = shareKey && app.allGames().find((g) => g.key === shareKey);
       if (game) { share(game); return true; }
-      const section = e.target.closest("[data-poster]")?.closest(".board-group");
-      if (!section) return false;
-      if (section.dataset.section !== "pre") { saveSection(section); return true; }
-      const keys = [...section.querySelectorAll(".card")].map((c) => c.dataset.key);
-      savePoster(keys.map((k) => app.allGames().find((g) => g.key === k)).filter(Boolean));
+      const button = e.target.closest("[data-poster]");
+      if (!button) return false;
+      const st = button.closest(".board-group").dataset.section;
+      const image = st === "pre" ? posterImage() : sectionImage(st);
+      button.dataset.poster === "imgur" ? upload(image, st) : image.then(deliver);
       return true;
     },
   };
@@ -97,23 +99,28 @@ async function share(g) {
   setTimeout(app.renderBoard, COPIED_MS);
 }
 
-function posterButton() {
-  return `<button class="poster" data-poster title="Save these games as an image">Save as image</button>`;
+function imageButtons(st) {
+  return `<button class="poster" data-poster="save" title="Save these games as an image">Save as image</button>
+    <button class="poster" data-poster="imgur" title="Upload these games to Imgur and copy the link">${uploadLabel(st, "Upload to Imgur")}</button>`;
 }
 
 const W = 640, PAD = 24, ROW = 44, DAY_HEAD = 34, FOOT = 34, SCALE = 2;
 const TIME_W = 78, NET_W = 120, LOGO = 24;
 const FONT = `-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
 
-// Gear menu item. Lined up with "google me", whose ✓ column it shares.
+// Gear menu items. Lined up with "google me", whose ✓ column they share.
 function addBoardShot() {
   const menu = document.getElementById("settings-menu");
   if (!menu || document.getElementById("save-board")) return;
-  const button = document.createElement("button");
-  button.id = "save-board";
-  button.innerHTML = `<span class="check"></span>Save board as image`;
-  button.addEventListener("click", saveBoard);
-  menu.append(button);
+  const item = (id, label, onClick) => {
+    const button = document.createElement("button");
+    button.id = id;
+    button.innerHTML = `<span class="check"></span><span class="label">${label}</span>`;
+    button.addEventListener("click", onClick);
+    menu.append(button);
+  };
+  item("save-board", "Save board as image", async () => { const image = await boardImage(); if (image) deliver(image); });
+  item("imgur-board", "Upload board to Imgur", () => upload(boardImage(), "board"));
 }
 
 // Turns DOM into an image by drawing a copy of it, styles, fonts and logos inlined; loaded only when first used.
@@ -123,30 +130,89 @@ const LEFT_OUT = ["remove", "share", "poster", "last-full"];
 
 const cssColor = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 
+// Each image comes as { blob, name }, the name being what a download is saved as.
+
 // The board already has room around its cards (css/board.css: 16px, and 32px below, where the logo goes).
-async function saveBoard() {
+// Null when nothing is picked.
+async function boardImage() {
   const board = document.getElementById("board");
-  if (!board.querySelector(".card")) return;
-  await deliver(await snapshot(board, 0, 0), "game-tracker.png");
+  if (!board.querySelector(".card")) return null;
+  return { blob: await snapshot(() => board, 0, 0), name: "game-tracker.png" };
 }
+
+// The board redraws every poll, replacing its sections, so a section is looked up by its state when it's drawn.
+const sectionEl = (st) => document.querySelector(`#board .board-group[data-section="${st}"]`);
 
 // A section has no padding of its own, so give it the board's: 16px around, plus 16px more below for the logo.
 // It's cut off after its last card, so a lone card doesn't sit beside a wide empty space.
-async function saveSection(section) {
-  const left = section.getBoundingClientRect().left;
-  const right = Math.max(...[...section.querySelectorAll(".card")].map((c) => c.getBoundingClientRect().right));
-  const name = `game-tracker-${section.dataset.section === "in" ? "live" : "final"}.png`;
-  await deliver(await snapshot(section, 16, 16, Math.ceil(right - left)), name);
+async function sectionImage(st) {
+  const width = (section) => {
+    const right = Math.max(...[...section.querySelectorAll(".card")].map((c) => c.getBoundingClientRect().right));
+    return Math.ceil(right - section.getBoundingClientRect().left);
+  };
+  return { blob: await snapshot(() => sectionEl(st), 16, 16, width), name: `game-tracker-${st === "in" ? "live" : "final"}.png` };
+}
+
+// The Upcoming section's cards, as the forum list.
+async function posterImage() {
+  const games = [...sectionEl("pre").querySelectorAll(".card")].map((c) => app.allGames().find((g) => g.key === c.dataset.key)).filter(Boolean);
+  return { blob: await drawPoster(games), name: "upcoming-games.png" };
+}
+
+// What an "Upload to Imgur" button says while an upload it started is under way or just finished, by section
+// ("in", "post", "pre", or "board" for the gear menu). Kept here because the board redraws every poll.
+const uploads = {};
+const uploadLabel = (where, idle) => (uploads[where] && Date.now() < uploads[where].until ? uploads[where].text : idle);
+const uploading = (where) => uploads[where]?.text === "Uploading…" && Date.now() < uploads[where].until;
+
+// Relabels the button in place rather than redrawing the board, which would pull a section out from under an image
+// being drawn from it.
+function setUpload(where, text, ms) {
+  uploads[where] = { text, until: Date.now() + ms };
+  const button = where === "board" ? document.querySelector("#imgur-board .label") : sectionEl(where)?.querySelector('[data-poster="imgur"]');
+  if (button) button.textContent = uploadLabel(where, where === "board" ? "Upload board to Imgur" : "Upload to Imgur");
+  if (ms > 0 && ms < Infinity) setTimeout(() => setUpload(where, "", 0), ms);
+}
+
+// Upload through the Worker (it holds the Imgur key), then copy the link. Every upload's link and delete code are
+// kept in localStorage (imgurUploads): anonymous images can only be deleted with that code.
+async function upload(imagePromise, where) {
+  if (uploading(where)) return;  // one at a time
+  setUpload(where, "Uploading…", Infinity);
+  try {
+    const image = await imagePromise;
+    if (!image) return setUpload(where, "", 0);
+    const res = await app.adminFetch("/imgur", { method: "POST", headers: { "Content-Type": "image/png" }, body: image.blob });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(body.error ?? `upload failed (${res.status})`);
+    try {
+      const saved = JSON.parse(localStorage.getItem("imgurUploads") ?? "[]");
+      localStorage.setItem("imgurUploads", JSON.stringify([...saved, { ...body, at: new Date().toISOString() }]));
+    } catch {}
+    try {
+      await navigator.clipboard.writeText(body.link);
+      setUpload(where, "Link copied ✓", 2500);
+    } catch {
+      setUpload(where, "", 0);
+      prompt("Uploaded. Copy the Imgur link:", body.link);  // no clipboard access
+    }
+  } catch (err) {
+    console.error("imgur", err);
+    setUpload(where, "Upload failed", 3000);
+    alert(`Imgur upload failed: ${err.message}`);
+  }
 }
 
 /**
  * Part of the page as it looks right now, including anything scrolled out of view, on the page's background.
+ * @param getNode  finds the element once the image library has loaded, so a board redraw meanwhile doesn't matter
  * @param pad  space added on every side; @param foot  extra space added below. The logo sits 16px from the bottom.
- * @param width  how much of the node's width to keep, from its left edge; the node itself keeps its layout.
+ * @param keepWidth  how much of the node's width to keep, from its left edge; the node itself keeps its layout.
  */
-async function snapshot(node, pad, foot, width = node.clientWidth) {
+async function snapshot(getNode, pad, foot, keepWidth = (node) => node.clientWidth) {
   const { toCanvas } = await import(HTML_TO_IMAGE);
-  const height = node.scrollHeight, bg = cssColor("--bg");
+  const node = getNode();
+  const width = keepWidth(node), height = node.scrollHeight, bg = cssColor("--bg");
   const shot = await toCanvas(node, {
     width, height, pixelRatio: SCALE, backgroundColor: bg,
     style: { width: `${node.clientWidth}px`, height: `${height}px`, overflow: "visible", margin: "0" },
@@ -182,13 +248,8 @@ async function drawMark(ctx, right, mid) {
   ctx.restore();
 }
 
-async function savePoster(games) {
-  if (!games.length) return;
-  await deliver(await drawPoster(games), "upcoming-games.png");
-}
-
 // The share sheet on touch screens (so it can go to Photos or straight into a post), a download otherwise.
-async function deliver(blob, name) {
+async function deliver({ blob, name }) {
   const file = new File([blob], name, { type: "image/png" });
   if (matchMedia("(hover: none)").matches && navigator.canShare?.({ files: [file] })) {
     try { await navigator.share({ files: [file] }); } catch {}  // closing the sheet without sharing throws
