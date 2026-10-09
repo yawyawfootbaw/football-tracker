@@ -71,6 +71,6 @@ pollNow();
 document.addEventListener("visibilitychange", () => { if (!document.hidden) pollNow(); });
 
 // The page loads behind the admin login; once the admin's features arrive, redraw the cards with them.
-const isAdmin = await loadAdmin();
+const isAdmin = await loadAdmin();  // logged in; the features are on only with ?admin
 if (isAdmin && lastUpdated !== null) { renderList(); renderBoard(); }
 if (!LOADING && !isAdmin) countVisit();

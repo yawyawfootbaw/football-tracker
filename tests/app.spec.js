@@ -201,7 +201,7 @@ test.describe("?game= links and the share button", () => {
   });
 
   test("for the admin, only live cards can be shared", async ({ page }) => {
-    await open(page, { storage: { ...admin, selected: ALL_CFB } });
+    await open(page, { query: "?admin", storage: { ...admin, selected: ALL_CFB } });
     await expect(page.locator("#board .live .card").first()).toBeAttached();
     expect(await page.locator("#board .live .card .share").count()).toBe(await page.locator("#board .live .card").count());
     await expect(page.locator("#board .compact .card").first()).toBeAttached();
@@ -210,7 +210,7 @@ test.describe("?game= links and the share button", () => {
 
   test("with a mouse, the share button copies the game's link and shows a ✓", async ({ page, context }) => {
     await context.grantPermissions(["clipboard-read", "clipboard-write"]);
-    await open(page, { storage: { ...admin, selected: ["cfb:1"] } });
+    await open(page, { query: "?admin", storage: { ...admin, selected: ["cfb:1"] } });
     const share = card(page, "cfb:1").locator(".share");
     expect(await style(share, "opacity")).toBe("0");  // shows on hover, like ✕
     await card(page, "cfb:1").hover();
@@ -229,11 +229,14 @@ test.describe("section images", () => {
     await expect(page.locator("#board .poster")).toHaveCount(0);
     await page.evaluate((token) => localStorage.setItem("adminToken", JSON.stringify(token)), ADMIN_TOKEN);
     await page.reload();
+    await expect(page.locator('.board-group[data-section="pre"]')).toBeAttached();
+    await expect(page.locator("#board .poster")).toHaveCount(0);  // logged in, but no ?admin
+    await page.goto("/index.html?admin");
     for (const st of ["in", "post", "pre"]) await expect(page.locator(`.board-group[data-section="${st}"] .poster`)).toHaveCount(1);
   });
 
   test("Live and Final save their cards as they look, cut off after the last card, with 16px around and room for the logo", async ({ page }) => {
-    await open(page, { storage: { ...admin, selected: ALL_CFB } });
+    await open(page, { query: "?admin", storage: { ...admin, selected: ALL_CFB } });
     for (const [st, name] of [["in", "live"], ["post", "final"]]) {
       const section = page.locator(`.board-group[data-section="${st}"]`);
       // Cut off after the last card.
@@ -248,7 +251,7 @@ test.describe("section images", () => {
   });
 
   test("Save as image downloads a PNG of the picked upcoming games, one row per game plus a day heading", async ({ page }) => {
-    await open(page, { storage: { ...admin, selected: [...ALL_CFB, "nfl:102"] } });
+    await open(page, { query: "?admin", storage: { ...admin, selected: [...ALL_CFB, "nfl:102"] } });
     const upcoming = page.locator('.board-group[data-section="pre"] .poster');
     const [download] = await Promise.all([page.waitForEvent("download"), upcoming.click()]);
     expect(download.suggestedFilename()).toBe("upcoming-games.png");
@@ -269,7 +272,7 @@ test.describe("images use Eastern time", () => {
   test("the Upcoming list gives kickoff times and days in Eastern time", async ({ page }) => {
     // 23:30Z Oct 3 is Saturday 7:30 PM Eastern; 14:00Z Oct 4 is Sunday 10:00 AM. In Tokyo both fall on Sunday.
     const cfb = cfbGames().map((e) => (e.id === "6" ? { ...e, date: "2026-10-04T14:00Z" } : e));
-    await open(page, { cfb, storage: { ...admin, selected: ["cfb:5", "cfb:6"] } });
+    await open(page, { cfb, query: "?admin", storage: { ...admin, selected: ["cfb:5", "cfb:6"] } });
     const [download] = await Promise.all([page.waitForEvent("download"),
       page.locator('.board-group[data-section="pre"] .poster').click()]);
     const png = require("fs").readFileSync(await download.path());
@@ -280,7 +283,7 @@ test.describe("images use Eastern time", () => {
     // Sunday's game has the best-ranked team, so Top 25 puts it first on the board; the image keeps Saturday first.
     const cfb = cfbGames().map((e) => (e.id === "6" ? { ...e, date: "2026-10-04T17:00Z",
       competitions: [{ ...e.competitions[0], competitors: e.competitions[0].competitors.map((c) => ({ ...c, curatedRank: { current: 1 } })) }] } : e));
-    await open(page, { cfb, storage: { ...admin, selected: ["cfb:5", "cfb:6", "nfl:102"], filters: { cfb: { confs: [], top25: true }, nfl: { confs: [] } } } });
+    await open(page, { cfb, query: "?admin", storage: { ...admin, selected: ["cfb:5", "cfb:6", "nfl:102"], filters: { cfb: { confs: [], top25: true }, nfl: { confs: [] } } } });
     const board = page.locator('.board-group[data-section="pre"] .card');
     await expect(board).toHaveCount(3);
     // #1 (Sunday), #2 (Saturday), then the unranked NFL game (Sunday): Sunday, Saturday, Sunday.
@@ -300,7 +303,7 @@ test.describe("images use Eastern time", () => {
         canvas.width = canvas.height = 10;
         return canvas;
       }` }));
-    await open(page, { storage: { ...admin, selected: ["cfb:5", "cfb:7"] } });
+    await open(page, { query: "?admin", storage: { ...admin, selected: ["cfb:5", "cfb:7"] } });
     const kickoff = card(page, "cfb:5").locator(".clock");
     await expect(kickoff).toContainText("8:30 AM");  // 23:30Z in Tokyo
     await page.locator("#settings").click();
@@ -316,14 +319,14 @@ test.describe("board image", () => {
     await page.locator("#settings").click();
     await expect(page.locator("#save-board")).toHaveCount(0);
     await page.evaluate((token) => localStorage.setItem("adminToken", JSON.stringify(token)), ADMIN_TOKEN);
-    await page.reload();
+    await page.goto("/index.html?admin");
     await expect(card(page, "cfb:1")).toBeAttached();
     await page.locator("#settings").click();
     await expect(page.locator("#save-board")).toHaveText("Save board as image");
   });
 
   test("Save board as image downloads a PNG of the whole board at 2x", async ({ page }) => {
-    await open(page, { storage: { ...admin, selected: [...ALL_CFB, "nfl:101", "nfl:102"] } });
+    await open(page, { query: "?admin", storage: { ...admin, selected: [...ALL_CFB, "nfl:101", "nfl:102"] } });
     await expect(card(page, "nfl:102")).toBeAttached();
     const board = await page.locator("#board").evaluate((b) => ({ width: b.clientWidth, height: b.scrollHeight }));
     await page.locator("#settings").click();
@@ -339,7 +342,7 @@ test.describe("board image", () => {
 test.describe("bulk select in the game list", () => {
   test("Remove all also catches a game that ended after the list was last drawn", async ({ page }) => {
     await page.clock.install({ time: new Date("2026-10-03T20:00:00Z") });
-    const state = await open(page, { storage: { ...admin, selected: ["cfb:1", "cfb:7"], pickerOpen: true } });
+    const state = await open(page, { query: "?admin", storage: { ...admin, selected: ["cfb:1", "cfb:7"], pickerOpen: true } });
     await expect(page.locator(".group-actions").first()).toBeAttached();
     // cfb:1 ends. The next poll moves its card to Final, but the list waits out LIST_REFRESH_MS before redrawing.
     state.cfb = cfbGames().map((e) => e.id !== "1" ? e : { ...e,
@@ -360,7 +363,7 @@ test.describe("bulk select in the game list", () => {
   });
 
   test("Select all picks every game a section shows, and Remove all takes that state's picks back off", async ({ page }) => {
-    await open(page, { storage: { ...admin, selected: ["cfb:5"], pickerOpen: true } });
+    await open(page, { query: "?admin", storage: { ...admin, selected: ["cfb:5"], pickerOpen: true } });
     await expect(actions(page, "Live").getByRole("button")).toHaveText(["Select all"]);  // no live games picked yet
     await actions(page, "Live").getByRole("button", { name: "Select all" }).click();
     expect(await picked(page)).toEqual(["cfb:1", "cfb:2", "cfb:3", "cfb:4", "cfb:5"]);
@@ -372,7 +375,7 @@ test.describe("bulk select in the game list", () => {
   });
 
   test("Selected's Remove all clears only the picks in the current view", async ({ page }) => {
-    await open(page, { storage: { ...admin, selected: ["cfb:1", "cfb:7", "nfl:101"], pickerOpen: true } });
+    await open(page, { query: "?admin", storage: { ...admin, selected: ["cfb:1", "cfb:7", "nfl:101"], pickerOpen: true } });
     await expect(actions(page, "Selected").getByRole("button")).toHaveText(["Remove all"]);
     await actions(page, "Selected").getByRole("button", { name: "Remove all" }).click();
     expect(await picked(page)).toEqual(["nfl:101"]);  // the NFL tab isn't in view
@@ -401,8 +404,21 @@ test.describe("admin login", () => {
     const saved = await page.evaluate(() => JSON.stringify(localStorage));
     expect(saved).toContain(ADMIN_TOKEN);
     expect(saved).not.toContain(ADMIN_KEY);
-    await page.goto("/index.html");  // no ?admin needed from now on
+    await page.goto("/index.html?admin");  // no password needed from now on
     await expect(card(page, "cfb:1").locator(".share")).toBeAttached();
+    await expect(page.locator("#admin-login")).toHaveCount(0);
+    await page.waitForTimeout(500);
+    expect(state.hits).toBe(0);
+  });
+
+  test("without ?admin a logged-in browser shows no admin features, but still isn't counted", async ({ page }) => {
+    const state = await open(page, { storage: { ...admin, selected: ALL_CFB, pickerOpen: true } });
+    await expect(card(page, "cfb:1")).toBeAttached();
+    await expect.poll(() => state.adminRequests).toBe(1);  // the login is checked
+    await expect(page.locator("#board .share, #board .poster, #list .group-actions")).toHaveCount(0);
+    await page.locator("#settings").click();
+    await expect(page.locator("#save-board")).toHaveCount(0);
+    expect(await page.evaluate(() => localStorage.getItem("adminToken"))).toContain("test-token");  // still logged in
     await page.waitForTimeout(500);
     expect(state.hits).toBe(0);
   });
@@ -430,7 +446,7 @@ test.describe("admin login", () => {
   });
 
   test("a password saved by an older version is swapped for a token and forgotten", async ({ page }) => {
-    await open(page, { storage: { adminKey: ADMIN_KEY, selected: ["cfb:1"] } });
+    await open(page, { query: "?admin", storage: { adminKey: ADMIN_KEY, selected: ["cfb:1"] } });
     await expect(card(page, "cfb:1").locator(".share")).toBeAttached();
     const saved = await page.evaluate(() => JSON.stringify(localStorage));
     expect(saved).toContain(ADMIN_TOKEN);
@@ -1059,7 +1075,7 @@ test.describe("counter, and a game that kicks off", () => {
   });
 
   test("the admin isn't counted", async ({ page }) => {
-    const state = await open(page, { storage: admin });
+    const state = await open(page, { query: "?admin", storage: admin });
     await expect(page.locator("#list label.game")).toHaveCount(8);
     await page.waitForTimeout(500);
     expect(state.hits).toBe(0);
@@ -1165,7 +1181,7 @@ test.describe("google me: Cignetti, or Pelini one time in ten", () => {
 
   test("being the admin doesn't change the odds", async ({ page }) => {
     await stubRandom(page, 0.5);
-    await open(page, { storage: admin });
+    await open(page, { query: "?admin", storage: admin });
     expect(await showCoach(page)).toBe("images/cignetti.png");
   });
 });
@@ -1386,7 +1402,7 @@ test.describe("mobile", () => {
 
   test("the share button opens the phone's share sheet with the game and its link", async ({ page }) => {
     await page.addInitScript(() => { navigator.share = async (data) => { window.shared = data; }; });
-    await open(page, { storage: { ...admin, selected: ["cfb:1"], pickerOpen: false } });
+    await open(page, { query: "?admin", storage: { ...admin, selected: ["cfb:1"], pickerOpen: false } });
     test.skip(await page.evaluate(() => matchMedia("(hover: hover)").matches), "emulated device reports hover");
     expect(await style(card(page, "cfb:1").locator(".share"), "opacity")).toBe("1");
     await card(page, "cfb:1").locator(".share").click();

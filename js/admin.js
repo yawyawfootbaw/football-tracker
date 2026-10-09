@@ -2,6 +2,9 @@
 // ADMIN_URL (worker/) hands them out only to a logged-in admin. ?admin asks for the password and trades it for a
 // token that lasts 30 days, kept in this browser's localStorage (adminToken) in place of the password. With a token
 // that still works, ?admin skips the password. ?admin=off logs out.
+//
+// The features show only with ?admin in the address bar. Without it, a logged-in browser looks like anyone else's,
+// but its visits still aren't counted.
 
 import { ADMIN_PARAM, ADMIN_URL } from "./config.js";
 import { store } from "./store.js";
@@ -11,7 +14,10 @@ import { listView, renderList, setPickerAdmin } from "./picker.js";
 import { currentTheme } from "./theme.js";
 import { setTimeZone } from "./format.js";
 
-/** Load the admin's features if this browser is logged in. Resolves true when they're on. */
+/**
+ * Check the admin login, and with ?admin turn the admin's features on (asking for the password if needed).
+ * Resolves true when this browser is logged in, features on or not.
+ */
 export async function loadAdmin() {
   // Older versions kept the password itself; swap it for a token once, then forget it.
   const oldPassword = store.get("adminKey");
@@ -34,11 +40,11 @@ export async function loadAdmin() {
       break;
     }
   }
+  if (ADMIN_PARAM === null) return !!code;  // logged in or not, no features without ?admin
   const on = await install(code);
-  // ?admin stays in the address bar while the admin is logged in, so it's plain the page is in admin mode;
-  // ?admin=off, a cancelled login, or an unreachable Worker drop it. (Being logged in, not the flag, is what keeps
-  // the admin's visits out of the counter.)
-  if (ADMIN_PARAM !== null && !on) {
+  // ?admin stays in the address bar while the features are on; ?admin=off, a cancelled login, or an unreachable
+  // Worker drop it.
+  if (!on) {
     const url = new URL(location.href);
     url.searchParams.delete("admin");
     history.replaceState(null, "", url);
