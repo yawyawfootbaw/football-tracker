@@ -144,7 +144,7 @@ test.describe("loading and layout", () => {
 
   test("contact footer and settings gear sit in the bottom-right corner", async ({ page }) => {
     await open(page);
-    await expect(page.locator("#contact")).toHaveText("contact: sean@homeworkdots.com");
+    await expect(page.locator("#contact")).toHaveText("contact: sean@gametrackerlive.com");
     const gear = await page.locator("#settings").boundingBox();
     const contact = await page.locator("#contact").boundingBox();
     expect(gear.x + gear.width).toBeLessThanOrEqual(contact.x + 1);  // gear is left of contact
@@ -1354,7 +1354,7 @@ test.describe("mobile", () => {
     expect(gear.height).toBeGreaterThanOrEqual(44);
     const last = await page.locator(".card").last().boundingBox();
     expect(gear.y).toBeGreaterThan(last.y + last.height);  // below the cards, not over them
-    await expect(page.locator("#contact a")).toHaveAttribute("href", "mailto:sean@homeworkdots.com");
+    await expect(page.locator("#contact a")).toHaveAttribute("href", "mailto:sean@gametrackerlive.com");
     await page.locator("#settings").tap();
     await page.locator("#settings-menu").evaluate((m) => Promise.all(m.getAnimations().map((a) => a.finished)));
     const menu = await page.locator("#settings-menu").boundingBox();
