@@ -3,6 +3,7 @@
 //
 //   POST /api/login     Authorization: Bearer <password>  ->  { token }, good for TOKEN_DAYS
 //   GET  /api/admin.js  Authorization: Bearer <token>     ->  the admin module
+//   GET  /api/visits    Authorization: Bearer <token>     ->  { weekly, monthly, total } from the visit counter
 //   anything else       the site's files; www. redirects to the bare domain
 //
 // The admin code is only ever served by /api/admin.js, so regular visitors never get it, and only the token, never
@@ -10,6 +11,10 @@
 // put ADMIN_PASSWORD) signs everyone out at once.
 
 export const TOKEN_DAYS = 30;
+
+// The visit counter's stats (js/counter.js counts the hits). hits.sh sends no CORS headers, so the browser can't read
+// them itself. Reading them doesn't add a hit.
+export const VISITS_URL = "https://hits.sh/api/urns/yawyawfootbaw.github.io/football-tracker";
 
 /**
  * @param {Request} request
@@ -40,6 +45,13 @@ export async function handle(request, env, code, now = Date.now()) {
   if (route === "GET /api/admin.js") {
     if (!(await validToken(given, env.ADMIN_PASSWORD, now))) return reply("Log in again", 401);
     return reply(code, 200, { "Content-Type": "text/javascript" });
+  }
+  if (route === "GET /api/visits") {
+    if (!(await validToken(given, env.ADMIN_PASSWORD, now))) return reply("Log in again", 401);
+    const res = await fetch(VISITS_URL).catch(() => null);
+    if (!res?.ok) return reply("Counter unavailable", 502);
+    const { weekly, monthly, total } = await res.json();
+    return reply(JSON.stringify({ weekly, monthly, total }), 200, { "Content-Type": "application/json" });
   }
   return reply("Not found", 404);
 }

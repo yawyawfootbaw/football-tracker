@@ -4,7 +4,7 @@ const { LONG_PLAY, cfbGames, nflGames, scoreboard, summary, PNG } = require("./f
 
 const CORS = { "access-control-allow-origin": "*" };
 // The admin Worker (worker/), stubbed: /login trades ADMIN_KEY for ADMIN_TOKEN, and /admin.js serves worker/admin.js
-// to ADMIN_TOKEN. Anything else is a 401.
+// and /visits the visit counts (state.visits) to ADMIN_TOKEN. Anything else is a 401.
 const ADMIN_KEY = "test-password";
 const ADMIN_TOKEN = "1900000000000.test-token";
 const ADMIN_JS = require("fs").readFileSync(require("path").join(__dirname, "..", "worker", "admin.js"), "utf8");
@@ -17,6 +17,7 @@ const admin = { adminToken: ADMIN_TOKEN };  // spread into opts.storage to be lo
 async function open(page, opts = {}) {
   // recaps: event ids whose summary has a written recap. summaryRequests counts summary fetches per event id.
   const state = { cfb: opts.cfb ?? cfbGames(), nfl: opts.nfl ?? nflGames(), hits: 0, espnRequests: 0, adminRequests: 0, gate: opts.gate,
+    visits: { weekly: 12, monthly: 345, total: 6789 }, visitsRequests: 0,
     recaps: new Set(opts.recaps ?? ["7", "8"]), summaryRequests: {} };
   await page.route("https://site.api.espn.com/**", async (route) => {
     const id = route.request().url().match(/summary\?event=(\w+)/)?.[1];
@@ -43,6 +44,10 @@ async function open(page, opts = {}) {
     }
     if (req.url().endsWith("/admin.js") && auth === `Bearer ${ADMIN_TOKEN}`) {
       return route.fulfill({ body: ADMIN_JS, contentType: "text/javascript", headers });
+    }
+    if (req.url().endsWith("/visits") && auth === `Bearer ${ADMIN_TOKEN}`) {
+      state.visitsRequests++;
+      return route.fulfill({ json: state.visits, headers });
     }
     return route.fulfill({ status: 401, body: "Nope", headers });
   });
@@ -330,6 +335,28 @@ test.describe("board image", () => {
     await expect(card(page, "cfb:1")).toBeAttached();
     await page.locator("#settings").click();
     await expect(page.locator("#save-board")).toHaveText("Save board as image");
+  });
+
+  test("the admin's gear menu shows the visit counts, fresh each time it opens", async ({ page }) => {
+    const state = await open(page, { query: "?admin", storage: admin });
+    const visits = page.locator("#visits");
+    await page.locator("#settings").click();
+    await expect(visits).toHaveText(/12\s*week\s*345\s*month\s*6789\s*total/);
+    await page.locator("#settings").click();  // closing doesn't fetch
+    await expect(page.locator("#settings")).toHaveAttribute("aria-expanded", "false");
+    const fetched = state.visitsRequests;
+    state.visits = { weekly: 13, monthly: 346, total: 6790 };
+    await page.locator("#settings").click();
+    await expect(visits).toHaveText(/13\s*week\s*346\s*month\s*6790\s*total/);
+    expect(state.visitsRequests).toBe(fetched + 1);
+  });
+
+  test("regular visitors' gear menu has no visit counts", async ({ page }) => {
+    const state = await open(page, { storage: admin });  // logged in, but no ?admin
+    await page.locator("#settings").click();
+    await expect(page.locator("#google-me")).toBeVisible();
+    await expect(page.locator("#visits")).toHaveCount(0);
+    expect(state.visitsRequests).toBe(0);
   });
 
   test("Save board as image downloads a PNG of the whole board at 2x", async ({ page }) => {

@@ -10,5 +10,8 @@
 #settings-menu button:hover { background: var(--border); }
 #settings-menu .check { display: inline-block; width: 16px; color: var(--accent); visibility: hidden; }
 #settings-menu [aria-pressed="true"] .check { visibility: visible; }
+#visits { display: flex; gap: 12px; padding: 6px 10px 8px; margin-bottom: 4px; border-bottom: 1px solid var(--border); color: var(--muted); font-size: 11px; white-space: nowrap; }
+#visits span { display: flex; flex-direction: column; align-items: center; }
+#visits b { color: var(--text); font-size: 15px; font-variant-numeric: tabular-nums; }
 #coach { position: fixed; right: 12px; bottom: 30px; z-index: 5; width: 150px; margin: 0; cursor: pointer; }
 #coach img { display: block; width: 100%; height: auto; filter: drop-shadow(0 6px 14px rgba(0, 0, 0, .6)); }

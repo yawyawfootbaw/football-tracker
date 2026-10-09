@@ -6,13 +6,14 @@
 //   Upcoming saves a list made for posting on a forum: grouped by day, one row per game (kickoff time, away @ home
 //   with logos, ranks and records, network).
 // - "Save board as image" in the gear menu: the whole board as it looks right now.
+// - The visit counter's weekly, monthly and total counts atop the gear menu, fetched each time it opens.
 // - In the game list, a row of bulk buttons atop each section: Live, Upcoming and Final get "Select all" (every game
 //   the section shows) and "Remove all" (that state's picked games, which sit under Selected); Selected gets
 //   "Remove all" (every picked game in the current tab and filters).
 // Every image is in the current theme, gives kickoff times in Eastern time whatever the admin's own time zone, and
 // carries a small, muted Game Tracker logo in the bottom-right corner.
 
-let app;  // { renderBoard, renderList, listView, allGames, state, saveSelected, currentTheme, setTimeZone } from js/admin.js
+let app;  // { renderBoard, renderList, listView, allGames, state, saveSelected, currentTheme, setTimeZone, visits } from js/admin.js
 
 const IMAGE_ZONE = "America/New_York";  // the time zone of every kickoff time in an image
 
@@ -20,6 +21,7 @@ const IMAGE_ZONE = "America/New_York";  // the time zone of every kickoff time i
 export function install(appApi) {
   app = appApi;
   addBoardShot();
+  addVisits();
   return {
     groupExtras,
     onListClick(e) {
@@ -101,6 +103,23 @@ async function share(g) {
 
 function posterButton() {
   return `<button class="poster" data-poster title="Save these games as an image">Save as image</button>`;
+}
+
+// Gear menu: the visit counts, refreshed whenever the menu opens. The gear's click opens the menu before this runs.
+function addVisits() {
+  const menu = document.getElementById("settings-menu");
+  if (!menu || document.getElementById("visits")) return;
+  const row = document.createElement("div");
+  row.id = "visits";
+  menu.prepend(row);
+  const cell = (n, label) => `<span><b>${n ?? "–"}</b>${label}</span>`;
+  const refresh = async () => {
+    const v = await app.visits();
+    row.innerHTML = cell(v?.weekly, "week") + cell(v?.monthly, "month") + cell(v?.total, "total");
+  };
+  refresh();
+  const gear = document.getElementById("settings");
+  gear.addEventListener("click", () => { if (gear.getAttribute("aria-expanded") === "true") refresh(); });
 }
 
 const W = 640, PAD = 24, ROW = 44, DAY_HEAD = 34, FOOT = 34, SCALE = 2;

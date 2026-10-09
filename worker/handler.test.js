@@ -1,7 +1,7 @@
 // Run with: npm run test:worker
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { handle, TOKEN_DAYS } from "./handler.js";
+import { handle, TOKEN_DAYS, VISITS_URL } from "./handler.js";
 
 const assets = { fetch: async (req) => new Response(`asset ${new URL(req.url).pathname}`) };
 const env = { ADMIN_PASSWORD: "right horse battery", ASSETS: assets };
@@ -72,4 +72,26 @@ test("other API paths and methods are 404", async () => {
   const token = await tokenFor();
   assert.equal((await call("GET", "/api/", token)).status, 404);
   assert.equal((await call("GET", "/api/login", env.ADMIN_PASSWORD)).status, 404);
+});
+
+test("a token gets the visit counts from the counter; the password and no token don't", async () => {
+  const realFetch = globalThis.fetch;
+  const asked = [];
+  globalThis.fetch = async (url) => {
+    asked.push(String(url));
+    return Response.json({ weekly: 12, monthly: 345, total: 6789, items: [] });
+  };
+  try {
+    const res = await call("GET", "/api/visits", await tokenFor());
+    assert.equal(res.status, 200);
+    assert.deepEqual(await res.json(), { weekly: 12, monthly: 345, total: 6789 });
+    assert.deepEqual(asked, [VISITS_URL]);
+    assert.equal((await call("GET", "/api/visits", env.ADMIN_PASSWORD)).status, 401);
+    assert.equal((await call("GET", "/api/visits")).status, 401);
+    assert.equal(asked.length, 1);
+    globalThis.fetch = async () => { throw new Error("offline"); };
+    assert.equal((await call("GET", "/api/visits", await tokenFor())).status, 502);
+  } finally {
+    globalThis.fetch = realFetch;
+  }
 });

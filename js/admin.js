@@ -79,12 +79,18 @@ async function workerText(url, options) {
   }
 }
 
+// The visit counter's { weekly, monthly, total }, or null if it can't be had.
+async function visits() {
+  const body = await workerText(`${ADMIN_URL}/visits`, { headers: { Authorization: `Bearer ${store.get("adminToken")}` } });
+  return typeof body === "string" ? JSON.parse(body) : null;
+}
+
 async function install(code) {
   if (typeof code !== "string") return false;
   const blob = URL.createObjectURL(new Blob([code], { type: "text/javascript" }));
   try {
     const { install } = await import(blob);
-    const hooks = install({ renderBoard, renderList, listView, allGames, state, saveSelected, currentTheme, setTimeZone });
+    const hooks = install({ renderBoard, renderList, listView, allGames, state, saveSelected, currentTheme, setTimeZone, visits });
     setAdmin(hooks);
     setPickerAdmin(hooks);
     return true;
