@@ -263,63 +263,66 @@ function drawRow(ctx, g, mid, logos, color) {
     ctx.textAlign = "left";
   }
 
-  // Away @ home. Records drop out if the matchup doesn't fit, then names are cut short.
-  const left = PAD + TIME_W, room = W - PAD - NET_W - 12 - left;
-  const sides = [g.away, g.home];
-  const withRecords = sides.every((t) => !t.record) || matchupWidth(ctx, sides, true) <= room;
-  const nameRoom = (room - matchupWidth(ctx, sides, withRecords) + sides.reduce((w, t) => w + nameWidth(ctx, t), 0)) / 2;
-  let x = left;
-  sides.forEach((t, i) => {
-    if (i === 1) {
-      ctx.fillStyle = color("--muted");
-      ctx.font = `14px ${FONT}`;
-      ctx.fillText("@", x, mid);
-      x += ctx.measureText("@ ").width + 6;
-    }
-    const logo = logos.get(t.logo);
-    if (logo) ctx.drawImage(logo, x, mid - LOGO / 2, LOGO, LOGO);
-    x += LOGO + 6;
-    if (rank(t)) {
-      ctx.fillStyle = color("--muted");
-      ctx.font = `600 11px ${FONT}`;
-      ctx.fillText(rank(t), x, mid + 1);
-      x += ctx.measureText(rank(t)).width + 3;
-    }
-    ctx.fillStyle = color("--text");
-    ctx.font = `600 14px ${FONT}`;
-    const name = fit(ctx, t.name ?? t.abbr, Math.min(nameWidth(ctx, t), nameRoom));
-    ctx.fillText(name, x, mid);
-    x += ctx.measureText(name).width;
-    if (withRecords && t.record) {
-      ctx.fillStyle = color("--muted");
-      ctx.font = `12px ${FONT}`;
-      ctx.fillText(` (${t.record})`, x, mid + 1);
-      x += ctx.measureText(` (${t.record})`).width;
-    }
-    x += 10;
-  });
+  // Away @ home around a fixed "@" column, so every row's logos line up: the away team is right-aligned against the
+  // "@" (name, then logo), the home team left-aligned after it (logo, then name). If either side's rank, name and
+  // record don't fit, the row drops both records; names that still don't fit are cut short.
+  const left = PAD + TIME_W, right = W - PAD - NET_W - 12, at = (left + right) / 2;
+  const textRoom = at - AT_GAP - LOGO - 6 - left;
+  const withRecords = [g.away, g.home].every((t) => sideWidth(ctx, t, true) <= textRoom);
+  ctx.textAlign = "center";
+  ctx.fillStyle = color("--muted");
+  ctx.font = `14px ${FONT}`;
+  ctx.fillText("@", at, mid);
+  ctx.textAlign = "left";
+  const awayLogo = at - AT_GAP - LOGO, homeLogo = at + AT_GAP;
+  drawLogo(ctx, logos.get(g.away.logo), awayLogo, mid);
+  drawLogo(ctx, logos.get(g.home.logo), homeLogo, mid);
+  drawSide(ctx, g.away, awayLogo - 6 - Math.min(sideWidth(ctx, g.away, withRecords), textRoom), mid, withRecords, textRoom, color);
+  drawSide(ctx, g.home, homeLogo + LOGO + 6, mid, withRecords, textRoom, color);
+}
+
+const AT_GAP = 14;  // from the middle of the "@" to the nearer edge of each logo
+
+function drawLogo(ctx, logo, x, mid) {
+  if (logo) ctx.drawImage(logo, x, mid - LOGO / 2, LOGO, LOGO);
 }
 
 const rank = (t) => (t.rank && t.rank <= 25 ? String(t.rank) : "");
+const record = (t, withRecords) => (withRecords && t.record ? ` (${t.record})` : "");
 
-function nameWidth(ctx, t) {
+// One team's "rank Name (record)", in drawSide's fonts.
+function sideWidth(ctx, t, withRecords) {
+  let w = 0;
+  ctx.font = `600 11px ${FONT}`;
+  if (rank(t)) w += ctx.measureText(rank(t)).width + 3;
   ctx.font = `600 14px ${FONT}`;
-  return ctx.measureText(t.name ?? t.abbr).width;
+  w += ctx.measureText(t.name ?? t.abbr).width;
+  ctx.font = `12px ${FONT}`;
+  w += ctx.measureText(record(t, withRecords)).width;
+  return w;
 }
 
-// Width of the whole "logo rank Name (rec) @ logo rank Name (rec)" run, matching drawRow's spacing.
-function matchupWidth(ctx, sides, withRecords) {
-  let w = 0;
-  ctx.font = `14px ${FONT}`;
-  w += ctx.measureText("@ ").width + 6;
-  for (const t of sides) {
-    w += LOGO + 6 + nameWidth(ctx, t) + 10;
+// "rank Name (record)" starting at x, the name cut short so the whole thing fits in room.
+function drawSide(ctx, t, x, mid, withRecords, room, color) {
+  ctx.font = `600 11px ${FONT}`;
+  const rankW = rank(t) ? ctx.measureText(rank(t)).width + 3 : 0;
+  ctx.font = `12px ${FONT}`;
+  const recW = ctx.measureText(record(t, withRecords)).width;
+  if (rank(t)) {
+    ctx.fillStyle = color("--muted");
     ctx.font = `600 11px ${FONT}`;
-    if (rank(t)) w += ctx.measureText(rank(t)).width + 3;
-    ctx.font = `12px ${FONT}`;
-    if (withRecords && t.record) w += ctx.measureText(` (${t.record})`).width;
+    ctx.fillText(rank(t), x, mid + 1);
   }
-  return w;
+  ctx.fillStyle = color("--text");
+  ctx.font = `600 14px ${FONT}`;
+  const name = fit(ctx, t.name ?? t.abbr, room - rankW - recW);
+  ctx.fillText(name, x + rankW, mid);
+  if (recW) {
+    const nameW = ctx.measureText(name).width;
+    ctx.fillStyle = color("--muted");
+    ctx.font = `12px ${FONT}`;
+    ctx.fillText(record(t, withRecords), x + rankW + nameW, mid + 1);
+  }
 }
 
 // Cut text down with an ellipsis until it fits. Uses the context's current font.
