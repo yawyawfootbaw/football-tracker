@@ -33,10 +33,10 @@ async function open(page, opts = {}) {
     opts.missingLogo && route.request().url().includes(opts.missingLogo)
       ? route.fulfill({ status: 404, headers: CORS })
       : route.fulfill({ body: PNG, contentType: "image/png", headers: CORS }));
-  await page.route(/^https:\/\/football-tracker-admin\./, (route) => {
-    const req = route.request(), headers = { ...CORS, "access-control-allow-headers": "Authorization" };
+  // The site's own /api/ (worker/handler.js); the local test server only has the static files.
+  await page.route("**/api/**", (route) => {
+    const req = route.request(), headers = {};
     state.adminRequests++;
-    if (req.method() === "OPTIONS") return route.fulfill({ status: 204, headers });
     const auth = req.headers().authorization;
     if (req.url().endsWith("/login") && req.method() === "POST" && auth === `Bearer ${ADMIN_KEY}`) {
       return route.fulfill({ json: { token: ADMIN_TOKEN }, headers });
@@ -129,7 +129,7 @@ test.describe("loading and layout", () => {
     expect(await attr('meta[property="og:title"]', "content")).toBe("Game Tracker");
     expect(await attr('meta[property="og:description"]', "content")).toBeTruthy();
     expect(await attr('meta[name="twitter:card"]', "content")).toBe("summary_large_image");
-    const live = "https://yawyawfootbaw.github.io/football-tracker/";
+    const live = "https://SITE_DOMAIN/";
     const og = await attr('meta[property="og:image"]', "content");
     expect(og.startsWith(live)).toBe(true);  // previews need absolute URLs
     for (const path of [og.slice(live.length), await attr('link[rel="icon"]', "href"), await attr('link[rel="apple-touch-icon"]', "href")]) {

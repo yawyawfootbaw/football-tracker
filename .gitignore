@@ -3,3 +3,5 @@ test-results/
 playwright-report/
 .idea/
 .claude/settings.local.json
+.dev.vars
+.wrangler/

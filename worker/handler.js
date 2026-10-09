@@ -1,41 +1,45 @@
-// The admin login and the admin code, so regular visitors never get the admin code and the password never has to be
-// kept in a browser. Split from index.js so it can be tested in Node, where admin.js can't be imported as text.
+// The whole site: the static files (env.ASSETS, the repo minus .assetsignore) plus the admin API, on one domain.
+// Split from index.js so it can be tested in Node, where admin.js can't be imported as text.
 //
-//   POST /login     Authorization: Bearer <password>  ->  { token }, good for TOKEN_DAYS
-//   GET  /admin.js  Authorization: Bearer <token>     ->  the admin module
+//   POST /api/login     Authorization: Bearer <password>  ->  { token }, good for TOKEN_DAYS
+//   GET  /api/admin.js  Authorization: Bearer <token>     ->  the admin module
+//   anything else       the site's files; www. redirects to the bare domain
 //
-// Tokens are signed with the password, so changing the password (wrangler secret put ADMIN_PASSWORD) signs everyone
-// out at once.
+// The admin code is only ever served by /api/admin.js, so regular visitors never get it, and only the token, never
+// the password, is kept in a browser. Tokens are signed with the password, so changing the password (wrangler secret
+// put ADMIN_PASSWORD) signs everyone out at once.
 
-const ORIGINS = ["https://yawyawfootbaw.github.io", "http://localhost:4173"];
 export const TOKEN_DAYS = 30;
 
 /**
  * @param {Request} request
- * @param {{ ADMIN_PASSWORD?: string }} env  the password is a Worker secret
+ * @param {{ ADMIN_PASSWORD?: string, ASSETS?: { fetch: (r: Request) => Promise<Response> } }} env
+ *   the password is a Worker secret; ASSETS serves the site's files
  * @param {string} code  admin.js's source
  * @param {number} [now]  for tests
  */
 export async function handle(request, env, code, now = Date.now()) {
-  const origin = request.headers.get("Origin");
-  const cors = ORIGINS.includes(origin)
-    ? { "Access-Control-Allow-Origin": origin, "Access-Control-Allow-Headers": "Authorization", "Access-Control-Allow-Methods": "GET, POST", Vary: "Origin" }
-    : {};
-  const reply = (body, status, headers = {}) => new Response(body, { status, headers: { ...cors, ...headers } });
-  if (request.method === "OPTIONS") return reply(null, 204);
-  const route = `${request.method} ${new URL(request.url).pathname}`;
+  const url = new URL(request.url);
+  if (url.hostname.startsWith("www.")) {
+    url.hostname = url.hostname.slice(4);
+    return Response.redirect(url.toString(), 301);
+  }
+  if (!url.pathname.startsWith("/api/")) return env.ASSETS.fetch(request);
+
+  const reply = (body, status, headers = {}) => new Response(body, { status, headers: { "Cache-Control": "no-store", ...headers } });
+  const route = `${request.method} ${url.pathname}`;
   const given = request.headers.get("Authorization")?.replace(/^Bearer /, "") ?? "";
   if (!env.ADMIN_PASSWORD) return reply("Not set up", 401);  // no password configured: nobody gets in
 
-  if (route === "POST /login") {
+  if (route === "POST /api/login") {
     if (!(await sameText(given, env.ADMIN_PASSWORD))) return reply("Wrong password", 401);
     const expires = now + TOKEN_DAYS * 86_400_000;
     const token = `${expires}.${await sign(String(expires), env.ADMIN_PASSWORD)}`;
-    return reply(JSON.stringify({ token, expires }), 200, { "Content-Type": "application/json", "Cache-Control": "no-store" });
+    return reply(JSON.stringify({ token, expires }), 200, { "Content-Type": "application/json" });
   }
-  if (route === "GET /admin.js") {
+  if (route === "GET /api/admin.js") {
     if (!(await validToken(given, env.ADMIN_PASSWORD, now))) return reply("Log in again", 401);
-    return reply(code, 200, { "Content-Type": "text/javascript", "Cache-Control": "no-store" });
+    return reply(code, 200, { "Content-Type": "text/javascript" });
   }
   return reply("Not found", 404);
 }

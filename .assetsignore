@@ -1,0 +1,23 @@
+# Everything in the repo that isn't part of the public site. The Worker's source is the one that matters:
+# worker/admin.js is the admin code, served only by /api/admin.js to a logged-in admin.
+worker
+tests
+scripts
+node_modules
+test-results
+playwright-report
+.git
+.github
+.gitignore
+.idea
+.claude
+.wrangler
+.DS_Store
+.assetsignore
+wrangler.toml
+package.json
+package-lock.json
+playwright.config.js
+README.md
+_config.yml
+.dev.vars

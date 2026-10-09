@@ -1,0 +1,27 @@
+# One Worker for the whole site: its static files plus the admin API (worker/handler.js).
+# The name is the old admin-only Worker's, kept so its secret (ADMIN_PASSWORD) carries over.
+name = "football-tracker-admin"
+main = "worker/index.js"
+account_id = "4aa7291ca4de2ea285201391ffa589bf"
+compatibility_date = "2025-06-01"
+
+# The site answers on its own domain. `custom_domain` creates and maintains the DNS record, which is why the zone has
+# to be on this same Cloudflare account. workers.dev stays off: one public address, not two.
+workers_dev = false
+routes = [
+  { pattern = "SITE_DOMAIN", custom_domain = true },
+  { pattern = "www.SITE_DOMAIN", custom_domain = true },
+]
+
+# The repo root is the site, minus what .assetsignore leaves out (the Worker's own source, tests, tooling).
+# The Worker runs first for every request, so www. redirects and /api/ are handled before any file is served.
+[assets]
+directory = "."
+binding = "ASSETS"
+run_worker_first = true
+
+# admin.js is the browser module the Worker hands out, so bundle it as a string.
+[[rules]]
+type = "Text"
+globs = ["**/admin.js"]
+fallthrough = false

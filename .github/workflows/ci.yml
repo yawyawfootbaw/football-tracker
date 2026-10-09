@@ -1,0 +1,30 @@
+name: ci
+# Tests on every push and pull request. On main, once they pass, deploy the site (static files and the admin API, one
+# Cloudflare Worker: wrangler.toml). Needs the repo secret CLOUDFLARE_API_TOKEN, a Cloudflare API token from the
+# "Edit Cloudflare Workers" template that covers the site's domain.
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # GitHub's Ubuntu runners ship Google Chrome, which playwright.config.js uses (channel: "chrome").
+      - run: npm test
+      - run: npm run test:worker
+  deploy:
+    needs: test
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}

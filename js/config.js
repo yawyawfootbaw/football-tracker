@@ -18,8 +18,8 @@ const params = new URLSearchParams(location.search);
 export const LOADING = params.has("loading");  // ?loading never fetches games, so the loading spinners stay up
 // ?admin asks for the admin password and remembers it; ?admin=off forgets it (js/admin.js). null when absent.
 export const ADMIN_PARAM = params.get("admin");
-// The Worker that logs the admin in and hands out the admin code (worker/).
-export const ADMIN_URL = "https://football-tracker-admin.splomax.workers.dev";
+// The site's own API (worker/handler.js) that logs the admin in and hands out the admin code.
+export const ADMIN_URL = "/api";
 
 // ?league=nfl or ?league=college picks the starting league, for links shared with one audience.
 // null when absent or unrecognized.

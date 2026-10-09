@@ -1,4 +1,5 @@
-// Cloudflare Worker entry point. admin.js is bundled as text (see rules in wrangler.toml), not run here.
+// Cloudflare Worker entry point: the site and its admin API (handler.js). admin.js is bundled as text (see rules in
+// wrangler.toml), not run here.
 
 import code from "./admin.js";
 import { handle } from "./handler.js";
