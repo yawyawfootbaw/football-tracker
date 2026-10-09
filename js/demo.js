@@ -3,8 +3,8 @@
 //   the Upcoming section into Live;
 // - a game that's already live (Texas in the red zone), so there's a live card to look at straight away.
 
-export const DEMO_KICKOFF_KEY = "cfb:demo";
-export const DEMO_LIVE_KEY = "cfb:demo-live";
+const DEMO_KICKOFF_KEY = "cfb:demo";
+const DEMO_LIVE_KEY = "cfb:demo-live";
 export const DEMO_KEYS = [DEMO_KICKOFF_KEY, DEMO_LIVE_KEY];
 const KICKOFF_AFTER_MS = 10_000;
 const LIVE_CLOCK_S = 7 * 60 + 42;  // the live game's clock when the page opens; it runs down from there

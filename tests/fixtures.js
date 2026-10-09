@@ -117,4 +117,4 @@ const summary = (id, hasRecap) => ({
     : { type: "Preview", links: { web: { href: `http://www.espn.com/ncf/preview?gameId=${id}` } } },
 });
 
-module.exports = { T, LONG_PLAY, cfbGames, nflGames, scoreboard, summary, PNG };
+module.exports = { LONG_PLAY, cfbGames, nflGames, scoreboard, summary, PNG };
