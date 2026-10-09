@@ -19,8 +19,8 @@ export const LOADING = params.has("loading");  // ?loading never fetches games, 
 export const DEMO = params.has("demo");  // ?demo skips the visit counter and adds demo games (js/demo.js), for your own testing
 // ?admin asks for the admin password and remembers it; ?admin=off forgets it (js/admin.js). null when absent.
 export const ADMIN_PARAM = params.get("admin");
-// The Worker that hands the admin code (worker/admin.js) to the right password.
-export const ADMIN_URL = "https://football-tracker-admin.splomax.workers.dev/admin.js";
+// The Worker that logs the admin in and hands out the admin code (worker/).
+export const ADMIN_URL = "https://football-tracker-admin.splomax.workers.dev";
 
 // ?league=nfl or ?league=college picks the starting league, for links shared with one audience.
 // null when absent or unrecognized.

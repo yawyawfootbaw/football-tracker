@@ -1,6 +1,7 @@
-// Admin login. The admin's features (share buttons, "Save as image") aren't in the public code: the Worker at
-// ADMIN_URL (worker/) hands them out only to the admin password. ?admin asks for the password and remembers it in
-// this browser; ?admin=off forgets it. Either way the parameter then leaves the address bar.
+// Admin login. The admin's features (share buttons, the image exports) aren't in the public code: the Worker at
+// ADMIN_URL (worker/) hands them out only to a logged-in admin. ?admin asks for the password and trades it for a
+// token that lasts 30 days; only the token is kept in this browser. ?admin=off logs out. Either way the parameter
+// then leaves the address bar.
 
 import { ADMIN_PARAM, ADMIN_URL } from "./config.js";
 import { store } from "./store.js";
@@ -8,35 +9,48 @@ import { allGames } from "./state.js";
 import { renderBoard, setAdmin } from "./board.js";
 import { currentTheme } from "./theme.js";
 
-/** Load the admin's features if this browser has the password. Resolves true when they're on. */
+/** Load the admin's features if this browser is logged in. Resolves true when they're on. */
 export async function loadAdmin() {
   if (ADMIN_PARAM !== null) {
     const url = new URL(location.href);
     url.searchParams.delete("admin");
     history.replaceState(null, "", url);
   }
-  if (ADMIN_PARAM === "off") store.set("adminKey", null);
+  // Older versions kept the password itself; swap it for a token once, then forget it.
+  const oldPassword = store.get("adminKey");
+  if (oldPassword) {
+    store.set("adminKey", null);
+    const token = await logIn(oldPassword);
+    if (typeof token === "string") store.set("adminToken", token);
+  }
+  if (ADMIN_PARAM === "off") store.set("adminToken", null);
   else if (ADMIN_PARAM !== null) {
     for (let error = ""; ;) {
-      const key = await askPassword(error);
-      if (!key) break;  // cancelled: carry on with whatever was saved before
-      const code = await fetchAdmin(key);
-      if (code === 401) { error = "Wrong password"; continue; }
-      store.set("adminKey", key);
-      return install(code);
+      const password = await askPassword(error);
+      if (!password) break;  // cancelled: carry on with whatever login was saved before
+      const token = await logIn(password);
+      if (token === 401) { error = "Wrong password"; continue; }
+      if (token) store.set("adminToken", token);
+      break;
     }
   }
-  const key = store.get("adminKey");
-  if (!key) return false;
-  const code = await fetchAdmin(key);
-  if (code === 401) store.set("adminKey", null);  // the password has changed since; log in again with ?admin
+  const token = store.get("adminToken");
+  if (!token) return false;
+  const code = await workerText(`${ADMIN_URL}/admin.js`, { headers: { Authorization: `Bearer ${token}` } });
+  if (code === 401) store.set("adminToken", null);  // expired, or the password changed: log in again with ?admin
   return install(code);
 }
 
-// The admin module's source, 401 for a wrong password, or null when the Worker can't be reached.
-async function fetchAdmin(key) {
+// Trade the password for a token (the browser keeps only the token). 401 for a wrong password, null if unreachable.
+async function logIn(password) {
+  const body = await workerText(`${ADMIN_URL}/login`, { method: "POST", headers: { Authorization: `Bearer ${password}` } });
+  return typeof body === "string" ? JSON.parse(body).token : body;
+}
+
+// A Worker response's text, 401 when it refuses, or null when it can't be reached.
+async function workerText(url, options) {
   try {
-    const res = await fetch(ADMIN_URL, { headers: { Authorization: `Bearer ${key}` } });
+    const res = await fetch(url, options);
     if (res.status === 401) return 401;
     return res.ok ? await res.text() : null;
   } catch (err) {

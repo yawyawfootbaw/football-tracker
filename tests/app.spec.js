@@ -3,10 +3,12 @@ const { test, expect } = require("@playwright/test");
 const { LONG_PLAY, cfbGames, nflGames, scoreboard, summary, PNG } = require("./fixtures");
 
 const CORS = { "access-control-allow-origin": "*" };
-// The admin Worker (worker/), stubbed: it serves worker/admin.js to ADMIN_KEY and 401s anything else.
+// The admin Worker (worker/), stubbed: /login trades ADMIN_KEY for ADMIN_TOKEN, and /admin.js serves worker/admin.js
+// to ADMIN_TOKEN. Anything else is a 401.
 const ADMIN_KEY = "test-password";
+const ADMIN_TOKEN = "1900000000000.test-token";
 const ADMIN_JS = require("fs").readFileSync(require("path").join(__dirname, "..", "worker", "admin.js"), "utf8");
-const admin = { adminKey: ADMIN_KEY };  // spread into opts.storage to be logged in as the admin
+const admin = { adminToken: ADMIN_TOKEN };  // spread into opts.storage to be logged in as the admin
 
 /**
  * Stub every outside service, optionally seed localStorage, and open the app.
@@ -35,9 +37,14 @@ async function open(page, opts = {}) {
     const req = route.request(), headers = { ...CORS, "access-control-allow-headers": "Authorization" };
     state.adminRequests++;
     if (req.method() === "OPTIONS") return route.fulfill({ status: 204, headers });
-    return req.headers().authorization === `Bearer ${ADMIN_KEY}`
-      ? route.fulfill({ body: ADMIN_JS, contentType: "text/javascript", headers })
-      : route.fulfill({ status: 401, body: "Wrong password", headers });
+    const auth = req.headers().authorization;
+    if (req.url().endsWith("/login") && req.method() === "POST" && auth === `Bearer ${ADMIN_KEY}`) {
+      return route.fulfill({ json: { token: ADMIN_TOKEN }, headers });
+    }
+    if (req.url().endsWith("/admin.js") && auth === `Bearer ${ADMIN_TOKEN}`) {
+      return route.fulfill({ body: ADMIN_JS, contentType: "text/javascript", headers });
+    }
+    return route.fulfill({ status: 401, body: "Nope", headers });
   });
   await page.route("https://hits.sh/**", (route) => {
     state.hits++;
@@ -220,7 +227,7 @@ test.describe("upcoming-games image", () => {
     await open(page, { storage: { selected: ALL_CFB } });
     await expect(page.locator('.board-group[data-section="pre"]')).toBeAttached();
     await expect(page.locator("#board .poster")).toHaveCount(0);
-    await page.evaluate((key) => localStorage.setItem("adminKey", JSON.stringify(key)), ADMIN_KEY);
+    await page.evaluate((token) => localStorage.setItem("adminToken", JSON.stringify(token)), ADMIN_TOKEN);
     await page.reload();
     await expect(page.locator('.board-group[data-section="pre"] .poster')).toHaveCount(1);
     await expect(page.locator("#board .poster")).toHaveCount(1);
@@ -246,7 +253,7 @@ test.describe("board image", () => {
     await open(page, { storage: { selected: ["cfb:1"] } });
     await page.locator("#settings").click();
     await expect(page.locator("#save-board")).toHaveCount(0);
-    await page.evaluate((key) => localStorage.setItem("adminKey", JSON.stringify(key)), ADMIN_KEY);
+    await page.evaluate((token) => localStorage.setItem("adminToken", JSON.stringify(token)), ADMIN_TOKEN);
     await page.reload();
     await expect(card(page, "cfb:1")).toBeAttached();
     await page.locator("#settings").click();
@@ -275,7 +282,7 @@ test.describe("admin login", () => {
     await expect.poll(() => state.hits).toBe(1);
   });
 
-  test("?admin asks for the password in a masked field, remembers it, and leaves the address bar", async ({ page }) => {
+  test("?admin asks for the password in a masked field, keeps only a token, and leaves the address bar", async ({ page }) => {
     const state = await open(page, { query: "?admin", storage: { selected: ["cfb:1"] } });
     const field = page.locator("#admin-login input#admin-password");
     await expect(field).toHaveAttribute("type", "password");
@@ -284,6 +291,9 @@ test.describe("admin login", () => {
     await expect(page.locator("#admin-login")).toHaveCount(0);
     await expect(card(page, "cfb:1").locator(".share")).toBeAttached();
     expect(new URL(page.url()).search).toBe("");
+    const saved = await page.evaluate(() => JSON.stringify(localStorage));
+    expect(saved).toContain(ADMIN_TOKEN);
+    expect(saved).not.toContain(ADMIN_KEY);
     await page.reload();  // no ?admin needed from now on
     await expect(card(page, "cfb:1").locator(".share")).toBeAttached();
     await page.waitForTimeout(500);
@@ -298,17 +308,25 @@ test.describe("admin login", () => {
     await page.getByRole("button", { name: "Cancel" }).click();
     await expect(card(page, "cfb:1")).toBeAttached();
     await expect(page.locator("#board .share")).toHaveCount(0);
-    expect(await page.evaluate(() => localStorage.getItem("adminKey"))).toBeNull();
+    expect(await page.evaluate(() => localStorage.getItem("adminToken"))).toBeNull();
     await expect.poll(() => state.hits).toBe(1);
   });
 
-  test("a saved password that no longer works is forgotten without a fuss", async ({ page }) => {
-    const state = await open(page, { storage: { adminKey: "old-password", selected: ["cfb:1"] } });
+  test("an expired token is forgotten without a fuss", async ({ page }) => {
+    const state = await open(page, { storage: { adminToken: "1.expired", selected: ["cfb:1"] } });
     await expect(card(page, "cfb:1")).toBeAttached();
     await expect(page.locator("#board .share")).toHaveCount(0);
     await expect(page.locator("#admin-login")).toHaveCount(0);
-    expect(await page.evaluate(() => localStorage.getItem("adminKey"))).toBe("null");
+    expect(await page.evaluate(() => localStorage.getItem("adminToken"))).toBe("null");
     await expect.poll(() => state.hits).toBe(1);
+  });
+
+  test("a password saved by an older version is swapped for a token and forgotten", async ({ page }) => {
+    await open(page, { storage: { adminKey: ADMIN_KEY, selected: ["cfb:1"] } });
+    await expect(card(page, "cfb:1").locator(".share")).toBeAttached();
+    const saved = await page.evaluate(() => JSON.stringify(localStorage));
+    expect(saved).toContain(ADMIN_TOKEN);
+    expect(saved).not.toContain(ADMIN_KEY);
   });
 
   test("?admin=off logs out", async ({ page }) => {
