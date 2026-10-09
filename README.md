@@ -15,6 +15,7 @@ Live: https://gametrackerlive.com/
 | Loading spinner | Add `?loading` to the URL. The page never fetches games, so both loading spinners stay up. It also skips the visit counter. |
 | Test | `npm install` once, then `npm test`. Playwright runs headless in your installed Google Chrome. `npm run test:worker` tests the Worker. |
 | Deploy | Push to `main`. CI (`.github/workflows/ci.yml`) runs the tests and, if they pass, deploys with `wrangler deploy`: one Cloudflare Worker (`wrangler.toml`) serves the repo's files (minus `.assetsignore`) on gametrackerlive.com, plus the admin API under `/api/`. There is no build step. CI needs the repo secret `CLOUDFLARE_API_TOKEN` (an "Edit Cloudflare Workers" token covering the domain); `npx wrangler deploy` also works by hand. |
+| Old address | yawyawfootbaw.github.io/football-tracker now only forwards to gametrackerlive.com, keeping the path and query. GitHub Pages serves the `gh-pages` branch, built by `scripts/publish-pages-redirect.sh`; it doesn't change when main does. |
 | Admin password | `npx wrangler secret put ADMIN_PASSWORD` (a long random password). Changing it logs out every browser. |
 
 CI runs the tests on every push and pull request too.
@@ -55,6 +56,9 @@ scripts/
   share-images.js     regenerates the link-preview image and touch icon
   preview-images.js   renders the admin's image exports from the test fixtures, to check their look by eye
   check-local-admin.js  logs in against the Worker running locally (wrangler dev), to check the admin login path
+  check-live-site.sh  checks the deployed site: pages load, private files are 404, www. redirects, the admin API refuses
+  check-old-address.js  checks that old GitHub Pages links forward to gametrackerlive.com with their query
+  publish-pages-redirect.sh  publishes the gh-pages branch, which turns the old GitHub Pages address into that redirect
 wrangler.toml         the Cloudflare Worker that serves the site and its admin API, on gametrackerlive.com
 .assetsignore         repo files the site doesn't serve (the Worker's source, tests, tooling)
 worker/               the Worker's code

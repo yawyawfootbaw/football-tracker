@@ -19,6 +19,5 @@ package.json
 package-lock.json
 playwright.config.js
 README.md
-_config.yml
 .dev.vars
 previews
