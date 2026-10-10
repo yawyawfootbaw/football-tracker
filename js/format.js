@@ -9,8 +9,10 @@ export function logoImg(t) {
   return `<img src="${t.logo?.replace("/500/", "/500-dark/")}" alt="" onerror="this.onerror=null; this.src='${t.logo}'">`;
 }
 
-/** The better AP rank of a game's two teams, or 99 when neither is in the Top 25 (so unranked games sort last). */
 export const rankBadge = (t) => (t.rank && t.rank <= 25 ? `<span class="rank">${t.rank}</span>` : "");
+
+/** Whether team t is ahead of other in a game that has started; a tie leads for neither. Its score gets underlined. */
+export const leads = (g, t, other) => g.state !== "pre" && +t.score > +other.score;
 
 // Kickoff times show in the viewer's own time zone. The admin's image exports switch this to Eastern for the moment
 // they capture the board (worker/admin.js).

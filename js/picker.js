@@ -4,7 +4,7 @@ import { LIST_REFRESH_MS } from "./config.js";
 import { store } from "./store.js";
 import { state, saveSelected } from "./state.js";
 import { confNames, NFL_DIVISIONS } from "./espn.js";
-import { logoImg, rankBadge, statusLines } from "./format.js";
+import { logoImg, rankBadge, statusLines, leads } from "./format.js";
 
 const $ = (id) => document.getElementById(id);
 const ORDER = { in: 0, pre: 1, post: 2 };
@@ -73,7 +73,7 @@ function row(g) {
   const line = (t, other) => `<span class="bug-team ${final && +t.score < +other.score ? "lost" : ""}">
       ${logoImg(t)}${rankBadge(t)}<span class="abbr">${t.abbr}</span>${t.record ? `<span class="rec">${t.record}</span>` : ""}
       ${live && g.possession === t.id ? `<span class="poss">●</span>` : ""}
-      <span class="pts">${g.state === "pre" ? "" : t.score}</span></span>`;
+      <span class="pts ${leads(g, t, other) ? "lead" : ""}">${g.state === "pre" ? "" : t.score}</span></span>`;
   return `<label class="game ${live ? "live" : ""}"><input type="checkbox" data-key="${g.key}" ${state.selected.has(g.key) ? "checked" : ""}>
     <span class="bug">${line(g.away, g.home)}${line(g.home, g.away)}</span>
     <span class="bug-status">${statusLines(g)}</span>

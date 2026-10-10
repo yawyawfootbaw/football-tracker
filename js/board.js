@@ -2,7 +2,7 @@
 
 import { GLOW_MS, FLASH_MS } from "./config.js";
 import { state, saveSelected, allGames } from "./state.js";
-import { logoImg, rankBadge, statusLines, escapeAttr } from "./format.js";
+import { logoImg, rankBadge, statusLines, escapeAttr, leads } from "./format.js";
 import { field } from "./field.js";
 import { recapUrl } from "./recap.js";
 
@@ -83,7 +83,7 @@ function card(g) {
   const flashing = flashAge < FLASH_MS;
   return `<div class="card ${inRedZone ? "redzone" : ""} ${glowing ? "glow" : ""} ${flashing ? "flash" : ""}" data-key="${g.key}"
     style="${glowing ? `animation-delay: -${glowAge}ms;` : ""}${flashing ? `--flash-delay: -${flashAge}ms;` : ""}">
-    <div class="score">${team(g, g.away, "away", g.awayTO)}<div class="clock">${statusLines(g)}</div>${team(g, g.home, "home", g.homeTO)}</div>
+    <div class="score">${team(g, g.away, "away", g.awayTO, g.home)}<div class="clock">${statusLines(g)}</div>${team(g, g.home, "home", g.homeTO, g.away)}</div>
     ${live ? `<div class="dd">${g.ddText || "&nbsp;"}</div>${field(g)}` : ""}
     <div class="card-foot">
       ${live && g.lastPlay
@@ -100,9 +100,9 @@ function card(g) {
 }
 
 // One side of the scoreboard row. Every slot is always rendered (hidden when empty) so cards line up.
-function team(g, t, side, timeouts) {
+function team(g, t, side, timeouts, other) {
   const live = g.state === "in";
-  const pts = `<span class="pts">${g.state === "pre" ? "" : t.score}</span>`;
+  const pts = `<span class="pts ${leads(g, t, other) ? "lead" : ""}">${g.state === "pre" ? "" : t.score}</span>`;
   const showTO = live && timeouts != null;
   const name = `<div class="name">
       <div class="top">${rankBadge(t)}<span class="abbr">${t.abbr}</span><span class="poss ${live && g.possession === t.id ? "" : "hide"}">●</span></div>

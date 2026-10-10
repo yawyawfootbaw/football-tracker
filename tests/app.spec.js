@@ -593,6 +593,22 @@ test.describe("game picker", () => {
     await expect(row(page, "cfb:1").locator(".rec")).toHaveText(["5-0", "3-2"]);  // team records
   });
 
+  test("the leading team's score is underlined on cards and rows; a tie or a game not started underlines neither", async ({ page }) => {
+    const cfb = cfbGames();
+    cfb.find((e) => e.id === "4").competitions[0].competitors.forEach((c) => { c.score = "14"; });  // BYU–TCU tied
+    await open(page, { cfb, storage: { selected: ["cfb:1", "cfb:2", "cfb:4", "cfb:5", "cfb:7"] } });
+    const leaders = (loc) => loc.locator(".pts").evaluateAll((pts) => pts.map((p) => p.classList.contains("lead")));
+    for (const at of [(key) => card(page, key), (key) => row(page, key)]) {
+      expect(await leaders(at("cfb:1"))).toEqual([true, false]);  // away leads, live
+      expect(await leaders(at("cfb:2"))).toEqual([false, true]);  // home leads
+      expect(await leaders(at("cfb:7"))).toEqual([true, false]);  // final
+      expect(await leaders(at("cfb:4"))).toEqual([false, false]);  // tied
+      expect(await leaders(at("cfb:5"))).toEqual([false, false]);  // not started
+    }
+    await expect(card(page, "cfb:1").locator(".pts.lead")).toHaveCSS("text-decoration-line", "underline");
+    await expect(row(page, "cfb:1").locator(".pts.lead")).toHaveCSS("text-decoration-line", "underline");
+  });
+
   test("clicking a row adds the game; Selected section lists picks in the original list order", async ({ page }) => {
     await open(page);
     await row(page, "cfb:8").locator(".bug").click();  // a final game first...
