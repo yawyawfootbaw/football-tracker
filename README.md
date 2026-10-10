@@ -60,7 +60,7 @@ scripts/
   check-old-address.js  checks that old GitHub Pages links forward to gametrackerlive.com with their query
   publish-pages-redirect.sh  publishes the gh-pages branch, which turns the old GitHub Pages address into that redirect
   preview-leader-styles.js  renders the board with each style considered for marking the leading team
-  check-timeouts.js   compares ESPN's live timeout counts with the play log (ESPN's college counts don't reset at halftime)
+  check-timeouts.js   compares ESPN's live timeout counts with the play log; why cards don't show timeouts
 wrangler.toml         the Cloudflare Worker that serves the site and its admin API, on gametrackerlive.com
 .assetsignore         repo files the site doesn't serve (the Worker's source, tests, tooling)
 worker/               the Worker's code

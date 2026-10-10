@@ -1,4 +1,4 @@
-// Compares the timeouts ESPN's scoreboard reports (situation.homeTimeouts/awayTimeouts, what the cards show) with the
+// Compares the timeouts ESPN's scoreboard reports (situation.homeTimeouts/awayTimeouts; the cards dropped them for this) with the
 // timeouts actually called in each half, counted from the game's play log, for every live or finished game.
 // Teams get 3 per half (college and NFL), so "left" should be 3 minus those called in the current half.
 //

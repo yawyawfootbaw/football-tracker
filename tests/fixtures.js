@@ -66,7 +66,7 @@ const LONG_PLAY = "(02:00) Shotgun #7 W.Howard pass short middle complete to #4 
 
 function cfbGames() {
   return [
-    // Live, red zone, away team has the ball: field drawing, dot, timeouts, glow, last play popover.
+    // Live, red zone, away team has the ball: field drawing, dot, glow (timeouts sent but not shown), last play popover.
     game({ id: 1, away: T.OSU, home: T.IOWA, networks: ["FOX"], awayOpts: { score: "24", rank: 5, record: "5-0" }, homeOpts: { score: "6", rank: 14, record: "3-2" },
       state: "in", detail: "2:00 - 4th", clock: "2:00", period: 4,
       situation: { possession: "194", yardLine: 12, down: 3, distance: 6, downDistanceText: "3rd & 6 at IOWA 12", isRedZone: true,

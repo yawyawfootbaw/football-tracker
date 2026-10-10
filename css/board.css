@@ -57,15 +57,14 @@
 .team .poss { margin-left: 4px; color: var(--poss); font-size: 12px; }
 .team .sub { color: var(--muted); font-size: 11px; line-height: 15px; font-weight: 400; }
 .team .rec { margin-right: 5px; }
-.team .to { letter-spacing: 1px; }
 .hide { visibility: hidden; }
 /* Final/Upcoming cards are narrow, so they use the phone's tighter scoreboard row (css/mobile.css) to fit the names. */
 .compact .score { grid-template-columns: minmax(0, 1fr) 58px minmax(0, 1fr); gap: 6px; }
 .compact .team { gap: 6px; }
 .compact .team img { width: 20px; height: 20px; }
 .compact .team .pts { font-size: 20px; }
-/* No possession dot or timeouts before or after a game, so drop their placeholders instead of reserving room. */
-.compact .poss.hide, .compact .to.hide { display: none; }
+/* No possession dot before or after a game, so drop its placeholder instead of reserving room. */
+.compact .poss.hide { display: none; }
 /* Under 280px a side-by-side scoreboard doesn't fit, so Final/Upcoming cards stack like the game list's score bug:
    away over home, each with its score, and the status on the right. (The query measures inside the 12px padding and
    1px border, so 280px wide is 254px here.) */
