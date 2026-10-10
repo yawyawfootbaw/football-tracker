@@ -813,15 +813,23 @@ test.describe("filters", () => {
 
 test.describe("game cards", () => {
   test("live card shows score, clock, down and distance, possession and timeouts", async ({ page }) => {
-    await open(page, { storage: { selected: ["cfb:1"] } });
+    const cfb = cfbGames();
+    Object.assign(cfb.find((e) => e.id === "1").status, { period: 2, displayClock: "2:00" });
+    await open(page, { cfb, storage: { selected: ["cfb:1"] } });
     const c = card(page, "cfb:1");
     await expect(c.locator(".dd")).toHaveText("3rd & 6 at IOWA 12");
-    await expect(c.locator(".clock")).toHaveText(/2:00\s*4th/);
+    await expect(c.locator(".clock")).toHaveText(/2:00\s*2nd/);
     await expect(c.locator(".team.away .pts")).toHaveText("24");
     await expect(c.locator(".team.away .poss")).not.toHaveClass(/hide/);
     await expect(c.locator(".team.home .poss")).toHaveClass(/hide/);
     await expect(c.locator(".team.away .to")).toHaveText("▮▮▯");
     await expect(c.locator(".team.away .rank")).toHaveText("5");
+  });
+
+  test("college timeouts show only in the first half, since ESPN's don't reset at halftime", async ({ page }) => {
+    await open(page, { storage: { selected: ["cfb:1"] } });  // 4th quarter, ESPN still sending timeouts
+    await expect(card(page, "cfb:1").locator(".clock")).toHaveText(/2:00\s*4th/);
+    await expect(card(page, "cfb:1").locator(".team .to")).toHaveClass([/hide/, /hide/]);
   });
 
   test("cards show each team's overall record under its name", async ({ page }) => {

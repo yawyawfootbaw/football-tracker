@@ -57,7 +57,10 @@ function parseEvent(league, e) {
     // ESPN's yardLine is yards from the home team's goal line.
     yardLine: s.yardLine, distance: s.distance, possession,
     ddText: s.downDistanceText, redZone,
-    homeTO: s.homeTimeouts, awayTO: s.awayTimeouts, lastPlay: lp?.text,
+    // College teams get 3 timeouts a half, but ESPN's college counts don't reset at halftime: in the second half they
+    // still subtract the first half's (scripts/check-timeouts.js), so show them only in the first half.
+    ...(league === "cfb" && e.status.period >= 3 ? {} : { homeTO: s.homeTimeouts, awayTO: s.awayTimeouts }),
+    lastPlay: lp?.text,
     // Where to watch, e.g. "ABC" or "CBS / Paramount+".
     network: [...new Set((comp.broadcasts || []).flatMap((b) => b.names || []))].join(" / "),
     // Link to ESPN's written recap, once the game is over. js/recap.js checks that the story actually exists.
