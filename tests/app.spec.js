@@ -667,6 +667,18 @@ test.describe("game picker", () => {
     await expect.poll(() => state.espnRequests).toBe(6);
   });
 
+  test("an empty answer from ESPN keeps the games already showing", async ({ page }) => {
+    await page.clock.install({ time: new Date("2026-10-03T20:00:00Z") });
+    const state = await open(page, { storage: { selected: ["cfb:2"] } });
+    const errors = [];
+    page.on("console", (m) => m.type() === "error" && errors.push(m.text()));
+    state.cfb = [];
+    await page.clock.runFor(40_000);  // several polls, past the list's 30-second refresh
+    await expect(card(page, "cfb:2")).toBeVisible();
+    await expect(row(page, "cfb:7")).toBeVisible();
+    expect(errors.join()).toContain("ESPN sent no games");
+  });
+
   test("the list refreshes every 30 seconds while cards refresh every 10", async ({ page }) => {
     await page.clock.install({ time: new Date("2026-10-03T20:00:00Z") });
     const state = await open(page, { storage: { selected: ["cfb:2"] } });

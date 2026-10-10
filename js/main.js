@@ -13,14 +13,18 @@ import { countVisit } from "./counter.js";
 import { loadAdmin } from "./admin.js";
 import { initLogo } from "./logo.js";
 
-let lastUpdated = null;
-let linkPending = LINKED_GAMES.length > 0;  // a shared game link's card still needs its highlight once it first shows  // when data last arrived successfully; a failed poll leaves the old time showing
+let lastUpdated = null;  // when data last arrived successfully; a failed poll leaves the old time showing
+let linkPending = LINKED_GAMES.length > 0;  // a shared game link's card still needs its highlight once it first shows
 
 async function poll() {
   if (LOADING) return;
   await Promise.all(Object.keys(state.games).map(async (league) => {
     try {
-      state.games[league] = await fetchGames(league);
+      const games = await fetchGames(league);
+      // ESPN now and then answers with an empty week for a moment. Games don't vanish mid-week, so treat that as a
+      // failed poll and keep what's showing rather than blanking the list and the board.
+      if (!games.length && state.games[league].length) throw new Error("ESPN sent no games; keeping the last ones");
+      state.games[league] = games;
       lastUpdated = Date.now();
     } catch (err) {
       console.error(league, err);
