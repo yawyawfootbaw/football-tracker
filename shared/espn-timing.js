@@ -8,11 +8,12 @@
  * Used by shared/alerts.js (notifications) and shared/espn.js (the scoreboard's clock).
  */
 
-// After a touchdown is sent without its try, a try result ESPN posts later than this is old news and isn't sent.
-export const TRY_RESULT_STALE_MS = 4 * 60_000;
+// After a touchdown is sent without its PAT (here, either an extra point or a 2-point try), a PAT result ESPN posts
+// later than this is old news and isn't sent.
+export const PAT_RESULT_STALE_MS = 4 * 60_000;
 
-// Drives and plays last fetched longer ago than this are a backlog: they're marked sent without notifying, so lighting
-// a bell on a game, or a gap in polling, doesn't bring up old turnovers.
+// If we haven't checked a game's drives and plays for this long, the new ones we find may be old, so we don't send
+// them. This happens when someone turns on a bell mid-game, or when checking pauses.
 export const DRIVES_STALE_MS = 60_000;
 
 // How long after a score or turnover is sent to keep checking that ESPN still lists it. One that disappears within
