@@ -17,12 +17,13 @@
   // Opened as the Home Screen app: show the splash screen (below) until the first scores are in (js/main.js).
   if (matchMedia("(display-mode: standalone)").matches || navigator.standalone) document.documentElement.dataset.app = "installed";
   // The Halloween look through October, and Thanksgiving's from the Thursday before Thanksgiving to the Sunday after
-  // (js/season.js). A saved "halloween" or "thanksgiving" (true or false) overrides the date.
+  // (js/season.js). A saved "halloween" or "thanksgiving" (true or false) overrides the date, and ?thanksgiving in the
+  // address turns Thanksgiving on for that visit (not saved), to preview it on a phone.
   try {
     const now = new Date(), thanksgiving = 22 + (11 - new Date(now.getFullYear(), 10, 1).getDay()) % 7;
     const saved = (key) => JSON.parse(localStorage.getItem(key));
     if (saved("halloween") ?? now.getMonth() === 9) document.documentElement.dataset.season = "halloween";
-    if (saved("thanksgiving") ?? (now.getMonth() === 10 && now.getDate() >= thanksgiving - 7 && now.getDate() <= thanksgiving + 3))
+    if (new URLSearchParams(location.search).has("thanksgiving") || (saved("thanksgiving") ?? (now.getMonth() === 10 && now.getDate() >= thanksgiving - 7 && now.getDate() <= thanksgiving + 3)))
       document.documentElement.dataset.season = "thanksgiving";
   } catch {}
 </script>

@@ -334,6 +334,14 @@ test.describe("Thanksgiving", () => {
     expect(await style(page.locator("#logo .drumstick .laces"), "animationName")).toBe("spiral-once");
   });
 
+  test("?thanksgiving turns it on any day, for that visit only", async ({ page }) => {
+    await page.clock.setFixedTime(new Date("2026-11-04T09:00:00"));
+    await open(page, { query: "?thanksgiving" });
+    await expect(page.locator("html")).toHaveAttribute("data-season", "thanksgiving");
+    await page.goto("/");
+    await expect(page.locator("html")).not.toHaveAttribute("data-season", "thanksgiving");
+  });
+
   test("the loading spinners are drumsticks too", async ({ page }) => {
     let release;
     await open(page, { thanksgiving: true, gate: new Promise((r) => (release = r)) });
