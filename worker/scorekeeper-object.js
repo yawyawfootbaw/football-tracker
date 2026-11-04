@@ -5,11 +5,12 @@
 import { ScoreKeeper as Keeper } from "./scorekeeper.js";
 import { listPhones, sendToPhones } from "./phones.js";
 import { forDevice } from "../shared/alerts.js";
+import { MINUTE_MS } from "../shared/times.js";
 
 export const PHONE_TEST_DELAY_MS = 5000;  // a test reaches phones a few seconds late, time to lock the phone
 // How long the program's own copy of the phones (loadPhones) is trusted before it's read from KV again, in case a
 // phone's change (/phones) never reached it.
-export const PHONES_FRESH_MS = 60 * 60_000;
+export const PHONES_FRESH_MS = 60 * MINUTE_MS;
 
 // One instance, so every page and phone sees the same games and notifications. Requests carry the deployed version
 // (handler.js); an instance still on older code resets itself and the request is retried on the new code. It wakes

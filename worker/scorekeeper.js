@@ -10,11 +10,12 @@
 
 import { fetchGames, fetchSummary, freshen, confNames } from "../shared/espn.js";
 import { gameAlerts, mergeAlerts, needsScoringPlays, scoreLine, sampleAlert } from "../shared/alerts.js";
+import { MINUTE_MS } from "../shared/times.js";
 
 export const POLL_MS = 10_000;
-export const IDLE_MS = 2 * 60_000;
-export const SOON_MS = 15 * 60_000;
-export const IDLE_CHECK_MS = 15 * 60_000;
+export const IDLE_MS = 2 * MINUTE_MS;
+export const SOON_MS = 15 * MINUTE_MS;
+export const IDLE_CHECK_MS = 15 * MINUTE_MS;
 const KEEP_ALERTS = 200;  // the most recent notifications kept for pages to catch up on
 const MAX_PLAY_FETCHES = 30;  // per update: Cloudflare allows 50 outside requests per run, and the scoreboards take 2
 
