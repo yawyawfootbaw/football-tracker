@@ -53,6 +53,11 @@ header h1 .hash { height: 4px; margin-top: 3px; background: repeating-linear-gra
    off one side and comes back round from the other, like the football's laces. */
 #logo .pumpkin, [data-season="halloween"] #logo .football { display: none; }
 [data-season="halloween"] #logo .pumpkin { display: block; }
+/* Thanksgiving (js/season.js): a drumstick whose meat is the football; its laces spiral like the football's. */
+#logo .drumstick, [data-season="thanksgiving"] #logo .football { display: none; }
+[data-season="thanksgiving"] #logo .drumstick { display: block; }
+.spinner .drumstick, [data-season="thanksgiving"] .spinner .ball { display: none; }
+[data-season="thanksgiving"] .spinner .drumstick { display: inline; }
 #logo .face, .spinner .face { transform-box: view-box; transform-origin: 32px 38px; }
 /* The loading spinners turn into jack-o'-lanterns too, their faces going round and round. */
 .spinner .pumpkin, [data-season="halloween"] .spinner .ball { display: none; }
@@ -128,6 +133,8 @@ main:has(aside.preload), aside.preload { transition: none; }  /* no slide on fir
 #splash img { width: 96px; height: 96px; }
 #splash .pumpkin, [data-season="halloween"] #splash .ball { display: none; }
 [data-season="halloween"] #splash .pumpkin { display: block; }
+#splash .drumstick, [data-season="thanksgiving"] #splash .ball { display: none; }
+[data-season="thanksgiving"] #splash .drumstick { display: block; }
 #splash .wordmark { display: grid; justify-items: center; font-family: "Barlow Condensed", "Arial Narrow", sans-serif; font-weight: 700;
   text-transform: uppercase; line-height: .92; }
 #splash .l1 { font-size: 24px; letter-spacing: .16em; color: #8b93a1; }

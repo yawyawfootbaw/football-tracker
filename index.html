@@ -16,9 +16,14 @@
   }
   // Opened as the Home Screen app: show the splash screen (below) until the first scores are in (js/main.js).
   if (matchMedia("(display-mode: standalone)").matches || navigator.standalone) document.documentElement.dataset.app = "installed";
-  // The Halloween look, through October (js/season.js). A saved "halloween" (true or false) overrides the date.
+  // The Halloween look through October, and Thanksgiving's from the Thursday before Thanksgiving to the Sunday after
+  // (js/season.js). A saved "halloween" or "thanksgiving" (true or false) overrides the date.
   try {
-    if (JSON.parse(localStorage.getItem("halloween")) ?? new Date().getMonth() === 9) document.documentElement.dataset.season = "halloween";
+    const now = new Date(), thanksgiving = 22 + (11 - new Date(now.getFullYear(), 10, 1).getDay()) % 7;
+    const saved = (key) => JSON.parse(localStorage.getItem(key));
+    if (saved("halloween") ?? now.getMonth() === 9) document.documentElement.dataset.season = "halloween";
+    if (saved("thanksgiving") ?? (now.getMonth() === 10 && now.getDate() >= thanksgiving - 7 && now.getDate() <= thanksgiving + 3))
+      document.documentElement.dataset.season = "thanksgiving";
   } catch {}
 </script>
 <meta name="description" content="Follow live college football and NFL games: score, clock, down and distance, and where the ball is.">
@@ -47,7 +52,7 @@
 <body>
 <!-- The splash screen, only for the Home Screen app (data-app, set above); js/main.js fades it out. -->
 <div id="splash" aria-hidden="true">
-  <img class="ball" src="images/favicon.svg" alt=""><img class="pumpkin" src="images/pumpkin.svg" alt="">
+  <img class="ball" src="images/favicon.svg" alt=""><img class="pumpkin" src="images/pumpkin.svg" alt=""><img class="drumstick" src="images/drumstick.svg" alt="">
   <div class="wordmark"><span class="l1">Game</span><span class="l2">Tracker <span class="live">Live</span></span></div>
 </div>
 <header>
@@ -75,6 +80,18 @@
       <path d="M17 32 L26 32 L21.5 25 Z M38 32 L47 32 L42.5 25 Z M29.5 39 L34.5 39 L32 34.5 Z" fill="#ffd23f"/>
       <path d="M15 43 Q32 57 49 43 L45 44 L43 47.5 L38.5 45 L35 49.5 L31 45.5 L27 49 L23.5 45 L19.5 46.5 Z" fill="#ffd23f"/>
     </g></g>
+  </svg><svg class="drumstick" viewBox="0 0 64 64" aria-hidden="true">
+    <!-- Thanksgiving: a drumstick whose meat is the football, laces and all (js/season.js). -->
+    <g transform="translate(32 32) rotate(-35) scale(.76) translate(-23.25 -32)">
+      <path d="M-12 23 A4.5 4.5 0 0 0 -15.5 31 L-15.5 33 A4.5 4.5 0 0 0 -12 41 A4.5 4.5 0 0 0 -7.5 37 L-7.5 35 H3 V29 H-7.5 V27 A4.5 4.5 0 0 0 -12 23 Z" fill="#f5ecd7" stroke="#b8a77f" stroke-width="1.5" stroke-linejoin="round"/>
+      <path d="M1 32 C14 10 50 10 63 32 C50 54 14 54 1 32 Z" fill="#c8742a" stroke="#6b3a10" stroke-width="2" stroke-linejoin="round"/>
+      <path d="M12 21 Q8 32 12 43 M52 21 Q56 32 52 43" fill="none" stroke="#fff" stroke-width="3.5"/>
+      <clipPath id="drumstick-clip-logo"><path d="M1 32 C14 10 50 10 63 32 C50 54 14 54 1 32 Z"/></clipPath>
+      <g clip-path="url(#drumstick-clip-logo)"><g class="laces">
+        <path d="M22 32 H42" stroke="#fff" stroke-width="5" stroke-linecap="round"/>
+        <path d="M26 26 V38 M32 26 V38 M38 26 V38" stroke="#fff" stroke-width="4.5" stroke-linecap="round"/>
+      </g></g>
+    </g>
   </svg></button>
   <h1><span class="l1">Game</span> <span class="l2">Tracker <span class="live">Live</span></span><span class="hash" aria-hidden="true"></span></h1>
   <span id="updated"></span>
@@ -126,6 +143,19 @@
           <path d="M15 43 Q32 57 49 43 L45 44 L43 47.5 L38.5 45 L35 49.5 L31 45.5 L27 49 L23.5 45 L19.5 46.5 Z" fill="#ffd23f"/>
         </g></g>
       </g>
+      <g class="drumstick">
+        <!-- Thanksgiving (js/season.js): the header's drumstick, its laces rolling like the football's. -->
+        <g transform="translate(32 32) rotate(-35) scale(.76) translate(-23.25 -32)">
+          <path d="M-12 23 A4.5 4.5 0 0 0 -15.5 31 L-15.5 33 A4.5 4.5 0 0 0 -12 41 A4.5 4.5 0 0 0 -7.5 37 L-7.5 35 H3 V29 H-7.5 V27 A4.5 4.5 0 0 0 -12 23 Z" fill="#f5ecd7" stroke="#b8a77f" stroke-width="1.5" stroke-linejoin="round"/>
+          <path d="M1 32 C14 10 50 10 63 32 C50 54 14 54 1 32 Z" fill="#c8742a" stroke="#6b3a10" stroke-width="2" stroke-linejoin="round"/>
+          <path d="M12 21 Q8 32 12 43 M52 21 Q56 32 52 43" fill="none" stroke="#fff" stroke-width="3.5"/>
+          <clipPath id="drumstick-clip-list"><path d="M1 32 C14 10 50 10 63 32 C50 54 14 54 1 32 Z"/></clipPath>
+          <g clip-path="url(#drumstick-clip-list)"><g class="laces">
+            <path d="M22 32 H42" stroke="#fff" stroke-width="5" stroke-linecap="round"/>
+            <path d="M26 26 V38 M32 26 V38 M38 26 V38" stroke="#fff" stroke-width="4.5" stroke-linecap="round"/>
+          </g></g>
+        </g>
+      </g>
     </svg></div>
     <div class="drawer-foot"><button id="picker-done">Done</button></div>
     </div>
@@ -155,6 +185,19 @@
           <path d="M17 32 L26 32 L21.5 25 Z M38 32 L47 32 L42.5 25 Z M29.5 39 L34.5 39 L32 34.5 Z" fill="#ffd23f"/>
           <path d="M15 43 Q32 57 49 43 L45 44 L43 47.5 L38.5 45 L35 49.5 L31 45.5 L27 49 L23.5 45 L19.5 46.5 Z" fill="#ffd23f"/>
         </g></g>
+      </g>
+      <g class="drumstick">
+        <!-- Thanksgiving (js/season.js): the header's drumstick, its laces rolling like the football's. -->
+        <g transform="translate(32 32) rotate(-35) scale(.76) translate(-23.25 -32)">
+          <path d="M-12 23 A4.5 4.5 0 0 0 -15.5 31 L-15.5 33 A4.5 4.5 0 0 0 -12 41 A4.5 4.5 0 0 0 -7.5 37 L-7.5 35 H3 V29 H-7.5 V27 A4.5 4.5 0 0 0 -12 23 Z" fill="#f5ecd7" stroke="#b8a77f" stroke-width="1.5" stroke-linejoin="round"/>
+          <path d="M1 32 C14 10 50 10 63 32 C50 54 14 54 1 32 Z" fill="#c8742a" stroke="#6b3a10" stroke-width="2" stroke-linejoin="round"/>
+          <path d="M12 21 Q8 32 12 43 M52 21 Q56 32 52 43" fill="none" stroke="#fff" stroke-width="3.5"/>
+          <clipPath id="drumstick-clip-board"><path d="M1 32 C14 10 50 10 63 32 C50 54 14 54 1 32 Z"/></clipPath>
+          <g clip-path="url(#drumstick-clip-board)"><g class="laces">
+            <path d="M22 32 H42" stroke="#fff" stroke-width="5" stroke-linecap="round"/>
+            <path d="M26 26 V38 M32 26 V38 M38 26 V38" stroke="#fff" stroke-width="4.5" stroke-linecap="round"/>
+          </g></g>
+        </g>
       </g>
     </svg>
   </section>

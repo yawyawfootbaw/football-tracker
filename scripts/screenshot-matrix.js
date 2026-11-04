@@ -78,6 +78,7 @@ const STATES = {
   "stats-list-open": { query: "?stats", storage: { selected: PICKS, view: "list", pickerOpen: false },
     run: async (page) => { await page.click('.card[data-key="cfb:1"] [data-stats]'); await settle(page, 300); } },
   "halloween": { storage: { selected: PICKS, view: "grid", pickerOpen: false, halloween: true } },
+  "thanksgiving": { storage: { selected: PICKS, view: "grid", pickerOpen: false, thanksgiving: true } },
   "mds-blue": { storage: { selected: PICKS, view: "grid", pickerOpen: false, mdsBlue: true } },
 };
 
@@ -113,7 +114,7 @@ async function shoot(device, name, state, file = path.join(OUT, `${name}-${devic
     await page.addInitScript((seed) => {
       for (const [k, v] of Object.entries(seed)) localStorage.setItem(k, JSON.stringify(v));
       window.Notification = class { static permission = "granted"; static requestPermission = async () => "granted"; close() {} };
-    }, { halloween: false, donateNudgeSeen: !state.donateNudge, ...state.storage });
+    }, { halloween: false, thanksgiving: false, donateNudgeSeen: !state.donateNudge, ...state.storage });
     await page.route("https://site.api.espn.com/**", (route) => {
       const url = route.request().url();
       if (url.includes("/summary")) return route.fulfill({ json: sampleSummary(url), headers: CORS });

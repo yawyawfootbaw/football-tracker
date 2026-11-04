@@ -81,14 +81,15 @@ async function open(page, opts = {}) {
     return route.fulfill({ body: "<svg xmlns='http://www.w3.org/2000/svg'/>", contentType: "image/svg+xml" });
   });
   // Off unless a test asks (opts.halloween: true, or null to let the date decide): the real date would otherwise turn it
-  // on every October, changing the logo and "google me".
+  // on every October, changing the logo and "google me". Thanksgiving's drumstick likewise (opts.thanksgiving).
   // The donation nudge (js/donate-nudge.js) stays away unless a test asks for it (opts.donateNudge), since it would
   // sit over the gear. opts.firstVisit saves nothing beforehand, so the page sees a browser that has never been here.
   if (!opts.firstVisit) {
-    await page.addInitScript(([on, nudge]) => {
-      localStorage.setItem("halloween", JSON.stringify(on));
+    await page.addInitScript(([on, nudge, thanks]) => {
+      if (on !== null) localStorage.setItem("halloween", JSON.stringify(on));
+      if (thanks !== null) localStorage.setItem("thanksgiving", JSON.stringify(thanks));
       if (!nudge) localStorage.setItem("donateNudgeSeen", "true");
-    }, ["halloween" in opts ? opts.halloween : false, !!opts.donateNudge]);
+    }, ["halloween" in opts ? opts.halloween : false, !!opts.donateNudge, "thanksgiving" in opts ? opts.thanksgiving : false]);
   }
   if (opts.storage) {
     // Seed once per test; later reloads must see what the app itself saved.
@@ -128,7 +129,7 @@ test.describe("loading and layout", () => {
     await expect(page.locator("#list .spinner")).toBeVisible();
     await expect(page.locator("#board .spinner")).toBeVisible();
     // The spinner is the favicon football with its laces rolling.
-    expect(await style(page.locator("#board .spinner .laces"), "animationName")).toBe("spiral");
+    expect(await style(page.locator("#board .spinner .ball .laces"), "animationName")).toBe("spiral");
     release();
     await expect(page.locator("#list label.game").first()).toBeVisible();
     await expect(page.locator(".spinner")).toHaveCount(0);
@@ -319,6 +320,39 @@ test.describe("grid and compact views", () => {
     await expect(card(page, "cfb:2")).toHaveCount(0);
     await expect(row(page, "cfb:2").locator("input")).not.toBeChecked();
   });
+});
+
+test.describe("Thanksgiving", () => {
+  test("from the Thursday a week before Thanksgiving the logo is a drumstick whose laces spiral when clicked", async ({ page }) => {
+    await page.clock.setFixedTime(new Date("2026-11-19T09:00:00"));  // Thanksgiving 2026 is November 26
+    await open(page, { thanksgiving: null });
+    await expect(page.locator("html")).toHaveAttribute("data-season", "thanksgiving");
+    await expect(page.locator("#logo .drumstick")).toBeVisible();
+    await expect(page.locator("#logo .football")).toBeHidden();
+    await expect(page.locator("#logo")).toHaveAttribute("aria-label", "Spiral the drumstick");
+    await page.locator("#logo").click();
+    expect(await style(page.locator("#logo .drumstick .laces"), "animationName")).toBe("spiral-once");
+  });
+
+  test("the loading spinners are drumsticks too", async ({ page }) => {
+    let release;
+    await open(page, { thanksgiving: true, gate: new Promise((r) => (release = r)) });
+    for (const at of ["#list", "#board"]) {
+      await expect(page.locator(`${at} .spinner .drumstick`)).toBeVisible();
+      await expect(page.locator(`${at} .spinner .ball`)).toBeHidden();
+    }
+    release();
+    await expect(page.locator(".spinner")).toHaveCount(0);
+  });
+
+  for (const [when, day] of [["the Wednesday before", "2026-11-18T23:00:00"], ["the Monday after", "2026-11-30T09:00:00"]]) {
+    test(`on ${when} it's the football`, async ({ page }) => {
+      await page.clock.setFixedTime(new Date(day));
+      await open(page, { thanksgiving: null });
+      await expect(page.locator("html")).not.toHaveAttribute("data-season", "thanksgiving");
+      await expect(page.locator("#logo .football")).toBeVisible();
+    });
+  }
 });
 
 test.describe("Halloween", () => {
@@ -1656,11 +1690,11 @@ test.describe("header football", () => {
     const title = await page.locator("header h1").boundingBox(), box = await logo.boundingBox();
     expect(box.x + box.width).toBeLessThanOrEqual(title.x);
     expect(title.x - (box.x + box.width)).toBeLessThan(16);
-    expect(await style(logo.locator(".laces"), "animationName")).toBe("none");
+    expect(await style(logo.locator(".football .laces"), "animationName")).toBe("none");
     await logo.click();
-    expect(await style(logo.locator(".laces"), "animationName")).toBe("spiral-once");
+    expect(await style(logo.locator(".football .laces"), "animationName")).toBe("spiral-once");
     await expect(logo).not.toHaveClass(/spiral/);  // done after one turn
-    expect(await style(logo.locator(".laces"), "animationName")).toBe("none");
+    expect(await style(logo.locator(".football .laces"), "animationName")).toBe("none");
   });
 });
 
