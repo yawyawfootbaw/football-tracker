@@ -8,7 +8,7 @@
 // "drive:<id>", "turnover:<play id>", "final". The game's memo lists the names already sent, and the program saves the memo, so after a restart nothing
 // is sent twice or lost: whatever hasn't been sent yet still goes out.
 
-import { TRY_GIVE_UP_MS, DRIVES_STALE_MS, CALLED_BACK_MS } from "./constants.js";
+import { TRY_RESULT_STALE_MS, DRIVES_STALE_MS, CALLED_BACK_MS } from "./espn-timing.js";
 
 const TRY_RESULTS = { "missed-pat": "Missed PAT", "two-point": "2-pt conversion", "failed-two-point": "Failed 2-pt" };
 const SCORE_NAMES = { "field-goal": "field goal", safety: "safety" };
@@ -198,10 +198,10 @@ function scoringAlerts(g, memo, sent, now, add, styled) {
         const title = `${nameOf(t)} ${SCORE_NAMES[p.kind] ?? "score"}`;
         add(p.kind === "field-goal" ? "field-goal" : "safety", title, p.text, { tag: `${g.key}:score:${p.id}`, icon: t.logo, ...lead(title) }, at);
       }
-    } else if (tries[p.id] !== undefined && (tried || now - tries[p.id] > TRY_GIVE_UP_MS)) {
+    } else if (tries[p.id] !== undefined && (tried || now - tries[p.id] > TRY_RESULT_STALE_MS)) {
       // A made extra point is expected, so it's skipped; a missed one, or a 2-point try either way, is news, unless
       // it took ESPN so long to say that it's old news.
-      const late = now - tries[p.id] > TRY_GIVE_UP_MS;
+      const late = now - tries[p.id] > TRY_RESULT_STALE_MS;
       delete tries[p.id];
       sent.add(`try:${p.id}`);
       if (TRY_RESULTS[tried] && !late) styled(tried, `${TRY_RESULTS[tried]} ${nameOf(t)}`, t, at, `${g.key}:try:${p.id}`);
