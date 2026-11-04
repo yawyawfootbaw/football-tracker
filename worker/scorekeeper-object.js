@@ -4,7 +4,7 @@
 
 import { ScoreKeeper as Keeper } from "./scorekeeper.js";
 import { listPhones, sendToPhones } from "./phones.js";
-import { forDevice } from "../js/alerts.js";
+import { forDevice } from "../shared/alerts.js";
 
 export const PHONE_TEST_DELAY_MS = 5000;  // a test reaches phones a few seconds late, time to lock the phone
 // How long the program's own copy of the phones (loadPhones) is trusted before it's read from KV again, in case a

@@ -3,7 +3,7 @@
 import { initDonateNudge } from "./donate-nudge.js";  // first: it checks for an earlier visit before anything is saved
 import { LINKED_GAMES, LOADING, MOBILE_QUERY, POLL_MS } from "./config.js";
 import { state, allGames } from "./state.js";
-import { fetchGames, freshenGames, confNames } from "./espn.js";
+import { fetchGames, freshenGames, confNames } from "../shared/espn.js";
 import { serverSource, noteSource, setPoller } from "./source.js";
 import { checkRecaps } from "./recap.js";
 import { renderList, listIsStale, initPicker } from "./picker.js";

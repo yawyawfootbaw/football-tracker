@@ -1,6 +1,6 @@
 // App-wide constants.
 
-export { LEAGUES } from "./leagues.js";
+export { LEAGUES } from "../shared/leagues.js";
 
 export const POLL_MS = 10000;
 export const LIST_REFRESH_MS = 30000;  // the picker list refreshes less often than the board so it doesn't shift under your finger
@@ -30,6 +30,6 @@ export const ADMIN_URL = "/api";
 export const LEAGUE_PARAM = { nfl: "nfl", college: "cfb", cfb: "cfb", ncaa: "cfb" }[params.get("league")?.toLowerCase()] ?? null;
 
 // ?game=cfb:401234567 picks that game on arrival (repeat it, or comma-separate keys, for several), so links shared
-// earlier from the admin's old share button keep working. Keys are js/espn.js's "league:eventId".
+// earlier from the admin's old share button keep working. Keys are shared/espn.js's "league:eventId".
 export const LINKED_GAMES = params.getAll("game").flatMap((v) => v.split(",")).map((k) => k.trim())
   .filter((k) => /^(cfb|nfl):[\w-]+$/.test(k));

@@ -1,7 +1,7 @@
 // The devices that turned on notifications (phones and computers), kept in Workers KV (the PUSH namespace,
 // wrangler.toml) so they survive deploys: each under "phone:" + a hash of its push address, as { subscription, bells,
 // public, kinds?, at }. bells are that device's lit games (each device has its own). kinds are the kinds of
-// notification an admin chose on that device for each game ({ key: kinds }, js/alerts.js NOTIFY_KINDS); a game without
+// notification an admin chose on that device for each game ({ key: kinds }, shared/alerts.js NOTIFY_KINDS); a game without
 // them, the defaults. public marks a device no admin turned on;
 // test notifications skip those (devices saved before there was a public sign-in have no mark, and were all admins').
 // sendToPhones sends a notification (worker/webpush.js) and forgets a device its push service says is gone.

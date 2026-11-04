@@ -510,7 +510,7 @@ test.describe("board image", () => {
   });
 });
 
-// Games as the program on Cloudflare sends them (js/espn.js's shape, dates as text).
+// Games as the program on Cloudflare sends them (shared/espn.js's shape, dates as text).
 const serverTeam = (id, abbr, score) => ({ id, abbr, name: abbr, logo: `https://a.espncdn.com/i/teamlogos/ncaa/500/${id}.png`, conf: "5", color: "#555", score });
 const serverGame = (key, away, home, over = {}) => ({ key, date: "2026-10-03T19:00:00Z", state: "in", detail: "6:06 - 3rd", clock: "6:06", period: 3,
   away, home, yardLine: 60, possession: away.id, ddText: "2nd & 4 at MICH 40", redZone: false, lastPlay: "Rush for 6 yards", network: "BTN", ...over });

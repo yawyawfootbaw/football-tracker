@@ -35,7 +35,7 @@ const ROOT = path.join(__dirname, "..");
 const read = (f) => fs.readFileSync(path.join(ROOT, f), "utf8");
 const list = (dir, ext) => fs.readdirSync(path.join(ROOT, dir)).filter((f) => f.endsWith(ext) && !f.endsWith(".test.js")).map((f) => `${dir}/${f}`);
 
-const jsFiles = [...list("js", ".js"), ...list("worker", ".js")];
+const jsFiles = [...list("js", ".js"), ...list("shared", ".js"), ...list("worker", ".js")];
 const testFiles = ["tests/app.spec.js", "tests/fixtures.js", ...fs.readdirSync(path.join(ROOT, "worker")).filter((f) => f.endsWith(".test.js")).map((f) => `worker/${f}`)];
 const cssFiles = list("css", ".css");
 const src = Object.fromEntries([...jsFiles, ...cssFiles, "index.html", ...testFiles].map((f) => [f, read(f)]));

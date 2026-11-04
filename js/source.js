@@ -1,4 +1,4 @@
-// Where the page's games come from. Normally each league straight from ESPN (js/espn.js, in js/main.js); the admin's
+// Where the page's games come from. Normally each league straight from ESPN (shared/espn.js, in js/main.js); the admin's
 // pages ask the program on Cloudflare instead (js/admin.js, worker/scorekeeper.js). If it fails, that update comes
 // from ESPN.
 

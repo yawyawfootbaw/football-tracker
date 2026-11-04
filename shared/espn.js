@@ -40,7 +40,7 @@ function yardsToGoal(s, possession, home, away) {
 /**
  * ESPN's game detail for g: its scoring plays so far, oldest first ([{ id, kind ("touchdown", "field-goal", "safety"...),
  * teamId, text, awayScore, homeScore }], each with the score it left; a touchdown's text grows the try's result, "(Cam
- * Little Kick)" or "(... PAT failed)", once it's in), for notifications (js/alerts.js, worker/scorekeeper.js); and its
+ * Little Kick)" or "(... PAT failed)", once it's in), for notifications (shared/alerts.js, worker/scorekeeper.js); and its
  * latest play, for freshen(); and every play's type, for turnovers.
  */
 export async function fetchSummary(g) {
@@ -53,7 +53,7 @@ export async function fetchSummary(g) {
   const timed = plays.filter((p) => Number.isFinite(Date.parse(p.wallclock)));
   const latest = (timed.length === plays.length && timed.length
     ? timed.reduce((a, p) => (Date.parse(p.wallclock) >= Date.parse(a.wallclock) ? p : a)) : plays.at(-1)) ?? null;
-  // Every play once (the current drive repeats the last of the previous ones), for turnovers (js/alerts.js
+  // Every play once (the current drive repeats the last of the previous ones), for turnovers (shared/alerts.js
   // turnoverAlerts): its id, ESPN's type ("Rush", "Pass Interception Return"...), the teams with the ball before and
   // after it, and whether it scored.
   const playList = [...new Map(plays.map((p) => [String(p.id), { id: String(p.id), type: p.type?.text, teamId: String(p.start?.team?.id ?? ""),

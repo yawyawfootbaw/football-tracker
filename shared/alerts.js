@@ -81,7 +81,7 @@ const endKind = (period) => (period === 2 ? "halftime" : "quarter-end");
 
 /**
  * The notifications for game g, given how it looked at the last poll (prev; undefined right after a restart) and its
- * memo (start it as {}; the program saves it between polls). g.scoringPlays (js/espn.js fetchScoringPlays) is there
+ * memo (start it as {}; the program saves it between polls). g.scoringPlays (shared/espn.js fetchScoringPlays) is there
  * when the program fetched them: whenever the score is ahead of the plays it last saw, or a try is pending
  * (needsScoringPlays). The very first look only fills the memo: what already happened before then isn't news.
  * @returns {{ title: string, body: string, tag?: string, icon?: string }[]}
@@ -214,7 +214,7 @@ function scoringAlerts(g, memo, sent, now, add, styled) {
   else delete memo.scored;
 }
 
-// Turnovers, from ESPN's play types (js/espn.js fetchSummary plays): an interception or a lost fumble (a returner's on
+// Turnovers, from ESPN's play types (shared/espn.js fetchSummary plays): an interception or a lost fumble (a returner's on
 // a punt or kickoff too), returned for a touchdown or not, as soon as the play is logged. One wiped out by a penalty is logged as a "Penalty" play, and one
 // overturned on review turns into the play it really was ("Sack", "Rush"), so neither counts; one sent and then turned
 // into something else (or gone) within CALLED_BACK_MS gets a notification saying it was called back. The first plays
@@ -252,7 +252,7 @@ function turnoverAlerts(g, memo, sent, now, styled) {
   else delete memo.turnovers;
 }
 
-// How each drive ended (js/espn.js fetchSummary): a turnover on downs, or a missed field goal. The first drives seen, and drives after a gap with none seen (the program fetches them only for belled games,
+// How each drive ended (shared/espn.js fetchSummary): a turnover on downs, or a missed field goal. The first drives seen, and drives after a gap with none seen (the program fetches them only for belled games,
 // so a bell lit later mustn't bring up old ones), are caught up silently.
 const DRIVE_RESULTS = [
   [/^DOWNS$/, "downs", (o, d) => `Turnover on downs · ${nameOf(d)} ball`],

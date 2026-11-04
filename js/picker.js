@@ -3,7 +3,7 @@
 import { LIST_REFRESH_MS } from "./config.js";
 import { store } from "./store.js";
 import { state, saveSelected } from "./state.js";
-import { confNames, NFL_DIVISIONS } from "./espn.js";
+import { confNames, NFL_DIVISIONS } from "../shared/espn.js";
 import { logoImg, rankBadge, statusLines, leads } from "./format.js";
 import { bellButton, onListBell } from "./notify.js";
 

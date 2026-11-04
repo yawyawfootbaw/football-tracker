@@ -1,10 +1,10 @@
-// Replays finished games' play-by-play through the turnover notifications (js/alerts.js turnoverAlerts), one play at
+// Replays finished games' play-by-play through the turnover notifications (shared/alerts.js turnoverAlerts), one play at
 // a time, and prints what each game would have sent next to ESPN's own turnover drive results, to check detection.
 //
 // Usage: node scripts/check-turnovers.mjs [league:eventId ...]   (default: today's finished NFL and college games)
 
-import { fetchSummary, fetchGames } from "../js/espn.js";
-import { gameAlerts } from "../js/alerts.js";
+import { fetchSummary, fetchGames } from "../shared/espn.js";
+import { gameAlerts } from "../shared/alerts.js";
 
 const keys = process.argv.slice(2).length ? process.argv.slice(2)
   : (await Promise.all(["nfl", "cfb"].map(fetchGames))).flat().filter((g) => g.state === "post").map((g) => g.key);

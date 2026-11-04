@@ -1,5 +1,5 @@
 // The program on Cloudflare that fetches the scores and works out the notifications: it asks ESPN for both leagues,
-// keeps the latest games, compares each game with the last update to see what's news (js/alerts.js), and keeps the
+// keeps the latest games, compares each game with the last update to see what's news (shared/alerts.js), and keeps the
 // recent notifications, numbered, for the admin's pages (GET /api/games, worker/handler.js). It lives in one Durable
 // Object (ScoreKeeper, worker/index.js), so there's a single copy; this file is plain code so Node tests can drive it
 // (worker/scorekeeper.test.js).
@@ -8,8 +8,8 @@
 // an admin page has asked within IDLE_MS, or while a phone has a lit bell on a game that's live or starts within
 // SOON_MS; every IDLE_CHECK_MS while phones have bells on later games (to notice kickoffs); otherwise not at all.
 
-import { fetchGames, fetchSummary, freshen, confNames } from "../js/espn.js";
-import { gameAlerts, mergeAlerts, needsScoringPlays, scoreLine, sampleAlert } from "../js/alerts.js";
+import { fetchGames, fetchSummary, freshen, confNames } from "../shared/espn.js";
+import { gameAlerts, mergeAlerts, needsScoringPlays, scoreLine, sampleAlert } from "../shared/alerts.js";
 
 export const POLL_MS = 10_000;
 export const IDLE_MS = 2 * 60_000;
@@ -32,7 +32,7 @@ export class ScoreKeeper {
     this.now = deps.now ?? Date.now;
     this.games = { cfb: [], nfl: [] };
     this.last = new Map();   // game key -> the game at the last update
-    this.memos = null;       // game key -> what js/alerts.js remembers about it (saved as "memo:<key>"), loaded on the first update
+    this.memos = null;       // game key -> what shared/alerts.js remembers about it (saved as "memo:<key>"), loaded on the first update
     this.alerts = [];        // { id, key, title, body, tag?, icon?, parts?, test?, at }, oldest first (test: from the test button)
     this.nextId = 1;
     this.polledAt = -Infinity;  // never
@@ -62,7 +62,7 @@ export class ScoreKeeper {
         const memo = this.memos.get(g.key) ?? {};
         const before = JSON.stringify(memo);
         // ESPN's game detail: for the scoring plays when the notifications need them, and for any belled game under way
-        // (or due to have started), whose play-by-play wins wherever it's ahead of the scoreboard (js/espn.js freshen).
+        // (or due to have started), whose play-by-play wins wherever it's ahead of the scoreboard (shared/espn.js freshen).
         const started = g.state === "in" || (g.state === "pre" && new Date(g.date) <= now);
         if ((needsScoringPlays(g, memo) || (started && this.bells.has(g.key))) && playFetches++ < MAX_PLAY_FETCHES) {
           try {
@@ -128,7 +128,7 @@ export class ScoreKeeper {
 
   /**
    * The admin's test button: a notification for this game, sent the same way as real ones (to lit bells only): a sample of
-   * `kind` (js/alerts.js SAMPLE_KINDS, for styling them), kind "custom" with `text` as its title, or, by default, a plain test. Returns it (the Durable Object
+   * `kind` (shared/alerts.js SAMPLE_KINDS, for styling them), kind "custom" with `text` as its title, or, by default, a plain test. Returns it (the Durable Object
    * also pushes it to phones, worker/scorekeeper-object.js), or null for a game it doesn't know.
    */
   test(key, kind = "test", text = "") {

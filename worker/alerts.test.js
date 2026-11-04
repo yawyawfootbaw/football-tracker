@@ -1,9 +1,9 @@
 // Run with: npm run test:worker
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { classifyTry, gameAlerts, mergeAlerts, needsScoringPlays, periodName, sampleAlert, SAMPLE_KINDS, forDevice, DEFAULT_KINDS, NOTIFY_KINDS } from "../js/alerts.js";
+import { classifyTry, gameAlerts, mergeAlerts, needsScoringPlays, periodName, sampleAlert, SAMPLE_KINDS, forDevice, DEFAULT_KINDS, NOTIFY_KINDS } from "../shared/alerts.js";
 
-// A live game as js/espn.js normalizes it; override what each step changes.
+// A live game as shared/espn.js normalizes it; override what each step changes.
 const game = (over = {}) => ({
   key: "nfl:1", state: "in", detail: "10:00 - 1st", clock: "10:00", period: 1, redZone: false, possession: "2",
   away: { id: "1", abbr: "BUF", score: "0", logo: "buf.png" }, home: { id: "2", abbr: "NE", score: "0", logo: "ne.png" }, ddText: "1st & 10 at NE 30",
@@ -23,7 +23,7 @@ function run(...polls) {
   });
 }
 
-// ESPN's scoring plays (js/espn.js fetchScoringPlays): id, kind, the scoring team, its text and the score it left.
+// ESPN's scoring plays (shared/espn.js fetchScoringPlays): id, kind, the scoring team, its text and the score it left.
 const play = (id, kind, teamId, away, home, text = "") => ({ id, kind, teamId, text, awayScore: away, homeScore: home });
 const td = (id, teamId, away, home, text = "x 1 Yd Run") => play(id, "touchdown", teamId, away, home, text);
 
@@ -297,7 +297,7 @@ test("drives after a gap with none seen are caught up silently: a bell lit later
   assert.equal(gameAlerts(game(), game({ drives: [drive("d1", "2", "DOWNS"), drive("d2", "1", "DOWNS")] }), memo, 210_000).length, 1);
 });
 
-// ESPN's play-by-play (js/espn.js fetchSummary plays): id, type, and the team that started the play with the ball.
+// ESPN's play-by-play (shared/espn.js fetchSummary plays): id, type, and the team that started the play with the ball.
 const pbp = (id, type, teamId = "1") => ({ id, type, teamId });
 
 test("turnovers come from the play types, once each, as soon as they're logged, credited to the team that gets the ball", () => {

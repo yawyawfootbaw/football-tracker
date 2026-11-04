@@ -1,13 +1,13 @@
 // Run with: npm run test:worker
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { freshen } from "../js/espn.js";
+import { freshen } from "../shared/espn.js";
 
 const game = (over = {}) => ({
   key: "cfb:1", state: "in", detail: "13:11 - 1st", clock: "13:11", period: 1, possession: "2", ddText: "1st & 10 at ILL 25", lastPlay: "kickoff",
   away: { id: "1", abbr: "ORE", score: "0" }, home: { id: "2", abbr: "ILL", score: "0" }, ...over,
 });
-// The latest play from ESPN's play-by-play (js/espn.js fetchSummary).
+// The latest play from ESPN's play-by-play (shared/espn.js fetchSummary).
 const play = (period, clock, away, home, over = {}) => ({ period: { number: period }, clock: { displayValue: clock }, awayScore: away, homeScore: home,
   text: "J.Davison rush for 2 yards", type: { text: "Rush" }, end: { team: { id: "1" }, downDistanceText: "1st & 10 at ILL 12", yardLine: 12, distance: 10 }, ...over });
 
