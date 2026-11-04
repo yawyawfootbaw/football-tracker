@@ -1,6 +1,6 @@
 // App-wide constants.
 
-export { LEAGUES } from "../shared/leagues.js";
+export { LEAGUES } from "../shared/constants.js";
 
 export const POLL_MS = 10000;
 export const LIST_REFRESH_MS = 30000;  // the picker list refreshes less often than the board so it doesn't shift under your finger

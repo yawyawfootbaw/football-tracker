@@ -68,7 +68,7 @@ js/
   counter.js          hidden visit counter
 shared/               used by both the page and the Worker (no browser APIs)
   espn.js             fetches ESPN's scoreboard and normalizes each game
-  leagues.js          ESPN's scoreboard addresses used by espn.js
+  constants.js        settings both use: ESPN's scoreboard addresses, how long notifications wait and watch
   alerts.js           what's news in a game between updates (scores, turnovers, two-minute warning, quarters) and which device gets which; the Worker uses it; the page takes its kinds lists
 fonts/                Barlow Condensed Bold for the wordmark (self-hosted, SIL Open Font License in OFL.txt)
 images/               coach photos for "google me", favicon, link-preview image

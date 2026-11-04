@@ -8,11 +8,10 @@
 // "drive:<id>", "turnover:<play id>", "final". The game's memo lists the names already sent, and the program saves the memo, so after a restart nothing
 // is sent twice or lost: whatever hasn't been sent yet still goes out.
 
-const TRY_GIVE_UP_MS = 4 * 60_000;  // after a touchdown, how long to watch for how its try went
+import { TRY_GIVE_UP_MS, DRIVES_STALE_MS, CALLED_BACK_MS } from "./constants.js";
+
 const TRY_RESULTS = { "missed-pat": "Missed PAT", "two-point": "2-pt conversion", "failed-two-point": "Failed 2-pt" };
 const SCORE_NAMES = { "field-goal": "field goal", safety: "safety" };
-const DRIVES_STALE_MS = 60_000;  // drives last seen longer ago than this are caught up silently, not sent
-const CALLED_BACK_MS = 10 * 60_000;  // how long after a score or turnover to watch for it being called back
 
 /**
  * Every kind of notification, in the order Notification settings (js/notify-settings.js) list them, grouped. Each notification

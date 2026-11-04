@@ -1,7 +1,7 @@
 // Fetching and normalizing ESPN's unofficial scoreboard API into the shape the UI renders. No browser APIs: the
 // program on Cloudflare (worker/scorekeeper.js) uses it too.
 
-import { LEAGUES } from "./leagues.js";
+import { LEAGUES, CLOCK_SLACK_MS } from "./constants.js";
 
 // ESPN's NFL scoreboard doesn't say which conference or division a team is in, so keep the alignment here.
 export const NFL_DIVISIONS = {
@@ -88,7 +88,7 @@ function clockRanAhead(g, latest, now) {
   if (!Number.isFinite(at) || g.state !== "in" || !period || g.period > 4 || g.period < period) return false;
   const gameTime = g.period === period ? seconds(latest.clock.displayValue) - seconds(g.clock)
     : seconds(latest.clock.displayValue) + (g.period - period - 1) * 900 + 900 - seconds(g.clock);
-  return gameTime > (now - at) / 1000 + 60;  // a minute's slack for the watches disagreeing
+  return gameTime * 1000 > now - at + CLOCK_SLACK_MS;
 }
 
 /**
