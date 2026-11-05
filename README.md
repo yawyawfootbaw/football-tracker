@@ -69,7 +69,7 @@ js/
 shared/               used by both the page and the Worker (no browser APIs)
   espn.js             fetches ESPN's scoreboard and normalizes each game
   constants.js        settings both use: ESPN's scoreboard addresses
-  times.js            lengths of time (MINUTE_MS), for writing other times readably
+  constants/times.js  lengths of time (MINUTE_MS, HOUR_MS), for writing other times readably
   espn-timing.js      how long to wait on ESPN's data and how far to trust it (try results, called-back scores, backlogs, clock)
   alerts.js           what's news in a game between updates (scores, turnovers, two-minute warning, quarters) and which device gets which; the Worker uses it; the page takes its kinds lists
 fonts/                Barlow Condensed Bold for the wordmark (self-hosted, SIL Open Font License in OFL.txt)

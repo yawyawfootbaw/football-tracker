@@ -10,7 +10,7 @@
  * Used by shared/alerts.js (notifications) and shared/espn.js (the game clock).
  */
 
-import { MINUTE_MS } from "./times.js";
+import { MINUTE_MS } from "./constants/times.js";
 
 // How long to wait for a PAT result after a touchdown is sent. (Here, PAT covers 2-point tries too.) A result that
 // shows up later than this isn't sent.

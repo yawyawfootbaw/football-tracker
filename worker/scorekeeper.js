@@ -10,7 +10,7 @@
 
 import { fetchGames, fetchSummary, freshen, confNames } from "../shared/espn.js";
 import { gameAlerts, mergeAlerts, needsScoringPlays, scoreLine, sampleAlert } from "../shared/alerts.js";
-import { MINUTE_MS } from "../shared/times.js";
+import { MINUTE_MS } from "../shared/constants/times.js";
 
 export const POLL_MS = 10_000;
 export const IDLE_MS = 2 * MINUTE_MS;

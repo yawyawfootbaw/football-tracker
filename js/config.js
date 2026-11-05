@@ -1,13 +1,13 @@
 // App-wide constants.
 
 export { LEAGUES } from "../shared/constants.js";
-import { MINUTE_MS } from "../shared/times.js";
+import { MINUTE_MS, HOUR_MS } from "../shared/constants/times.js";
 
 export const POLL_MS = 10000;
 export const LIST_REFRESH_MS = 30000;  // the picker list refreshes less often than the board so it doesn't shift under your finger
 export const GLOW_MS = 2400;           // matches the redzone-glow animation length (css/board.css)
 export const RECAP_CHECK_MS = 2 * MINUTE_MS;     // how often a final game without a recap is checked again (js/recap.js)
-export const RECAP_GIVE_UP_MS = 60 * MINUTE_MS;  // stop checking after an hour
+export const RECAP_GIVE_UP_MS = HOUR_MS;  // stop checking after an hour
 export const FLASH_MS = 1600;          // matches the card-flash animation length (css/board.css)
 // Phones: narrow, or short (a phone on its side is wide, but too short for the side-by-side list and board). Matches
 // css/mobile.css.
