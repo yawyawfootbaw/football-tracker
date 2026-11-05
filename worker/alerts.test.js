@@ -1,7 +1,8 @@
 // Run with: npm run test:worker
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { classifyTry, gameAlerts, mergeAlerts, needsScoringPlays, periodName, sampleAlert, SAMPLE_KINDS, forDevice, DEFAULT_KINDS, NOTIFY_KINDS } from "../shared/alerts.js";
+import { classifyTry, gameAlerts, mergeAlerts, needsScoringPlays, periodName, sampleAlert, forDevice } from "../shared/alerts.js";
+import { SAMPLE_KINDS, DEFAULT_KINDS, NOTIFY_KINDS } from "../shared/constants/notification-kinds.js";
 
 // A live game as shared/espn.js normalizes it; override what each step changes.
 const game = (over = {}) => ({

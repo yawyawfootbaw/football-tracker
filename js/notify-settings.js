@@ -1,12 +1,12 @@
 // Each game's notification settings: on a card whose bell is on, a sliders button opening which kinds of notification
 // this device gets for that game (a touchdown, a lead change, a turnover, the two-minute warning...), saved here and on
-// the server (js/push.js sendKinds, worker/phones.js). A game never set gets the defaults (shared/alerts.js DEFAULT_KINDS).
+// the server (js/push.js sendKinds, worker/phones.js). A game never set gets the defaults (shared/constants/notification-kinds.js DEFAULT_KINDS).
 // Shown with ?notification-settings in the address, and to admins (js/admin.js).
 
 import { NOTIFY_SETTINGS } from "./config.js";
 import { store } from "./store.js";
 import { state, allGames } from "./state.js";
-import { NOTIFY_KINDS, DEFAULT_KINDS } from "../shared/alerts.js";
+import { NOTIFY_KINDS, DEFAULT_KINDS } from "../shared/constants/notification-kinds.js";
 import { sendKinds } from "./push.js";
 
 let on = NOTIFY_SETTINGS;

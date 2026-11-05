@@ -7,7 +7,7 @@
 //   GET  /api/games?since=<n>  Authorization: Bearer <token>  ->  { games: { cfb, nfl }, confNames, alerts, cursor } from
 //                       the program on Cloudflare (scorekeeper.js): the notifications after number n (none without it)
 //   POST /api/test-alert  Authorization: Bearer <token>, { key, kind?, text? }  ->  a test notification for that game, a
-//                       sample of one kind (shared/alerts.js SAMPLE_KINDS) for styling them, or kind "custom" with its text
+//                       sample of one kind (shared/constants/notification-kinds.js SAMPLE_KINDS) for styling them, or kind "custom" with its text
 //                       (phones get it about 5 seconds later, time to lock the phone)
 //   POST /api/push/subscribe    Authorization: Bearer <token>, { subscription, bells }  ->  a phone turning on notifications
 //   POST /api/push/bells        Authorization: Bearer <token>, { endpoint, bells }      ->  a phone's lit bells changed
@@ -23,7 +23,7 @@
 // put ADMIN_PASSWORD) signs everyone out at once.
 
 import { savePhone, setBells, setKinds, removePhone } from "./phones.js";
-import { SAMPLE_KINDS } from "../shared/alerts.js";
+import { SAMPLE_KINDS } from "../shared/constants/notification-kinds.js";
 
 export const TOKEN_DAYS = 30;
 

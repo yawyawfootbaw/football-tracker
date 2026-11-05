@@ -69,7 +69,7 @@ export async function sendBells(bells) {
   if (sub) await post("bells", { endpoint: sub.endpoint, bells }).catch(() => {});
 }
 
-/** This device choosing which kinds of notification it gets, by game ({ key: kinds }, shared/alerts.js NOTIFY_KINDS). Saved here too. */
+/** This device choosing which kinds of notification it gets, by game ({ key: kinds }, shared/constants/notification-kinds.js NOTIFY_KINDS). Saved here too. */
 export async function sendKinds(kinds) {
   store.set("notifyKinds", kinds);
   const sub = await subscription().catch(() => null);

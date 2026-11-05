@@ -129,7 +129,7 @@ export class ScoreKeeper {
 
   /**
    * The admin's test button: a notification for this game, sent the same way as real ones (to lit bells only): a sample of
-   * `kind` (shared/alerts.js SAMPLE_KINDS, for styling them), kind "custom" with `text` as its title, or, by default, a plain test. Returns it (the Durable Object
+   * `kind` (shared/constants/notification-kinds.js SAMPLE_KINDS, for styling them), kind "custom" with `text` as its title, or, by default, a plain test. Returns it (the Durable Object
    * also pushes it to phones, worker/scorekeeper-object.js), or null for a game it doesn't know.
    */
   test(key, kind = "test", text = "") {
