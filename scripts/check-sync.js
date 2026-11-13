@@ -35,7 +35,7 @@ const picks = (page) => page.evaluate(() => JSON.parse(localStorage.getItem("sel
       return page;
     };
     const a = await open();
-    await a.goto(SITE);
+    await a.goto(`${SITE}/?sync-devices`);
     await a.waitForSelector("#list input[type=checkbox]", { state: "attached", timeout: 20000 });
     const keys = await a.$$eval("#list input[data-key]", (els) => [...new Set(els.map((e) => e.dataset.key))].slice(0, 3));
     await a.evaluate((k) => { localStorage.setItem("selected", JSON.stringify([k])); }, keys[0]);
@@ -73,7 +73,7 @@ const picks = (page) => page.evaluate(() => JSON.parse(localStorage.getItem("sel
 
     if (shots) {
       const c = await open();
-      await c.goto(SITE);
+      await c.goto(`${SITE}/?sync-devices`);
       await c.waitForTimeout(1000);
       await c.click("#settings");
       await c.click("#sync-devices-item");

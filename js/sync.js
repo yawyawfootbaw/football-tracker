@@ -8,8 +8,11 @@
 // worker/scorekeeper-object.js). Each change here is sent a moment later (a burst, such as Select all, goes as one);
 // the server's copy is read when the page opens, when it comes back into view, and every SYNC_MS while it's showing.
 // Anyone with the link can see and change its picks, so the dialog says to treat it like a password.
+//
+// While it's being tried out, the menu item shows only with ?sync-devices in the address, or on a device already
+// syncing (so it can stop). ?sync=<id> links work either way.
 
-import { ADMIN_URL, LINKED_GAMES, SYNC_PARAM } from "./config.js";
+import { ADMIN_URL, LINKED_GAMES, SYNC_MENU, SYNC_PARAM } from "./config.js";
 import { store } from "./store.js";
 import { state, onSelectionSaved } from "./state.js";
 import { onBellsSaved, applyBells } from "./notify.js";
@@ -175,14 +178,16 @@ export function initSync(hooks) {
   onSelectionSaved(changed);
   onBellsSaved(changed);
 
-  menuItem = document.createElement("button");
-  menuItem.id = "sync-devices-item";
-  menuItem.innerHTML = `<span class="check">✓</span>Sync devices`;
-  menuItem.addEventListener("click", openDialog);
-  document.getElementById("save-board").after(menuItem);
-
   const saved = store.get("syncId");
-  setSyncId(SYNC_ID.test(saved ?? "") ? saved : null);
+  const syncing = SYNC_ID.test(saved ?? "");
+  if (SYNC_MENU || syncing || (SYNC_PARAM && SYNC_ID.test(SYNC_PARAM))) {
+    menuItem = document.createElement("button");
+    menuItem.id = "sync-devices-item";
+    menuItem.innerHTML = `<span class="check">✓</span>Sync devices`;
+    menuItem.addEventListener("click", openDialog);
+    document.getElementById("save-board").after(menuItem);
+  }
+  setSyncId(syncing ? saved : null);
   if (SYNC_PARAM) {
     const url = new URL(location.href);
     url.searchParams.delete("sync");

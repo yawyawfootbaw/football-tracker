@@ -25,6 +25,7 @@ export const ADMIN_PARAM = params.get("admin");
 // The site's own API (worker/handler.js) that logs the admin in and hands out the admin code.
 export const ADMIN_URL = "/api";
 export const SYNC_PARAM = params.get("sync");  // ?sync=<id> joins a sync link (js/sync.js)
+export const SYNC_MENU = params.has("sync-devices");  // ?sync-devices shows Sync devices in the gear menu while it's being tried out
 
 
 // ?league=nfl or ?league=college picks the starting league, for links shared with one audience.
