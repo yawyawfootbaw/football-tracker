@@ -9,6 +9,10 @@
 //   POST /api/test-alert  Authorization: Bearer <token>, { key, kind?, text? }  ->  a test notification for that game, a
 //                       sample of one kind (shared/constants/notification-kinds.js SAMPLE_KINDS) for styling them, or kind "custom" with its text
 //                       (phones get it about 5 seconds later, time to lock the phone)
+//   GET  /api/sync/<id>  ->  { selected, bells, version }: a sync link's picks and lit bells, the same on every device
+//                        that opened it (js/sync.js); version 0 when nothing's saved yet. Open to anyone with the id.
+//   PUT  /api/sync/<id>, { selected, bells }  ->  { version }: a device's picks or bells changed (503 if the program
+//                        already holds MAX_SYNC_GROUPS links and this would start a new one)
 //   POST /api/push/subscribe    Authorization: Bearer <token>, { subscription, bells }  ->  a phone turning on notifications
 //   POST /api/push/bells        Authorization: Bearer <token>, { endpoint, bells }      ->  a phone's lit bells changed
 //   POST /api/push/unsubscribe  Authorization: Bearer <token>, { endpoint }             ->  a phone turning them off
@@ -22,7 +26,8 @@
 // the password, is kept in a browser. Tokens are signed with the password, so changing the password (wrangler secret
 // put ADMIN_PASSWORD) signs everyone out at once.
 
-import { savePhone, setBells, setKinds, removePhone } from "./phones.js";
+import { savePhone, setBells, setKinds, removePhone, validBells } from "./phones.js";
+import { SYNC_ID } from "../shared/constants/sync.js";
 import { SAMPLE_KINDS } from "../shared/constants/notification-kinds.js";
 
 export const TOKEN_DAYS = 30;
@@ -82,6 +87,18 @@ export async function handle(request, env, code, now = Date.now()) {
     if (kind != null && kind !== "custom" && !(kind in SAMPLE_KINDS)) return reply("Which kind?", 400);
     if (kind === "custom" && !(typeof text === "string" && text.trim() && text.length <= 200)) return reply("What text?", 400);
     const res = await keeperFetch(env, "/test", { method: "POST", body: JSON.stringify({ key, kind, text }) });
+    return reply(await res.text(), res.status, { "Content-Type": "application/json" });
+  }
+  const syncId = url.pathname.match(/^\/api\/sync\/([^/]+)$/)?.[1];
+  if (syncId != null && (request.method === "GET" || request.method === "PUT")) {
+    if (!SYNC_ID.test(syncId)) return reply("Not a sync link", 404);
+    let init;
+    if (request.method === "PUT") {
+      const { selected, bells } = await request.json().catch(() => ({}));
+      if (!validBells(selected) || !validBells(bells)) return reply("Picks and bells?", 400);
+      init = { method: "PUT", body: JSON.stringify({ selected, bells }) };
+    }
+    const res = await keeperFetch(env, `/sync/${syncId}`, init);
     return reply(await res.text(), res.status, { "Content-Type": "application/json" });
   }
   // Devices turning notifications on and off, and their bells (worker/phones.js). Open to everyone; a logged-in

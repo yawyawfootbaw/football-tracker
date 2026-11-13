@@ -191,3 +191,20 @@ test("any device can turn notifications on, change its bells and turn them off; 
   assert.deepEqual(await listPhones(PUSH), []);
   assert.equal((await post("/api/push/other", {})).status, 404);
 });
+test("anyone with a sync link's id reads and saves its picks and bells; only well-formed ids and lists of game keys", async () => {
+  const SCORES = fakeScores(), withScores = { ...env, SCORES };
+  const id = "AbCdEfGhIjKlMnOpQrSt_-";
+  assert.equal((await api("GET", `/api/sync/${id}`, null, undefined, withScores)).status, 200);
+  const body = JSON.stringify({ selected: ["cfb:1"], bells: ["cfb:1"], extra: "dropped" });
+  assert.equal((await api("PUT", `/api/sync/${id}`, null, body, withScores)).status, 200);
+  assert.deepEqual(SCORES.asked.map((a) => [a.url, a.method]), [[`https://scorekeeper/sync/${id}`, "GET"], [`https://scorekeeper/sync/${id}`, "PUT"]]);
+  assert.deepEqual(JSON.parse(SCORES.asked[1].body), { selected: ["cfb:1"], bells: ["cfb:1"] });
+  for (const bad of ["{}", '{"selected":"cfb:1","bells":[]}', '{"selected":[],"bells":[1]}', "not json"]) {
+    assert.equal((await api("PUT", `/api/sync/${id}`, null, bad, withScores)).status, 400, bad);
+  }
+  for (const badId of ["short", `${id}x`, "AbCdEfGhIjKlMnOpQrSt.."]) {
+    assert.equal((await api("GET", `/api/sync/${badId}`, null, undefined, withScores)).status, 404, badId);
+  }
+  assert.equal((await api("DELETE", `/api/sync/${id}`, null, undefined, withScores)).status, 404);
+  assert.equal(SCORES.asked.length, 2);
+});

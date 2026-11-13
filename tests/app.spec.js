@@ -19,7 +19,8 @@ async function open(page, opts = {}) {
   const state = { cfb: opts.cfb ?? cfbGames(), nfl: opts.nfl ?? nflGames(), hits: 0, espnRequests: 0, adminRequests: 0, gate: opts.gate,
     visits: { weekly: 12, monthly: 345, total: 6789 }, visitsRequests: 0,
     recaps: new Set(opts.recaps ?? ["7", "8"]), summaryRequests: {}, failScoreboards: opts.failScoreboards ?? 0,
-    scores: opts.scores, scoresAsks: 0, sinces: [], testAlerts: [], testKinds: [], testTexts: [], pushPosts: [] };
+    scores: opts.scores, scoresAsks: 0, sinces: [], testAlerts: [], testKinds: [], testTexts: [], pushPosts: [],
+    sync: opts.sync ?? {}, syncPuts: [] };
   await page.route("https://site.api.espn.com/**", async (route) => {
     const id = route.request().url().match(/summary\?event=(\w+)/)?.[1];
     if (id) {
@@ -39,6 +40,16 @@ async function open(page, opts = {}) {
   // The site's own /api/ (worker/handler.js); the local test server only has the static files.
   await page.route("**/api/**", (route) => {
     const req = route.request(), headers = {};
+    // Sync links (js/sync.js), open to anyone: state.sync holds each link's { selected, bells, version } by id.
+    const syncId = new URL(req.url()).pathname.match(/\/sync\/(.+)$/)?.[1];
+    if (syncId) {
+      const saved = state.sync[syncId] ?? { selected: [], bells: [], version: 0 };
+      if (req.method() !== "PUT") return route.fulfill({ json: saved, headers });
+      const body = JSON.parse(req.postData());
+      state.syncPuts.push({ id: syncId, ...body });
+      state.sync[syncId] = { ...body, version: saved.version + 1 };
+      return route.fulfill({ json: { version: saved.version + 1 }, headers });
+    }
     state.adminRequests++;
     const auth = req.headers().authorization;
     if (req.url().endsWith("/login") && req.method() === "POST" && auth === `Bearer ${ADMIN_KEY}`) {
@@ -894,6 +905,70 @@ test.describe("bulk select in the game list", () => {
     expect(await picked(page)).toEqual(["nfl:101"]);  // the NFL tab isn't in view
     await expect(page.locator('#list .group-label[data-group="Selected"]')).toHaveCount(0);
     await expect(page.locator("#board .card")).toHaveCount(1);
+  });
+});
+
+test.describe("sync devices", () => {
+  const SYNC = "AbCdEfGhIjKlMnOpQrSt_-";
+
+  test("a device that isn't syncing never asks the server", async ({ page }) => {
+    const state = await open(page, { storage: { selected: ["cfb:1"] } });
+    await expect(card(page, "cfb:1")).toBeAttached();
+    await page.waitForTimeout(500);
+    expect(state.syncPuts).toEqual([]);
+    expect(Object.keys(state.sync)).toEqual([]);
+  });
+
+  test("making a link saves this device's games and bells under it and shows the link", async ({ page }) => {
+    const state = await open(page, { storage: { selected: ["cfb:1", "cfb:2"], notifyGames: ["cfb:2"] } });
+    await expect(card(page, "cfb:1")).toBeAttached();
+    await page.locator("#settings").click();
+    await page.locator("#sync-devices-item").click();
+    await page.locator('#sync-devices [data-act="create"]').click();
+    const link = page.locator("#sync-devices .link-row input");
+    await expect(link).toHaveValue(/\?sync=[A-Za-z0-9_-]{22}$/);
+    const id = (await link.inputValue()).split("sync=")[1];
+    expect(state.syncPuts).toEqual([{ id, selected: ["cfb:1", "cfb:2"], bells: ["cfb:2"] }]);
+    await expect(page.locator("#sync-devices-item")).toHaveAttribute("aria-pressed", "true");
+  });
+
+  test("opening a link merges this device's games into the link's, sends them back, and drops ?sync", async ({ page }) => {
+    const state = await open(page, { query: `?sync=${SYNC}`, storage: { selected: ["cfb:1"] },
+      sync: { [SYNC]: { selected: ["cfb:2", "cfb:3"], bells: ["cfb:3"], version: 4 } } });
+    await expect(card(page, "cfb:3")).toBeAttached();
+    await expect(card(page, "cfb:1")).toBeAttached();
+    await expect.poll(() => state.syncPuts.length).toBe(1);
+    expect(state.syncPuts[0]).toEqual({ id: SYNC, selected: ["cfb:2", "cfb:3", "cfb:1"], bells: ["cfb:3"] });
+    expect(new URL(page.url()).search).toBe("");
+    await expect(page.locator('#board [data-bell="cfb:3"]')).toHaveClass(/on/);
+  });
+
+  test("a synced device takes the link's games on opening, and its changes go to the link", async ({ page }) => {
+    const state = await open(page, { storage: { selected: ["cfb:1"], syncId: SYNC },
+      sync: { [SYNC]: { selected: ["cfb:2"], bells: [], version: 2 } } });
+    await expect(card(page, "cfb:2")).toBeAttached();
+    await expect(card(page, "cfb:1")).toHaveCount(0);
+    await page.locator('#board [data-remove="cfb:2"]').click();
+    await expect.poll(() => state.syncPuts.length).toBe(1);
+    expect(state.syncPuts[0].selected).toEqual([]);
+  });
+
+  test("a link pasted into the dialog joins it; Stop syncing keeps the games", async ({ page }) => {
+    const state = await open(page, { storage: { selected: [] }, sync: { [SYNC]: { selected: ["cfb:2"], bells: [], version: 1 } } });
+    await page.locator("#settings").click();
+    await page.locator("#sync-devices-item").click();
+    await page.locator("#sync-devices .link-row input").fill("not a link");
+    await page.locator('#sync-devices [data-act="join"]').click();
+    await expect(page.locator("#sync-devices .error")).toHaveText("That isn't a sync link.");
+    await page.locator("#sync-devices .link-row input").fill(`https://gametrackerlive.com/?sync=${SYNC}`);
+    await page.locator('#sync-devices [data-act="join"]').click();
+    await expect(page.locator("#sync-devices .link-row input")).toHaveValue(new RegExp(`sync=${SYNC}$`));
+    await expect(card(page, "cfb:2")).toBeAttached();
+    await page.locator('#sync-devices [data-act="stop"]').click();
+    await expect(page.locator('#sync-devices [data-act="create"]')).toBeVisible();
+    expect(await page.evaluate(() => localStorage.getItem("syncId"))).toBe("null");
+    await expect(card(page, "cfb:2")).toBeAttached();
+    expect(state.syncPuts).toEqual([]);
   });
 });
 
@@ -1828,7 +1903,7 @@ test.describe("settings gear and google me", () => {
     await page.locator("#settings").click();
     await expect(menu).toBeVisible();
     expect(await menu.evaluate((m) => m.getAnimations().length)).toBeGreaterThan(0);
-    await expect(menu.locator("button:visible")).toHaveText(["✓Stats", "Save board as image", "✓google me", "✓MDS"]);  
+    await expect(menu.locator("button:visible")).toHaveText(["✓Stats", "Save board as image", "✓Sync devices", "✓google me", "✓MDS"]);
     await page.keyboard.press("Escape");
     await expect(menu).toBeHidden();
     await page.locator("#settings").click();

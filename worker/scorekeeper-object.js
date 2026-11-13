@@ -11,12 +11,17 @@ export const PHONE_TEST_DELAY_MS = 5000;  // a test reaches phones a few seconds
 // How long the program's own copy of the phones (loadPhones) is trusted before it's read from KV again, in case a
 // phone's change (/phones) never reached it.
 export const PHONES_FRESH_MS = HOUR_MS;
+// Sync links (sync()): at most this many are kept, and one unused this long is dropped when room is needed.
+export const MAX_SYNC_GROUPS = 5000;
+export const SYNC_UNUSED_MS = 90 * 24 * HOUR_MS;
 
 // One instance, so every page and phone sees the same games and notifications. Requests carry the deployed version
 // (handler.js); an instance still on older code resets itself and the request is retried on the new code. It wakes
 // itself with an alarm on the schedule keeper.nextWake sets, and sends each new notification to the phones whose lit
 // bells include that game (and only the kinds each chose). Routes: GET /?since=<n> the games and notifications; POST /test { key } a test
-// notification; /phones a phone changed (reload the list); /wake the every-minute nudge.
+// notification; /phones a phone changed (reload the list); /wake the every-minute nudge; GET and PUT /sync/<id> a sync
+// link's picks and lit bells, shared by the devices that opened it (js/sync.js). Those live here rather than in KV,
+// which can take a minute to show a change everywhere.
 export class ScoreKeeper {
   /** @param deps  stand-ins for tests: { fetchGames, now, testDelay } (Cloudflare passes only ctx and env) */
   constructor(ctx, env, deps = {}) {
@@ -48,6 +53,7 @@ export class ScoreKeeper {
       await this.schedule();
       return Response.json({ ok: true, phones: this.phones.length });
     }
+    if (url.pathname.startsWith("/sync/")) return this.sync(request, url.pathname.slice("/sync/".length));
     const since = url.searchParams.get("since");
     const body = await this.keeper.ask(since ? Number(since) : null);
     await this.sendNew();  // asking may have fetched
@@ -118,6 +124,34 @@ export class ScoreKeeper {
     this.phones = this.phones.filter((p) => !gone.includes(p.subscription.endpoint));
     const saved = await this.ctx.storage.get("phones");
     if (saved) await this.ctx.storage.put("phones", { ...saved, phones: this.phones });
+  }
+
+  // A sync link's { selected, bells, version, at }, stored as "sync:<id>": version counts the saves, so a device can
+  // tell whether anything changed since it last looked (0: nothing saved yet); at is when it was last used (a read
+  // marks it at most once a day). A PUT replaces both lists and answers the new version. A new link is refused when
+  // MAX_SYNC_GROUPS are kept, after dropping those unused for SYNC_UNUSED_MS.
+  async sync(request, id) {
+    const key = `sync:${id}`, now = this.keeper.now();
+    const saved = await this.ctx.storage.get(key);
+    if (request.method !== "PUT") {
+      if (!saved) return Response.json({ selected: [], bells: [], version: 0 });
+      if (now - saved.at > 24 * HOUR_MS) await this.ctx.storage.put(key, { ...saved, at: now });
+      const { selected, bells, version } = saved;
+      return Response.json({ selected, bells, version });
+    }
+    if (!saved && !(await this.roomForSync(now))) return Response.json({ full: true }, { status: 503 });
+    const { selected, bells } = await request.json();
+    const version = (saved?.version ?? 0) + 1;
+    await this.ctx.storage.put(key, { selected, bells, version, at: now });
+    return Response.json({ version });
+  }
+
+  async roomForSync(now) {
+    const all = await this.ctx.storage.list({ prefix: "sync:" });
+    if (all.size < MAX_SYNC_GROUPS) return true;
+    const stale = [...all].filter(([, g]) => now - g.at > SYNC_UNUSED_MS).map(([k]) => k);
+    for (const k of stale) await this.ctx.storage.delete(k);
+    return all.size - stale.length < MAX_SYNC_GROUPS;
   }
 
   test(key, kind, text) {

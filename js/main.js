@@ -15,6 +15,7 @@ import { initView } from "./view.js";
 import { countVisit } from "./counter.js";
 import { loadAdmin } from "./admin.js";
 import { initNotify } from "./notify.js";
+import { initSync } from "./sync.js";
 import { registerServiceWorker } from "./push.js";
 import { initLogo } from "./logo.js";
 
@@ -109,6 +110,7 @@ initBoard({
   onSelectionChanged: () => { renderList(); renderBoard(); },  // a card's ✕ unpicks, so uncheck its row too
 });
 initNotify({ redraw: () => { renderList(); renderBoard(); } });
+initSync({ redraw: () => { renderList(); renderBoard(); } });  // after initNotify, whose bell cleanup runs first on each save
 registerServiceWorker();  // for notifications (js/push.js)
 initDrawer({ animateLayout: animateBoardLayout });
 initSettings();

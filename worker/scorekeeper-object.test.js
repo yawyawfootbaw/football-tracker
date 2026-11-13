@@ -1,7 +1,7 @@
 // Run with: npm run test:worker
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { ScoreKeeper, PHONES_FRESH_MS } from "./scorekeeper-object.js";
+import { ScoreKeeper, PHONES_FRESH_MS, MAX_SYNC_GROUPS, SYNC_UNUSED_MS } from "./scorekeeper-object.js";
 import { savePhone, setKinds } from "./phones.js";
 import { fakeKv } from "./phones.test.js";
 
@@ -134,4 +134,30 @@ test("the test button reaches only admins' (and testers') phones whose bells inc
 test("a request from newer code makes an outdated program reset itself", async (t) => {
   const s = await setUp(t, { version: "v1" });
   await assert.rejects(s.obj.fetch(new Request("https://scorekeeper/", { headers: { "X-Version": "v2" } })), /newer code deployed/);
+});
+
+test("each sync link's picks and bells are kept across restarts, each save a new version, without waking the program", async (t) => {
+  const s = await setUp(t);
+  assert.deepEqual(await (await s.req("/sync/a")).json(), { selected: [], bells: [], version: 0 });
+  const put = (id, body) => s.req(`/sync/${id}`, { method: "PUT", body: JSON.stringify(body) });
+  assert.deepEqual(await (await put("a", { selected: ["cfb:1", "nfl:2"], bells: ["cfb:1"] })).json(), { version: 1 });
+  assert.deepEqual(await (await put("a", { selected: ["nfl:2"], bells: [] })).json(), { version: 2 });
+  assert.deepEqual(await (await put("b", { selected: ["cfb:9"], bells: [] })).json(), { version: 1 });
+  s.restart();
+  assert.deepEqual(await (await s.req("/sync/a")).json(), { selected: ["nfl:2"], bells: [], version: 2 });
+  assert.deepEqual(await (await s.req("/sync/b")).json(), { selected: ["cfb:9"], bells: [], version: 1 });
+  assert.equal(s.alarm(), null);
+});
+
+test("a new sync link is refused when the most are kept, unless some have gone unused long enough to drop", async (t) => {
+  const s = await setUp(t);
+  const put = (id) => s.req(`/sync/${id}`, { method: "PUT", body: JSON.stringify({ selected: [], bells: [] }) });
+  for (let i = 0; i < MAX_SYNC_GROUPS; i++) await put(`g${i}`);
+  assert.equal((await put("new")).status, 503);
+  assert.equal((await put("g0")).status, 200);  // an existing link still saves
+  s.tick(SYNC_UNUSED_MS + 1);
+  await put("g1");  // used, so kept
+  assert.equal((await put("new")).status, 200);
+  assert.equal((await (await s.req("/sync/g1")).json()).version, 2);
+  assert.equal((await (await s.req("/sync/g2")).json()).version, 0);  // dropped
 });

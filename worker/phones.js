@@ -19,7 +19,7 @@ const validSubscription = (s) => typeof s?.endpoint === "string" && s.endpoint.s
   && typeof s.keys?.p256dh === "string" && typeof s.keys?.auth === "string";
 const validKinds = (byGame) => !!byGame && typeof byGame === "object" && !Array.isArray(byGame) && Object.keys(byGame).length <= 500
   && Object.entries(byGame).every(([key, k]) => key.length < 40 && Array.isArray(k) && k.length <= 50 && k.every((x) => typeof x === "string" && x.length < 30));
-const validBells = (b) => Array.isArray(b) && b.length <= 500 && b.every((k) => typeof k === "string" && k.length < 40);
+export const validBells = (b) => Array.isArray(b) && b.length <= 500 && b.every((k) => typeof k === "string" && k.length < 40);
 
 /**
  * Save a phone (or update it). It keeps the kinds it chose for each game (sent along, or saved before); a tester keeps

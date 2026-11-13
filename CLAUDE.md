@@ -29,3 +29,4 @@ Scripts to use instead of redoing the work by hand (details in each file's heade
 - `scripts/check-turnovers.mjs [league:eventId …]`: replays finished games' plays through the turnover notifications
   and prints what each would have sent next to ESPN's turnover drive results.
 - `scripts/check-local-admin.js`, `scripts/check-live-site.sh`: admin login against `wrangler dev`; the deployed site.
+- `scripts/check-sync.js [screenshot-dir]`: Sync devices end to end with two browsers against `wrangler dev --port 8788`.

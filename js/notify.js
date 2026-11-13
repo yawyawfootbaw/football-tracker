@@ -19,6 +19,27 @@ const belled = () => new Set(store.get("notifyGames", []));
 // Notifications were on here, but the browser no longer allows them. The lit bells are kept for when they're allowed again.
 const blocked = () => store.get("pushOn", false) && window.Notification?.permission !== undefined && Notification.permission !== "granted";
 let redraw = () => {};  // the board and the game list, after a row bell picks a game (initNotify)
+let bellsSaved = () => {};  // Sync devices (js/sync.js)
+export const onBellsSaved = (fn) => { bellsSaved = fn; };
+
+// Keep this device's lit bells (and tell Sync devices).
+function saveBells(lit) {
+  store.set("notifyGames", lit);
+  bellsSaved();
+}
+
+/**
+ * Bells from another synced device (js/sync.js): show them, and hand them to the server for this device. A device
+ * that already allowed notifications but never subscribed subscribes now, without asking.
+ */
+export async function applyBells(lit) {
+  store.set("notifyGames", lit);
+  if (store.get("pushOn", false)) {
+    if (!blocked()) sendBells(lit);
+  } else if (pushApplies() && !needsInstall() && window.Notification?.permission === "granted" && lit.length) {
+    if (await turnOn(lit).catch(() => false)) store.set("pushOn", true);
+  }
+}
 
 /** A game's bell: "bell" on its card, "row-bell" on its game-list row. */
 export function bellButton(g, kind = "bell") {
@@ -65,7 +86,7 @@ async function toggleBell(key) {
   if (lighting && !(await canNotify())) return false;
   lighting ? keys.add(key) : keys.delete(key);
   const lit = [...keys].filter((k) => state.selected.has(k) || k === key);
-  store.set("notifyGames", lit);
+  saveBells(lit);
   if (wasBlocked) {  // allowed again from the bell: every kept bell is back
     resume(lit);
     return true;
@@ -143,7 +164,7 @@ function dropUnpickedBells() {
   const keys = belled();
   const lit = [...keys].filter((k) => state.selected.has(k));
   if (lit.length === keys.size) return;
-  store.set("notifyGames", lit);
+  saveBells(lit);
   if (store.get("pushOn", false)) sendBells(lit);
 }
 
