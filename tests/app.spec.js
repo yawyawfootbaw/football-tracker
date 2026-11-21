@@ -1710,19 +1710,20 @@ test.describe("board", () => {
       const s = getComputedStyle(el), tracks = s.gridTemplateColumns.split(" ").map(parseFloat);
       return Math.abs(tracks.reduce((a, b) => a + b) + (tracks.length - 1) * parseFloat(s.columnGap) - el.clientWidth);
     });
+    const cols = (sel) => page.locator(sel).first().evaluate((el) => getComputedStyle(el).gridTemplateColumns.split(" ").length);
     for (const width of [760, 1000, 1300, 1900]) {
       await page.setViewportSize({ width, height: 900 });
       expect(await fill(".live .cards")).toBeLessThan(1);
       expect(await fill(".compact .cards")).toBeLessThan(1);
-      expect((await card(page, "cfb:1").boundingBox()).width).toBeGreaterThanOrEqual(340);
-      const compact = (await card(page, "cfb:7").boundingBox()).width;
+      // Side by side, cards stay wide enough for the widest real names and down & distance (css/board.css).
+      if ((await cols(".live .cards")) > 1) expect((await card(page, "cfb:1").boundingBox()).width).toBeGreaterThanOrEqual(406);
+      const compact = (await card(page, "cfb:7").boundingBox()).width;  // narrow ones stack, so they keep more columns
       expect(compact).toBeGreaterThan(220);
       expect(compact).toBeLessThan(460);
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     }
     // At 1300px the board (about 970px) has two live columns and three compact ones.
     await page.setViewportSize({ width: 1300, height: 900 });
-    const cols = (sel) => page.locator(sel).first().evaluate((el) => getComputedStyle(el).gridTemplateColumns.split(" ").length);
     expect(await cols(".live .cards")).toBe(2);
     expect(await cols(".compact .cards")).toBe(3);
   });

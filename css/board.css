@@ -3,29 +3,33 @@
 /* Live / Final / Upcoming. Final and Upcoming cards have no field, so they sit in narrower columns. */
 .board-group + .board-group { margin-top: 24px; }
 /* Cards always share the full row; only the column count changes with the section's width, so no row ever ends in
-   empty space. Live cards get as many columns as fit at 340px or wider. Final/Upcoming cards get the count that
-   keeps them closest to 300px wide (n columns from 316n − 158 − 16 = 316n − 174 … rounded), so a phone around 460px
-   wide fits two, in the stacked layout below. Breakpoints include the 16px gap. */
+   empty space. Each view's columns keep every card wide enough that the widest real name and down & distance never
+   trail off (#25 WASH ●, 88, "4th & 15 at WASH 45", with the buttons showing on a touch screen), measured with
+   scripts/measure-board-fit.js: a grid view live card 406px, a compact view card 288px. (Grid view's Final/Upcoming
+   cards stack instead when narrow.)
+   n columns of w px start at a section n·w + 16(n − 1) wide (the gaps). Below two, one column, cut off or not (a live
+   grid card on a phone is narrower than 406px). */
 .board-group { container: section / inline-size; }
 .cards { --cols: 1; display: grid; grid-template-columns: repeat(var(--cols), minmax(0, 1fr)); gap: 16px; }
-@container section (min-width: 696px) { .live .cards { --cols: 2; } }
-@container section (min-width: 1052px) { .live .cards { --cols: 3; } }
-@container section (min-width: 1408px) { .live .cards { --cols: 4; } }
-@container section (min-width: 1764px) { .live .cards { --cols: 5; } }
+/* Grid view, Live: 422n − 16. */
+@container section (min-width: 828px) { .live .cards { --cols: 2; } }
+@container section (min-width: 1250px) { .live .cards { --cols: 3; } }
+@container section (min-width: 1672px) { .live .cards { --cols: 4; } }
+@container section (min-width: 2094px) { .live .cards { --cols: 5; } }
+/* Grid view, Final and Upcoming: cards narrower than 334px stack (below), which fits the names in 221px, so these
+   keep each card about 300px wide (316n − 174), two to a row on a phone around 460px wide. */
 @container section (min-width: 458px) { .compact .cards { --cols: 2; } }
 @container section (min-width: 774px) { .compact .cards { --cols: 3; } }
 @container section (min-width: 1090px) { .compact .cards { --cols: 4; } }
 @container section (min-width: 1406px) { .compact .cards { --cols: 5; } }
 @container section (min-width: 1722px) { .compact .cards { --cols: 6; } }
-/* Compact view: every section's cards (live ones too) are at least 296px wide, the room the longest names and down &
-   distance need (#25 UMASS ●, 88, "4th & 15 at UMASS 45"; scripts/measure-compact-fit.js) with the buttons showing
-   on a touch screen. n columns from 312n − 16. Every section gets the same columns, so they line up. */
+/* Compact view: every section the same (304n − 16), so they line up. */
 .line-grid .cards { --cols: 1; }
-@container section (min-width: 608px) { .line-grid .cards { --cols: 2; } }
-@container section (min-width: 920px) { .line-grid .cards { --cols: 3; } }
-@container section (min-width: 1232px) { .line-grid .cards { --cols: 4; } }
-@container section (min-width: 1544px) { .line-grid .cards { --cols: 5; } }
-@container section (min-width: 1856px) { .line-grid .cards { --cols: 6; } }
+@container section (min-width: 592px) { .line-grid .cards { --cols: 2; } }
+@container section (min-width: 896px) { .line-grid .cards { --cols: 3; } }
+@container section (min-width: 1200px) { .line-grid .cards { --cols: 4; } }
+@container section (min-width: 1504px) { .line-grid .cards { --cols: 5; } }
+@container section (min-width: 1808px) { .line-grid .cards { --cols: 6; } }
 .board-section { display: flex; align-items: center; gap: 10px; margin: 0 0 10px; color: var(--muted); font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }
 .card { position: relative; min-width: 0; background: var(--card); border: 1px solid var(--card-border); border-radius: 10px; padding: 12px; }
 .card.redzone { border-color: var(--red); }
@@ -75,11 +79,11 @@
 .compact .team .pts { font-size: 20px; }
 /* No possession dot before or after a game, so drop its placeholder instead of reserving room. */
 .compact .poss.hide { display: none; }
-/* Under 280px a side-by-side scoreboard doesn't fit, so Final/Upcoming cards stack like the game list's score bug:
-   away over home, each with its score, and the status on the right. (The query measures inside the 12px padding and
-   1px border, so 280px wide is 254px here.) */
+/* Under 334px a side-by-side scoreboard cuts off the widest real names (#25 WASH; scripts/measure-board-fit.js), so
+   Final/Upcoming cards stack like the game list's score bug: away over home, each with its score, and the status on
+   the right. (The query measures inside the 12px padding and 1px border, so 334px wide is 308px here.) */
 .compact .card { container: card / inline-size; }
-@container card (max-width: 253px) {
+@container card (max-width: 307px) {
   /* Scoped with .compact so these outrank the tighter-row rules above. */
   .compact .score { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "away clock" "home clock"; row-gap: 6px; column-gap: 10px; }
   .compact .team.away { grid-area: away; }

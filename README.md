@@ -86,7 +86,7 @@ scripts/
   find-unused.js      lists code that looks unused, for review by hand
   forum-changelog.js  the forum's BB code changelog: commits to write notes from, then screenshots and BB code from changelogs/*.json
   screenshot-matrix.js  shoots every feature state on desktop and iPhone, side by side, for comparing them
-  measure-compact-fit.js  how wide the compact view needs to be for n columns of cards without cutting off names or down & distance
+  measure-board-fit.js  how wide each board section needs to be for n columns of cards (grid and compact view) without cutting off names or down & distance
   check-local-admin.js  logs in against the Worker running locally (wrangler dev), to check the admin login path
   check-sync.js       two browsers against the Worker running locally: makes a sync link, joins it, checks a change crosses over
   check-turnovers.mjs replays finished games through the turnover notifications, against ESPN's drive results
