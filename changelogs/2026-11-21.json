@@ -2,6 +2,7 @@
   "title": "Game Tracker Live: what's new (Oct 24 - Nov 21)",
   "since": "2026-10-24",
   "through": "aeb13d8",
+  "logo": "regular",
   "features": [
     { "title": "Sync devices", "text": "keep your picked games and lit bells the same on your phone and your computer. Open the gear menu, tap Sync devices, then Make a sync link, and open that link on your other devices (on an iPhone Home Screen app, paste it into the same box instead). From then on, add or remove a game or ring a bell on one and the others follow within a second or two. Treat the link like a password: anyone who has it can see and change your games. Stop syncing on any device leaves its games as they are.",
       "shots": ["gear-menu:phone"] },

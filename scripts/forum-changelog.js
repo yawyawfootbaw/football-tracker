@@ -9,10 +9,14 @@
 //     Shoots the logo (00-logo.png, above the title) and the screenshots the notes name and prints the BB code (also saved next to the screenshots, in a temp
 //     dir printed at the end) for uploading the images to imgur by hand. Needs npm start (and webkit for :phone).
 //
+//   node scripts/forum-changelog.js logo changelogs/<date>.json
+//     Shoots only the logo again, into the same temp dir.
+//
 // The notes file is written by hand from the commits list, as high-level features, not commit messages:
 //   { "title": "...", "since": "2026-10-10", "through": "<commit>",
 //     "features": [{ "title": "...", "text": "...", "shots": ["board-list", "board-list:phone", "board-image"] }],
-//     "fixes": ["..."], "comingSoon": [{ "title": "...", "text": "...", "shots": [...] }] }
+//     "fixes": ["..."], "comingSoon": [{ "title": "...", "text": "...", "shots": [...] }], "logo": "regular" }
+// "logo" (optional) picks the logo's look: regular, thanksgiving or halloween; without it, whatever the site shows today.
 // A shot is a state from scripts/screenshot-matrix.js (desktop unless :phone, which is one phone screen), board-image for
 // Save board as image, or
 // one of the site's own pictures by path (e.g. images/apple-touch-icon.png).
@@ -54,7 +58,7 @@ function lastThrough() {
 
 async function render(notesFile) {
   const notes = JSON.parse(fs.readFileSync(notesFile, "utf8"));
-  const out = path.join(os.tmpdir(), `forum-changelog-${path.basename(notesFile, ".json")}`);
+  const out = outDir(notesFile);
   fs.rmSync(out, { recursive: true, force: true });
   fs.mkdirSync(out, { recursive: true });
   const { STATES, shoot } = require("./screenshot-matrix");
@@ -87,7 +91,7 @@ async function render(notesFile) {
     return s;
   }
 
-  await logo(path.join(out, "00-logo.png"));
+  await logo(path.join(out, "00-logo.png"), notes.logo);
   // Only BB codes the forum supports (forums.somethingawful.com/misc.php?action=bbcode): no [center], and [size] works
   // only in custom titles, so the title is just bold. Pictures are [timg]: a thumbnail that opens the full one.
   let bb = `[timg]00-logo.png[/timg]\n[b]${notes.title}[/b]\n\n`;
@@ -101,13 +105,24 @@ async function render(notesFile) {
   console.log(`Screenshots and changelog.bbcode in ${out}\nReplace each file name in [timg] with its imgur link.`);
 }
 
-// The header's football (a jack-o'-lantern in October, as on the site) and wordmark, at twice size for sharp edges.
-async function logo(file) {
+const LOGO_LOOKS = { regular: { thanksgiving: false, halloween: false }, thanksgiving: { thanksgiving: true, halloween: false },
+  halloween: { thanksgiving: false, halloween: true } };
+const outDir = (notesFile) => path.join(os.tmpdir(), `forum-changelog-${path.basename(notesFile, ".json")}`);
+
+// The header's football (seasonal as on the site, unless look names one of LOGO_LOOKS) and wordmark, at twice size
+// for sharp edges.
+async function logo(file, look) {
   const { chromium } = require("@playwright/test");
   const browser = await chromium.launch({ channel: "chrome" });
   try {
     const page = await browser.newPage({ viewport: { width: 1300, height: 900 }, deviceScaleFactor: 2, colorScheme: "dark" });
     await page.route("https://site.api.espn.com/**", (route) => route.abort());
+    if (look) {
+      if (!LOGO_LOOKS[look]) throw new Error(`logo must be one of ${Object.keys(LOGO_LOOKS).join(", ")}`);
+      await page.addInitScript((flags) => {
+        for (const [k, v] of Object.entries(flags)) localStorage.setItem(k, JSON.stringify(v));
+      }, LOGO_LOOKS[look]);
+    }
     await page.goto("http://localhost:4173/");
     await page.waitForSelector("header h1");
     await page.waitForTimeout(500);  // web fonts
@@ -123,4 +138,9 @@ async function logo(file) {
 const [cmd, arg, value] = process.argv.slice(2);
 if (cmd === "commits") commits(arg === "--since" ? value : undefined);
 else if (cmd === "render" && arg) render(arg).catch((e) => { console.error(e.message); process.exit(1); });
-else console.error("usage: forum-changelog.js commits [--since YYYY-MM-DD] | render changelogs/<date>.json");
+else if (cmd === "logo" && arg) {
+  const file = path.join(outDir(arg), "00-logo.png");
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  logo(file, JSON.parse(fs.readFileSync(arg, "utf8")).logo).then(() => console.log(file), (e) => { console.error(e.message); process.exit(1); });
+}
+else console.error("usage: forum-changelog.js commits [--since YYYY-MM-DD] | render changelogs/<date>.json | logo changelogs/<date>.json");
