@@ -917,17 +917,17 @@ test.describe("bulk select in the game list", () => {
 test.describe("sync devices", () => {
   const SYNC = "AbCdEfGhIjKlMnOpQrSt_-";
 
-  test("a device that isn't syncing never asks the server, and its menu has no Sync devices unless it's an admin's", async ({ page }) => {
+  test("a device that isn't syncing never asks the server, though its menu has Sync devices", async ({ page }) => {
     const state = await open(page, { storage: { selected: ["cfb:1"] } });
     await expect(card(page, "cfb:1")).toBeAttached();
-    await expect(page.locator("#sync-devices-item")).toHaveCount(0);
+    await expect(page.locator("#sync-devices-item")).toHaveAttribute("aria-pressed", "false");
     await page.waitForTimeout(500);
     expect(state.syncPuts).toEqual([]);
     expect(Object.keys(state.sync)).toEqual([]);
   });
 
   test("making a link saves this device's games and bells under it and shows the link", async ({ page }) => {
-    const state = await open(page, { storage: { ...admin, selected: ["cfb:1", "cfb:2"], notifyGames: ["cfb:2"] } });
+    const state = await open(page, { storage: { selected: ["cfb:1", "cfb:2"], notifyGames: ["cfb:2"] } });
     await expect(card(page, "cfb:1")).toBeAttached();
     await page.locator("#settings").click();
     await page.locator("#sync-devices-item").click();
@@ -975,7 +975,7 @@ test.describe("sync devices", () => {
   });
 
   test("a link pasted into the dialog joins it; Stop syncing keeps the games", async ({ page }) => {
-    const state = await open(page, { storage: { ...admin, selected: [] }, sync: { [SYNC]: { selected: ["cfb:2"], bells: [], version: 1 } } });
+    const state = await open(page, { storage: { selected: [] }, sync: { [SYNC]: { selected: ["cfb:2"], bells: [], version: 1 } } });
     await page.locator("#settings").click();
     await page.locator("#sync-devices-item").click();
     await page.locator("#sync-devices .link-row input").fill("not a link");
@@ -1925,7 +1925,7 @@ test.describe("settings gear and google me", () => {
     await page.locator("#settings").click();
     await expect(menu).toBeVisible();
     expect(await menu.evaluate((m) => m.getAnimations().length)).toBeGreaterThan(0);
-    await expect(menu.locator("button:visible")).toHaveText(["✓Stats", "Save board as image", "✓google me", "✓MDS"]);
+    await expect(menu.locator("button:visible")).toHaveText(["✓Stats", "Save board as image", "✓Sync devices", "✓google me", "✓MDS"]);
     await page.keyboard.press("Escape");
     await expect(menu).toBeHidden();
     await page.locator("#settings").click();

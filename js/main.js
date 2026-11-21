@@ -15,7 +15,7 @@ import { initView } from "./view.js";
 import { countVisit } from "./counter.js";
 import { loadAdmin } from "./admin.js";
 import { initNotify } from "./notify.js";
-import { initSync, showSyncMenu } from "./sync.js";
+import { initSync } from "./sync.js";
 import { registerServiceWorker } from "./push.js";
 import { initLogo } from "./logo.js";
 
@@ -136,6 +136,5 @@ document.addEventListener("visibilitychange", () => { if (!document.hidden) poll
 // The page loads behind the admin login; once the admin's features arrive, redraw the cards with them.
 const isAdmin = await loadAdmin();  // logged in; the features are on only with ?admin
 if (isAdmin && lastUpdated !== null) { renderList(); renderBoard(); }
-if (isAdmin) showSyncMenu();  // admins only while Sync devices is tried out
 if (!LOADING && !isAdmin) countVisit();
 if (!LOADING) initDonateNudge({ isAdmin });

@@ -11,9 +11,6 @@
 // came in while it was closed. The connection closes when the page goes out of view. While it can't be made, the
 // server's copy is read every SYNC_MS instead, and the connection is tried again after RETRY_MS (doubling up to SYNC_MS).
 // Anyone with the link can see and change its picks, so the dialog says to treat it like a password.
-//
-// While it's being tried out, the menu item shows only to a logged-in admin (showSyncMenu, from js/main.js), or on a
-// device already syncing (so it can stop). ?sync=<id> links work for anyone.
 
 import { ADMIN_URL, LINKED_GAMES, SYNC_PARAM } from "./config.js";
 import { store } from "./store.js";
@@ -230,9 +227,8 @@ function openDialog() {
   dialog.showModal();
 }
 
-/** Adds Sync devices to the gear menu (once). */
-export function showSyncMenu() {
-  if (menuItem) return;
+// Sync devices in the gear menu.
+function addMenuItem() {
   menuItem = document.createElement("button");
   menuItem.id = "sync-devices-item";
   menuItem.innerHTML = `<span class="check">✓</span>Sync devices`;
@@ -249,7 +245,7 @@ export function initSync(hooks) {
 
   const saved = store.get("syncId");
   const syncing = SYNC_ID.test(saved ?? "");
-  if (syncing || (SYNC_PARAM && SYNC_ID.test(SYNC_PARAM))) showSyncMenu();
+  addMenuItem();
   setSyncId(syncing ? saved : null);
   if (SYNC_PARAM) {
     const url = new URL(location.href);
