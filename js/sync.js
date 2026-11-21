@@ -5,8 +5,11 @@
 // last device to change wins.
 //
 // The link's copy is on the server (GET/PUT /api/sync/<id>, worker/handler.js, kept by the program:
-// worker/scorekeeper-object.js). Each change here is sent a moment later (a burst, such as Select all, goes as one);
-// the server's copy is read when the page opens, when it comes back into view, and every SYNC_MS while it's showing.
+// worker/scorekeeper-object.js). Each change here is sent a moment later (a burst, such as Select all, goes as one).
+// While the page is showing it keeps a live connection to the link (a WebSocket, /api/sync/<id>/live), which brings
+// every device's saves as they happen; the server's copy is read once each time that connection opens, to catch what
+// came in while it was closed. The connection closes when the page goes out of view. While it can't be made, the
+// server's copy is read every SYNC_MS instead, and the connection is tried again after RETRY_MS (doubling up to SYNC_MS).
 // Anyone with the link can see and change its picks, so the dialog says to treat it like a password.
 //
 // While it's being tried out, the menu item shows only to a logged-in admin (showSyncMenu, from js/main.js), or on a
@@ -20,6 +23,7 @@ import { SYNC_ID } from "../shared/constants/sync.js";
 
 const SYNC_MS = 30_000;
 const SEND_DELAY_MS = 1000;
+const RETRY_MS = 2000;
 
 let redraw = () => {};
 let syncId = null;     // this device's link, or null when it isn't syncing
@@ -27,6 +31,10 @@ let version = null;    // the server's version this device last matched
 let edits = 0;         // local changes not yet saved on the server
 let sendTimer = null;
 let menuItem;
+let socket = null;     // the live connection, while the page is showing and syncing
+let retryMs = RETRY_MS;
+let retryTimer = null;
+let linkedLeft = [];   // a ?game= link's games, added on top of the link's on the first read (catchUp)
 
 const linkFor = (id) => `${location.origin}${location.pathname}?sync=${id}`;
 const mine = () => ({ selected: [...state.selected], bells: store.get("notifyGames", []) });
@@ -70,16 +78,21 @@ async function send() {
  * Take the link's picks and bells, unless this device has changes on the way (those win, and go out shortly). merge:
  * keep this device's too (joining a link); otherwise only a ?game= link opened here is added on top (js/state.js).
  */
-async function fetchSaved({ merge = false, linked = [] } = {}) {
+async function fetchSaved(opts = {}) {
   if (!syncId || edits) return;
   const res = await request("GET");
-  const saved = res?.body;
-  if (!saved || edits) return;
+  if (res?.body) await take(res.body, opts);
+}
+
+// The link's { selected, bells, version }, read or sent down the live connection, into this device (fetchSaved).
+async function take(saved, { merge = false, linked = [] } = {}) {
+  if (edits) return;
   if (saved.version === 0) { changed(); return; }  // nothing saved yet: this device's picks start it off
   const { selected, bells } = mine();
   const extraPicks = (merge ? selected : linked).filter((k) => !saved.selected.includes(k));
   const extraBells = merge ? bells.filter((k) => !saved.bells.includes(k)) : [];
   if (saved.version === version && !extraPicks.length && !extraBells.length) return;
+  if (!merge && version !== null && saved.version < version) return;  // an older save arriving late
   version = saved.version;
   state.selected.clear();
   [...saved.selected, ...extraPicks].forEach((k) => state.selected.add(k));
@@ -89,7 +102,50 @@ async function fetchSaved({ merge = false, linked = [] } = {}) {
   if (extraPicks.length || extraBells.length) changed();
 }
 
+const live = () => socket?.readyState === WebSocket.OPEN;
+
+// Read the server's copy, with the ?game= link's games the first time.
+function catchUp() {
+  const linked = linkedLeft;
+  linkedLeft = [];
+  return fetchSaved({ linked });
+}
+
+// Open the live connection (once), if syncing and showing.
+function connect() {
+  clearTimeout(retryTimer);
+  retryTimer = null;
+  if (!syncId || document.hidden || socket) return;
+  const id = syncId;
+  const ws = new WebSocket(`${location.origin.replace(/^http/, "ws")}${ADMIN_URL}/sync/${id}/live`);
+  socket = ws;
+  ws.addEventListener("open", () => { retryMs = RETRY_MS; catchUp(); });
+  ws.addEventListener("message", (e) => {
+    if (id !== syncId) return;
+    try { take(JSON.parse(e.data)); } catch (err) { console.error("sync", err); }
+  });
+  let opened = false;
+  ws.addEventListener("open", () => { opened = true; });
+  ws.addEventListener("close", () => {
+    if (socket !== ws) return;  // closed on purpose (disconnect)
+    socket = null;
+    if (!syncId || document.hidden) return;
+    if (!opened && retryMs === RETRY_MS) catchUp();  // couldn't connect on coming into view: read the copy instead
+    retryTimer = setTimeout(connect, retryMs);
+    retryMs = Math.min(retryMs * 2, SYNC_MS);
+  });
+}
+
+function disconnect() {
+  clearTimeout(retryTimer);
+  retryTimer = null;
+  const ws = socket;
+  socket = null;
+  ws?.close();
+}
+
 function setSyncId(id) {
+  disconnect();
   syncId = id;
   version = null;
   edits = 0;
@@ -98,9 +154,10 @@ function setSyncId(id) {
 }
 
 /** Join a link from another device: its picks and bells, plus this device's. */
-function join(id) {
+async function join(id) {
   setSyncId(id);
-  return fetchSaved({ merge: true });
+  await fetchSaved({ merge: true });
+  connect();
 }
 
 /** A new link, starting from this device's picks and bells. Resolves the server's status (503: no room). */
@@ -109,6 +166,7 @@ async function create() {
   setSyncId(btoa(String.fromCharCode(...bytes)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""));
   const status = await send();
   if (status === 503) setSyncId(null);
+  else if (status === 200) connect();
   return status;
 }
 
@@ -199,12 +257,13 @@ export function initSync(hooks) {
     history.replaceState(null, "", url);
   }
   if (SYNC_PARAM && SYNC_ID.test(SYNC_PARAM) && SYNC_PARAM !== syncId) join(SYNC_PARAM);
-  else fetchSaved({ linked: LINKED_GAMES });
+  else if (syncId) { linkedLeft = LINKED_GAMES; connect(); }  // opening the connection reads the server's copy
 
-  setInterval(() => { if (!document.hidden) fetchSaved(); }, SYNC_MS);
+  setInterval(() => { if (!document.hidden && !live()) fetchSaved(); }, SYNC_MS);  // only while the connection is down
   document.addEventListener("visibilitychange", () => {
-    if (!document.hidden) fetchSaved();
-    else if (sendTimer && edits) {  // leaving (or switching apps) with a change waiting: send it now
+    if (!document.hidden) { retryMs = RETRY_MS; connect(); return; }  // opening reads the server's copy
+    disconnect();
+    if (sendTimer && edits) {  // leaving (or switching apps) with a change waiting: send it now
       clearTimeout(sendTimer);
       sendTimer = null;
       request("PUT", mine(), true);

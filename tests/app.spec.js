@@ -20,7 +20,7 @@ async function open(page, opts = {}) {
     visits: { weekly: 12, monthly: 345, total: 6789 }, visitsRequests: 0,
     recaps: new Set(opts.recaps ?? ["7", "8"]), summaryRequests: {}, failScoreboards: opts.failScoreboards ?? 0,
     scores: opts.scores, scoresAsks: 0, sinces: [], testAlerts: [], testKinds: [], testTexts: [], pushPosts: [],
-    sync: opts.sync ?? {}, syncPuts: [] };
+    sync: opts.sync ?? {}, syncPuts: [], syncGets: 0, syncSockets: [] };
   await page.route("https://site.api.espn.com/**", async (route) => {
     const id = route.request().url().match(/summary\?event=(\w+)/)?.[1];
     if (id) {
@@ -37,6 +37,11 @@ async function open(page, opts = {}) {
     opts.missingLogo && route.request().url().includes(opts.missingLogo)
       ? route.fulfill({ status: 404, headers: CORS })
       : route.fulfill({ body: PNG, contentType: "image/png", headers: CORS }));
+  // Sync links' live connections (js/sync.js): state.syncSockets holds each one open as { id, ws }; a test sends another
+  // device's save down one with ws.send.
+  await page.routeWebSocket(/\/api\/sync\/[^/]+\/live$/, (ws) => {
+    state.syncSockets.push({ id: ws.url().match(/sync\/([^/]+)\/live$/)[1], ws });
+  });
   // The site's own /api/ (worker/handler.js); the local test server only has the static files.
   await page.route("**/api/**", (route) => {
     const req = route.request(), headers = {};
@@ -44,10 +49,11 @@ async function open(page, opts = {}) {
     const syncId = new URL(req.url()).pathname.match(/\/sync\/(.+)$/)?.[1];
     if (syncId) {
       const saved = state.sync[syncId] ?? { selected: [], bells: [], version: 0 };
-      if (req.method() !== "PUT") return route.fulfill({ json: saved, headers });
+      if (req.method() !== "PUT") { state.syncGets++; return route.fulfill({ json: saved, headers }); }
       const body = JSON.parse(req.postData());
       state.syncPuts.push({ id: syncId, ...body });
       state.sync[syncId] = { ...body, version: saved.version + 1 };
+      for (const s of state.syncSockets.filter((s) => s.id === syncId)) s.ws.send(JSON.stringify(state.sync[syncId]));
       return route.fulfill({ json: { version: saved.version + 1 }, headers });
     }
     state.adminRequests++;
@@ -952,6 +958,20 @@ test.describe("sync devices", () => {
     await page.locator('#board [data-remove="cfb:2"]').click();
     await expect.poll(() => state.syncPuts.length).toBe(1);
     expect(state.syncPuts[0].selected).toEqual([]);
+  });
+
+  test("another device's save arrives over the live connection right away; the page reads the link's copy only when the connection opens", async ({ page }) => {
+    const state = await open(page, { storage: { selected: ["cfb:1"], syncId: SYNC }, sync: { [SYNC]: { selected: ["cfb:1"], bells: [], version: 3 } } });
+    await expect.poll(() => state.syncSockets.length).toBe(1);
+    await expect.poll(() => state.syncGets).toBe(1);
+    state.syncSockets[0].ws.send(JSON.stringify({ selected: ["cfb:1", "cfb:2"], bells: ["cfb:2"], version: 4 }));
+    await expect(card(page, "cfb:2")).toBeAttached();
+    await expect(page.locator('#board [data-bell="cfb:2"]')).toHaveClass(/on/);
+    state.syncSockets[0].ws.send(JSON.stringify({ selected: ["cfb:1"], bells: [], version: 3 }));  // an older save, late
+    await page.waitForTimeout(300);
+    await expect(card(page, "cfb:2")).toBeAttached();
+    expect(state.syncGets).toBe(1);
+    expect(state.syncPuts).toEqual([]);
   });
 
   test("a link pasted into the dialog joins it; Stop syncing keeps the games", async ({ page }) => {

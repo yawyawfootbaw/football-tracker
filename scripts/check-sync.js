@@ -1,6 +1,6 @@
 // Checks Sync devices end to end against the real Worker running locally: one browser makes a sync link with a game
 // picked, a second (its own storage, like another device) opens the link and gets that game, then a change on the
-// second reaches the first.
+// second reaches the first over its live connection (and how long that took).
 //
 // Usage: run `npx wrangler dev --port 8788 --persist-to /tmp/wrangler-state` (needs ADMIN_PASSWORD in .dev.vars, or
 // the API answers 401), then:
@@ -76,14 +76,16 @@ const picks = (page) => page.evaluate(() => JSON.parse(localStorage.getItem("sel
     await b.waitForTimeout(2500);
     check("a reload takes the link's games", JSON.stringify(await picks(b)) === JSON.stringify([keys[0], keys[1]].sort()));
 
-    // A change made through the page on B reaches A when A comes back into view.
-    await b.evaluate(() => document.querySelector(".card .remove, .card [data-remove]")?.click());
-    await b.waitForTimeout(2500);
-    const bNow = await picks(b);
+    // A change made through the page on B reaches A over A's live connection, with A left alone.
     await a.keyboard.press("Escape");
-    await a.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
-    await a.waitForTimeout(2500);
-    check(`a change on one device reaches the other (${bNow.length} games)`, JSON.stringify(await picks(a)) === JSON.stringify(bNow));
+    const before = await picks(a);
+    await b.evaluate(() => document.querySelector(".card .remove, .card [data-remove]")?.click());
+    const started = Date.now();
+    const arrived = await a.waitForFunction((n) => JSON.parse(localStorage.getItem("selected") ?? "[]").length !== n, before.length, { timeout: 10000 })
+      .then(() => true, () => false);
+    const bNow = await picks(b);
+    check(`a change on one device reaches the other live (${bNow.length} games, ${Date.now() - started}ms after the tap)`,
+      arrived && JSON.stringify(await picks(a)) === JSON.stringify(bNow));
 
     if (shots) {
       const c = await open();

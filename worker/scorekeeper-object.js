@@ -20,8 +20,9 @@ export const SYNC_UNUSED_MS = 90 * 24 * HOUR_MS;
 // itself with an alarm on the schedule keeper.nextWake sets, and sends each new notification to the phones whose lit
 // bells include that game (and only the kinds each chose). Routes: GET /?since=<n> the games and notifications; POST /test { key } a test
 // notification; /phones a phone changed (reload the list); /wake the every-minute nudge; GET and PUT /sync/<id> a sync
-// link's picks and lit bells, shared by the devices that opened it (js/sync.js). Those live here rather than in KV,
-// which can take a minute to show a change everywhere.
+// link's picks and lit bells, shared by the devices that opened it (js/sync.js), and /sync/<id>/live a page's live
+// connection to one (each save is sent down it). Those live here rather than in KV, which can take a minute to show a
+// change everywhere.
 export class ScoreKeeper {
   /** @param deps  stand-ins for tests: { fetchGames, now, testDelay } (Cloudflare passes only ctx and env) */
   constructor(ctx, env, deps = {}) {
@@ -53,6 +54,8 @@ export class ScoreKeeper {
       await this.schedule();
       return Response.json({ ok: true, phones: this.phones.length });
     }
+    const live = url.pathname.match(/^\/sync\/([^/]+)\/live$/)?.[1];
+    if (live) return this.syncLive(request, live);
     if (url.pathname.startsWith("/sync/")) return this.sync(request, url.pathname.slice("/sync/".length));
     const since = url.searchParams.get("since");
     const body = await this.keeper.ask(since ? Number(since) : null);
@@ -143,7 +146,25 @@ export class ScoreKeeper {
     const { selected, bells } = await request.json();
     const version = (saved?.version ?? 0) + 1;
     await this.ctx.storage.put(key, { selected, bells, version, at: now });
+    const message = JSON.stringify({ selected, bells, version });
+    for (const ws of this.ctx.getWebSockets(id)) {
+      try { ws.send(message); } catch { /* closing anyway */ }
+    }
     return Response.json({ version });
+  }
+
+  // A page's live connection to a sync link: every save (sync PUT) is sent down it, from any device, the saver's own
+  // included (it already has that version, so it ignores it). The pages never send anything up. Cloudflare's
+  // hibernation API (acceptWebSocket) keeps the connections open while this object sleeps, without billing the time.
+  syncLive(request, id) {
+    if (request.headers.get("Upgrade") !== "websocket") return new Response("Expected a WebSocket", { status: 426 });
+    const [client, server] = Object.values(new WebSocketPair());
+    this.ctx.acceptWebSocket(server, [id]);
+    return new Response(null, { status: 101, webSocket: client });
+  }
+
+  webSocketClose(ws, code) {
+    try { ws.close(code === 1005 ? 1000 : code); } catch { /* already closed */ }
   }
 
   async roomForSync(now) {

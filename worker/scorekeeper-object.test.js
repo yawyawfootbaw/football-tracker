@@ -16,6 +16,8 @@ const live = (key, over = {}) => ({
 async function setUp(t, { phones = {}, publicPhones = {}, version = "v1" } = {}) {
   let alarm = null, now = 1_000_000;
   const espn = { cfb: [], nfl: [] }, plays = {}, pushed = [], pending = [], stored = new Map();
+  // Live sync connections, as Cloudflare's hibernation API keeps them: { tags, sent } (sent: each message down it).
+  const sockets = [];
   const ctx = {
     storage: {
       getAlarm: async () => alarm, setAlarm: async (at) => { alarm = at; }, deleteAlarm: async () => { alarm = null; },
@@ -23,6 +25,7 @@ async function setUp(t, { phones = {}, publicPhones = {}, version = "v1" } = {})
       list: async ({ prefix }) => new Map([...stored].filter(([k]) => k.startsWith(prefix))),
     },
     abort: (reason) => { throw new Error(reason); },
+    getWebSockets: (tag) => sockets.filter((ws) => ws.tags.includes(tag)),
     waitUntil: (p) => pending.push(p),
   };
   const kv = fakeKv();
@@ -44,7 +47,7 @@ async function setUp(t, { phones = {}, publicPhones = {}, version = "v1" } = {})
   // Firing the alarm (fire), as Cloudflare does: it's cleared first, then the handler runs.
   // A restart, as Cloudflare does between requests: a new object on the same storage.
   const restart = () => { s.obj = new ScoreKeeper(ctx, env, { fetchGames: async (league) => espn[league], fetchSummary: async (g) => ({ scoringPlays: plays[g.key] ?? [], latest: null }), now: () => now, testDelay: 0 }); };
-  const s = { obj, espn, plays, pushed, kv, req: (path, init = {}) => s.obj.fetch(new Request(`https://scorekeeper${path}`, { ...init, headers: { "X-Version": version, ...init.headers } })),
+  const s = { obj, espn, plays, pushed, kv, sockets, req: (path, init = {}) => s.obj.fetch(new Request(`https://scorekeeper${path}`, { ...init, headers: { "X-Version": version, ...init.headers } })),
     fire: async () => { alarm = null; await s.obj.alarm(); }, restart, alarm: () => alarm, tick: (ms) => { now += ms; }, settle: () => Promise.all(pending) };
   return s;
 }
@@ -147,6 +150,17 @@ test("each sync link's picks and bells are kept across restarts, each save a new
   assert.deepEqual(await (await s.req("/sync/a")).json(), { selected: ["nfl:2"], bells: [], version: 2 });
   assert.deepEqual(await (await s.req("/sync/b")).json(), { selected: ["cfb:9"], bells: [], version: 1 });
   assert.equal(s.alarm(), null);
+});
+
+test("each save of a sync link goes down every live connection to it, and only to it", async (t) => {
+  const s = await setUp(t);
+  const socket = (id) => { const ws = { tags: [id], sent: [], send: (m) => ws.sent.push(JSON.parse(m)) }; s.sockets.push(ws); return ws; };
+  const phone = socket("a"), desktop = socket("a"), other = socket("b");
+  await s.req("/sync/a", { method: "PUT", body: JSON.stringify({ selected: ["cfb:1"], bells: ["cfb:1"] }) });
+  assert.deepEqual(phone.sent, [{ selected: ["cfb:1"], bells: ["cfb:1"], version: 1 }]);
+  assert.deepEqual(desktop.sent, phone.sent);
+  assert.deepEqual(other.sent, []);
+  assert.equal((await s.req("/sync/a/live")).status, 426);  // not a WebSocket
 });
 
 test("a new sync link is refused when the most are kept, unless some have gone unused long enough to drop", async (t) => {

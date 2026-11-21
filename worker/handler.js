@@ -11,6 +11,7 @@
 //                       (phones get it about 5 seconds later, time to lock the phone)
 //   GET  /api/sync/<id>  ->  { selected, bells, version }: a sync link's picks and lit bells, the same on every device
 //                        that opened it (js/sync.js); version 0 when nothing's saved yet. Open to anyone with the id.
+//   GET  /api/sync/<id>/live  (a WebSocket)  ->  each save of that link, { selected, bells, version }, as it happens
 //   PUT  /api/sync/<id>, { selected, bells }  ->  { version }: a device's picks or bells changed (503 if the program
 //                        already holds MAX_SYNC_GROUPS links and this would start a new one)
 //   POST /api/push/subscribe    Authorization: Bearer <token>, { subscription, bells }  ->  a phone turning on notifications
@@ -88,6 +89,13 @@ export async function handle(request, env, code, now = Date.now()) {
     if (kind === "custom" && !(typeof text === "string" && text.trim() && text.length <= 200)) return reply("What text?", 400);
     const res = await keeperFetch(env, "/test", { method: "POST", body: JSON.stringify({ key, kind, text }) });
     return reply(await res.text(), res.status, { "Content-Type": "application/json" });
+  }
+  // A page's live connection to its sync link: passed straight through, since a WebSocket answer can't be copied.
+  const liveId = url.pathname.match(/^\/api\/sync\/([^/]+)\/live$/)?.[1];
+  if (liveId != null && request.method === "GET") {
+    if (!SYNC_ID.test(liveId)) return reply("Not a sync link", 404);
+    if (request.headers.get("Upgrade") !== "websocket") return reply("Expected a WebSocket", 426);
+    return keeperFetch(env, `/sync/${liveId}/live`, { headers: { Upgrade: "websocket" } });
   }
   const syncId = url.pathname.match(/^\/api\/sync\/([^/]+)$/)?.[1];
   if (syncId != null && (request.method === "GET" || request.method === "PUT")) {

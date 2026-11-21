@@ -155,6 +155,16 @@ test("a token sends a game a test notification through the program", async () =>
   assert.equal(SCORES.asked.length, 3);
 });
 
+test("a sync link's live connection goes straight to the program; anything else asking for it is refused", async () => {
+  const SCORES = fakeScores(), withScores = { ...env, SCORES }, id = "AbCdEfGhIjKlMnOpQrSt_-";
+  const live = (path, headers = {}) => handle(new Request(`https://site.example${path}`, { headers }), withScores, "", NOW);
+  await live(`/api/sync/${id}/live`, { Upgrade: "websocket" });
+  assert.equal(SCORES.asked[0].url, `https://scorekeeper/sync/${id}/live`);
+  assert.equal((await live(`/api/sync/${id}/live`)).status, 426);
+  assert.equal((await live("/api/sync/short/live", { Upgrade: "websocket" })).status, 404);
+  assert.equal(SCORES.asked.length, 1);
+});
+
 test("every request to the program carries the deployed version, and one an outdated program refuses is tried again", async () => {
   let resets = 1;
   const asked = [];
