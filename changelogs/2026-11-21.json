@@ -1,0 +1,33 @@
+{
+  "title": "Game Tracker Live: what's new (Oct 24 - Nov 21)",
+  "since": "2026-10-24",
+  "through": "aeb13d8",
+  "features": [
+    { "title": "Sync devices", "text": "keep your picked games and lit bells the same on your phone and your computer. Open the gear menu, tap Sync devices, then Make a sync link, and open that link on your other devices (on an iPhone Home Screen app, paste it into the same box instead). From then on, add or remove a game or ring a bell on one and the others follow within a second or two. Treat the link like a password: anyone who has it can see and change your games. Stop syncing on any device leaves its games as they are.",
+      "shots": ["gear-menu:phone"] },
+    { "title": "Compact view", "text": "what used to be list view is now small cards, away over home, laid out in columns like the grid. A finished game's Recap sits right under its Final. In both views, cards drop to fewer columns (or stack) before a team name or the down & distance would get cut off.",
+      "shots": ["board-list", "board-list:phone"] },
+    { "title": "Turnover notifications", "text": "interceptions and lost fumbles now send a notification by default, on your phone or your computer, as soon as ESPN logs them. If a score or a turnover gets called back, you get a notification saying so. Red zone notifications are gone; they were more noise than news.",
+      "shots": [] },
+    { "title": "Save board as image shows the scores", "text": "live and finished games in the picture now show their scores and the clock, laid out like a scorebug.",
+      "shots": ["board-image"] },
+    { "title": "Select all for a conference or the Top 25", "text": "while Top 25 or a conference narrows the game list, Select all and Remove all pick or drop just those games.",
+      "shots": ["conference-filter"] },
+    { "title": "Happy Thanksgiving", "text": "through the Sunday after Thanksgiving, the logo and loading spinner are a drumstick with a football for the meat.",
+      "shots": ["thanksgiving:phone"] },
+    { "title": "Donate", "text": "the gear menu has a Donate to Save the Children link, going to the Game Tracker Live fundraiser page, which shows what's been raised. The site stays free; this is just a way to chip in for a good cause if you'd like.",
+      "shots": [] }
+  ],
+  "fixes": [
+    "Scores and clocks stay closer to real time when ESPN's scoreboard lags its own play-by-play, and a game shows Final as soon as it ends.",
+    "No more Halftime notification at the start of the 2nd quarter.",
+    "Light mode: picked games in the game list are plain stripes instead of blue.",
+    "Scrolling the game list with your finger no longer leaves a row grey.",
+    "Blocked notifications on Android get Android's steps to turn them back on.",
+    "The phone gear menu no longer repeats the view and light mode switches."
+  ],
+  "comingSoon": [
+    { "title": "Notification settings per game", "text": "a sliders button next to a game's bell to choose which notifications that game sends: scores, lead changes, turnovers, turnovers on downs, missed field goals, quarters and more.",
+      "shots": ["admin-notify-settings:phone"] }
+  ]
+}
