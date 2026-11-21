@@ -26,6 +26,8 @@ Scripts to use instead of redoing the work by hand (details in each file's heade
   page) or a site picture by path (`images/apple-touch-icon.png`). Only BB codes the forum supports (no [center] or [size];
   pictures as [timg]). Screenshots and BB code go to a temp dir for uploading to imgur by hand.
   Start `npm start` in the same shell command as `render`: a server left in the background died mid-run.
+- `scripts/measure-compact-fit.js`: the narrowest compact-view section for each column count with nothing cut off
+  (longest names, down & distance), mouse and touch; for the `.line-grid .cards` breakpoints in css/board.css.
 - `scripts/check-turnovers.mjs [league:eventId …]`: replays finished games' plays through the turnover notifications
   and prints what each would have sent next to ESPN's turnover drive results.
 - `scripts/check-local-admin.js`, `scripts/check-live-site.sh`: admin login against `wrangler dev`; the deployed site.

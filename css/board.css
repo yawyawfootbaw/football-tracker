@@ -17,12 +17,15 @@
 @container section (min-width: 1090px) { .compact .cards { --cols: 4; } }
 @container section (min-width: 1406px) { .compact .cards { --cols: 5; } }
 @container section (min-width: 1722px) { .compact .cards { --cols: 6; } }
-/* Compact view: live games are small cards too, so every section takes Final/Upcoming's columns. */
-@container section (min-width: 458px) { .line-grid .live .cards { --cols: 2; } }
-@container section (min-width: 774px) { .line-grid .live .cards { --cols: 3; } }
-@container section (min-width: 1090px) { .line-grid .live .cards { --cols: 4; } }
-@container section (min-width: 1406px) { .line-grid .live .cards { --cols: 5; } }
-@container section (min-width: 1722px) { .line-grid .live .cards { --cols: 6; } }
+/* Compact view: every section's cards (live ones too) are at least 296px wide, the room the longest names and down &
+   distance need (#25 UMASS ●, 88, "4th & 15 at UMASS 45"; scripts/measure-compact-fit.js) with the buttons showing
+   on a touch screen. n columns from 312n − 16. Every section gets the same columns, so they line up. */
+.line-grid .cards { --cols: 1; }
+@container section (min-width: 608px) { .line-grid .cards { --cols: 2; } }
+@container section (min-width: 920px) { .line-grid .cards { --cols: 3; } }
+@container section (min-width: 1232px) { .line-grid .cards { --cols: 4; } }
+@container section (min-width: 1544px) { .line-grid .cards { --cols: 5; } }
+@container section (min-width: 1856px) { .line-grid .cards { --cols: 6; } }
 .board-section { display: flex; align-items: center; gap: 10px; margin: 0 0 10px; color: var(--muted); font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }
 .card { position: relative; min-width: 0; background: var(--card); border: 1px solid var(--card-border); border-radius: 10px; padding: 12px; }
 .card.redzone { border-color: var(--red); }

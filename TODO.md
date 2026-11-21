@@ -10,6 +10,3 @@
     both.
 4. **Line-by-line code walkthrough.** Go through the code reviewing how readable it is to a person and whether its
     organization is intuitive.
-5. **Compact view: one column before anything gets cut off.** The 2-column breakpoint (css/board.css, the
-   `.line-grid .live .cards` container queries at 458px) is too narrow: switch to one column whenever two would
-   shorten team names or the down & distance.
