@@ -17,6 +17,8 @@ Scripts to use instead of redoing the work by hand (details in each file's heade
   top-level names, CSS classes/ids/variables/keyframes, storage keys). After every run, verify each hit by hand and
   look for misses, record the result in the script's "Track record" and fix what it got wrong. Drop the IN PROGRESS
   mark (here and in the script) once a few runs in a row need no corrections.
+- `scripts/splash-image.js [regular|thanksgiving|halloween]`: the Home Screen app's splash logo to
+  `previews/splash-<look>.png` (needs `npm start`).
 - `scripts/screenshot-matrix.js [state …]`: every feature state on desktop Chrome and iPhone WebKit, side by side in
   `previews/matrix/index.html` (needs `npm start` and `npx playwright install webkit`). `DEVICES=fold` shoots an
   unfolded foldable phone instead.

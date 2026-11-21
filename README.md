@@ -85,6 +85,7 @@ scripts/
   deploy.sh           deploys from this machine, then starts the program on the new code right away
   find-unused.js      lists code that looks unused, for review by hand
   forum-changelog.js  the forum's BB code changelog: commits to write notes from, then screenshots and BB code from changelogs/*.json
+  splash-image.js     the Home Screen app's splash logo as a picture, for each seasonal look
   screenshot-matrix.js  shoots every feature state on desktop and iPhone, side by side, for comparing them
   measure-board-fit.js  how wide each board section needs to be for n columns of cards (grid and compact view) without cutting off names or down & distance
   check-local-admin.js  logs in against the Worker running locally (wrangler dev), to check the admin login path
