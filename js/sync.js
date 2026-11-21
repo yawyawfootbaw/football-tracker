@@ -9,10 +9,10 @@
 // the server's copy is read when the page opens, when it comes back into view, and every SYNC_MS while it's showing.
 // Anyone with the link can see and change its picks, so the dialog says to treat it like a password.
 //
-// While it's being tried out, the menu item shows only with ?sync-devices in the address, or on a device already
-// syncing (so it can stop). ?sync=<id> links work either way.
+// While it's being tried out, the menu item shows only to a logged-in admin (showSyncMenu, from js/main.js), or on a
+// device already syncing (so it can stop). ?sync=<id> links work for anyone.
 
-import { ADMIN_URL, LINKED_GAMES, SYNC_MENU, SYNC_PARAM } from "./config.js";
+import { ADMIN_URL, LINKED_GAMES, SYNC_PARAM } from "./config.js";
 import { store } from "./store.js";
 import { state, onSelectionSaved } from "./state.js";
 import { onBellsSaved, applyBells } from "./notify.js";
@@ -172,6 +172,17 @@ function openDialog() {
   dialog.showModal();
 }
 
+/** Adds Sync devices to the gear menu (once). */
+export function showSyncMenu() {
+  if (menuItem) return;
+  menuItem = document.createElement("button");
+  menuItem.id = "sync-devices-item";
+  menuItem.innerHTML = `<span class="check">✓</span>Sync devices`;
+  menuItem.setAttribute("aria-pressed", !!syncId);
+  menuItem.addEventListener("click", openDialog);
+  document.getElementById("save-board").after(menuItem);
+}
+
 /** @param {{ redraw: () => void }} hooks  redraw: the board and the game list */
 export function initSync(hooks) {
   redraw = hooks.redraw;
@@ -180,13 +191,7 @@ export function initSync(hooks) {
 
   const saved = store.get("syncId");
   const syncing = SYNC_ID.test(saved ?? "");
-  if (SYNC_MENU || syncing || (SYNC_PARAM && SYNC_ID.test(SYNC_PARAM))) {
-    menuItem = document.createElement("button");
-    menuItem.id = "sync-devices-item";
-    menuItem.innerHTML = `<span class="check">✓</span>Sync devices`;
-    menuItem.addEventListener("click", openDialog);
-    document.getElementById("save-board").after(menuItem);
-  }
+  if (syncing || (SYNC_PARAM && SYNC_ID.test(SYNC_PARAM))) showSyncMenu();
   setSyncId(syncing ? saved : null);
   if (SYNC_PARAM) {
     const url = new URL(location.href);

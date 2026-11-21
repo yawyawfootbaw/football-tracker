@@ -4,8 +4,9 @@
 //
 // Usage: run `npx wrangler dev --port 8788 --persist-to /tmp/wrangler-state` (needs ADMIN_PASSWORD in .dev.vars, or
 // the API answers 401), then:
-//   node scripts/check-sync.js [screenshot-dir]
-// Prints each step's result. With a directory, saves the dialog in both states there.
+//   node scripts/check-sync.js <ADMIN_PASSWORD from .dev.vars> [screenshot-dir]
+// Prints each step's result. With a directory, saves the dialog in both states there. The password logs the first
+// browser in as the admin, since Sync devices is in the gear menu only for admins while it's tried out.
 
 const { chromium } = require("@playwright/test");
 const { cfbGames, nflGames, scoreboard } = require("../tests/fixtures");
@@ -13,7 +14,12 @@ const { cfbGames, nflGames, scoreboard } = require("../tests/fixtures");
 const CORS = { "Access-Control-Allow-Origin": "*" };
 
 const SITE = "http://localhost:8788";
-const shots = process.argv[2];
+const password = process.argv[2];
+const shots = process.argv[3];
+if (!password) {
+  console.error("usage: node scripts/check-sync.js <password from .dev.vars> [screenshot-dir]");
+  process.exit(1);
+}
 
 const picks = (page) => page.evaluate(() => JSON.parse(localStorage.getItem("selected") ?? "[]").sort());
 
@@ -34,8 +40,16 @@ const picks = (page) => page.evaluate(() => JSON.parse(localStorage.getItem("sel
       });
       return page;
     };
+    // Logs in as the admin (?admin, the password), then drops ?admin: the menu item shows for a logged-in admin either way.
+    const login = async (page) => {
+      await page.goto(`${SITE}/?admin`);
+      await page.fill("#admin-password", password);
+      await page.press("#admin-password", "Enter");
+      await page.waitForFunction(() => !!localStorage.getItem("adminToken") && localStorage.getItem("adminToken") !== "null", null, { timeout: 10000 });
+      await page.goto(SITE);
+    };
     const a = await open();
-    await a.goto(`${SITE}/?sync-devices`);
+    await login(a);
     await a.waitForSelector("#list input[type=checkbox]", { state: "attached", timeout: 20000 });
     const keys = await a.$$eval("#list input[data-key]", (els) => [...new Set(els.map((e) => e.dataset.key))].slice(0, 3));
     await a.evaluate((k) => { localStorage.setItem("selected", JSON.stringify([k])); }, keys[0]);
@@ -73,8 +87,8 @@ const picks = (page) => page.evaluate(() => JSON.parse(localStorage.getItem("sel
 
     if (shots) {
       const c = await open();
-      await c.goto(`${SITE}/?sync-devices`);
-      await c.waitForTimeout(1000);
+      await login(c);
+      await c.waitForTimeout(1500);
       await c.click("#settings");
       await c.click("#sync-devices-item");
       await c.locator("#sync-devices").screenshot({ path: `${shots}/sync-off.png` });

@@ -911,7 +911,7 @@ test.describe("bulk select in the game list", () => {
 test.describe("sync devices", () => {
   const SYNC = "AbCdEfGhIjKlMnOpQrSt_-";
 
-  test("a device that isn't syncing never asks the server, and its menu has no Sync devices without ?sync-devices", async ({ page }) => {
+  test("a device that isn't syncing never asks the server, and its menu has no Sync devices unless it's an admin's", async ({ page }) => {
     const state = await open(page, { storage: { selected: ["cfb:1"] } });
     await expect(card(page, "cfb:1")).toBeAttached();
     await expect(page.locator("#sync-devices-item")).toHaveCount(0);
@@ -921,7 +921,7 @@ test.describe("sync devices", () => {
   });
 
   test("making a link saves this device's games and bells under it and shows the link", async ({ page }) => {
-    const state = await open(page, { query: "?sync-devices", storage: { selected: ["cfb:1", "cfb:2"], notifyGames: ["cfb:2"] } });
+    const state = await open(page, { storage: { ...admin, selected: ["cfb:1", "cfb:2"], notifyGames: ["cfb:2"] } });
     await expect(card(page, "cfb:1")).toBeAttached();
     await page.locator("#settings").click();
     await page.locator("#sync-devices-item").click();
@@ -955,7 +955,7 @@ test.describe("sync devices", () => {
   });
 
   test("a link pasted into the dialog joins it; Stop syncing keeps the games", async ({ page }) => {
-    const state = await open(page, { query: "?sync-devices", storage: { selected: [] }, sync: { [SYNC]: { selected: ["cfb:2"], bells: [], version: 1 } } });
+    const state = await open(page, { storage: { ...admin, selected: [] }, sync: { [SYNC]: { selected: ["cfb:2"], bells: [], version: 1 } } });
     await page.locator("#settings").click();
     await page.locator("#sync-devices-item").click();
     await page.locator("#sync-devices .link-row input").fill("not a link");
